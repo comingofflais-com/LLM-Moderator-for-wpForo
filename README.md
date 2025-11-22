@@ -78,7 +78,7 @@ Administrators and Moderators can:
 
 ### API Response Format
 
-The AI expects responses in JSON format:
+The AI must respond in JSON format. Engineer the prompt to receive the response in valid JSON format.
 ```json
 {
   "type": "FLAG|OK|NSFW|SPAM",
@@ -136,7 +136,7 @@ The plugin creates a custom table `wp_wpforo_ai_muted_users` to track:
 
 ## Support
 
-For support and bug reports, please check the plugin documentation or contact the development team.
+For support and bug reports, please create an issue, or create a pull request.
 
 ## License
 
