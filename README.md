@@ -17,10 +17,10 @@ LLM Moderator for wpForo is a WordPress plugin that integrates AI-powered conten
 - **Content Cleanup**: Automatically handles unapproved content removal when users are unmuted
 - **Scheduled Maintenance**: Daily cleanup of expired mutes and orphaned records
 - **Premium**: Has an automatically updating premium version available for purchase that includes:
-   -  Essential "Moderator" usergroup members' control panel page for moderators to manage actions for AI muted users
-   - Easy Prompt panel to add llm prompts without having to modify source code
-   - Forum flood control and user post limit to stop excessive AI use
-- **Purchase the premium**: The purchase for the premium features will be available soon at https://comingofflais.com after we finish some primary tests for both the this and the premium versions. Your purchase supports me and my work.
+   - **Essential "Moderator" usergroup members' control panel** short-code page for your human moderators to manage admin page actions for AI muted users such as see muted user, un-mute muted users, view triggering post and approve, or delete it.
+   - **Easy Prompt panel** to help you create llm prompts with organized structure  
+   - **Forum flood control and user post limit** to stop excessive user posting resulting in excessive AI use
+- **Purchase the premium**: The purchase for the premium features will be available soon at https://comingofflais.com (after we finish some primary tests for both the this and the premium versions). Your purchase is greatly appreciated because it supports me and my work.
 ## Requirements
 
 - WordPress 5.0+
@@ -45,7 +45,7 @@ LLM Moderator for wpForo is a WordPress plugin that integrates AI-powered conten
    - Enable "allow as secondary group" option
    - Remove read access from private forums for this group
    - Customize permissions to restrict muted users as needed
-   - Monitor the muted users' table, remove users, or let the system auto un-mute users when their mute expires (this will delete any pending approval posts that initially got the user muted)
+   - See wpForo instructions on how to enable secondary groups for human moderators
 
 2. **OpenRouter API Configuration**:
    - Get an API key from [OpenRouter](https://openrouter.ai/)
@@ -77,13 +77,13 @@ The plugin automatically:
 - Appends custom message with formatting tags for AI type and reason to the end of the post/topic
 - Can be used to just append the custom message after AI analysis without forced muting
 - Automatically removes expired muted users if not un-muted by the human moderator before the mute expiration time, deletes any pending unapproved post/topic
-
+- Allow the moderators to monitor the muted users' table, remove users, or let the system auto un-mute users when their mute expires (this will delete any pending approval posts that initially got the user muted)
 ### Manual Management
 
 Administrators and Moderators can:
 - View all currently muted users
 - Manually unmute users ahead of schedule
-- Monitor moderation statistics
+- Easy navigate to the triggering post or topic
 - Run cleanup operations manually
 
 ### API Response Format
@@ -101,14 +101,15 @@ The AI must respond in JSON format. Engineer the prompt to receive the response 
 ### Main Configuration
 - **OpenRouter API Key**: Your OpenRouter API key for AI access
 - **Model Selection**: Choose your preferred AI model
-- **Default Mute Duration**: Fallback duration if flag type not specified
 - **Custom Prompt**: Override the default moderation prompt
-- **Append Message**: Optional append a custom message at the end of the post body
 
 ### Flag Types Management
 - Add/remove custom flag types
 - Set individual mute durations per flag type
 - Enable/disable flag types
+- Enable or disable automatic AI determined muting for the flag type
+- Set the mute duration or leave empty for fallback duration if flag type not specified
+- Optional append a custom message at the end of the post body with AI formatting tags {TYPE} and {RESPONSE}
 
 ## Database
 
@@ -136,7 +137,7 @@ The plugin creates a custom table `wp_wpforo_ai_muted_users` to track:
 
 ## Support
 
-For support and bug reports, please create an issue, or create a pull request, or contact @coliasq on .
+For support and bug reports, please create an issue, or create a pull request, or better contact @colaiasq on telegram or "Imre" from the https://comingofflais.com forum telegram group.
 
 ## License
 
