@@ -2,7 +2,7 @@
 AI-powered moderation using OpenRouter with standalone Moderator/Admin interface
 
 ## Description
-Important: This plugin is still in beta, the code is released for reference purposes only. Bug fixes are appreciated.
+Important: This plugin is still in beta. WARNING: The code uploaded is untested, and maybe pushed to github ahead of time without required testing as that takes time to do. The code is released for reference purposes only. Bug fixes are appreciated.
 
 LLM Moderator for wpForo is a WordPress plugin that integrates AI-powered content moderation with the wpForo forum plugin. It uses OpenRouter API to analyze forum posts and topics in real-time, automatically flagging inappropriate content and muting users who violate forum guidelines.
 
@@ -16,7 +16,11 @@ LLM Moderator for wpForo is a WordPress plugin that integrates AI-powered conten
 - **Append AI Message to post**: Append a custom string with {TYPE} and {REASON} formatting tags for AI response to the original post or topic after the edit 
 - **Content Cleanup**: Automatically handles unapproved content removal when users are unmuted
 - **Scheduled Maintenance**: Daily cleanup of expired mutes and orphaned records
-- **Premium**: Has an automatically updating premium version available for purchase that include: Essential "Moderator" usergroup members' control panel page for moderators to manage actions for AI muted users, Easy Prompt panel to add llm prompts without having to modify source code, Forum flood control and user post limit
+- **Premium**: Has an automatically updating premium version available for purchase that includes:
+   -  Essential "Moderator" usergroup members' control panel page for moderators to manage actions for AI muted users
+   - Easy Prompt panel to add llm prompts without having to modify source code
+   - Forum flood control and user post limit to stop excessive AI use
+- **Purchase the premium**: The purchase for the premium features will be available soon at https://comingofflais.com after we finish some primary tests for both the this and the premium versions. Your purchase supports me and my work.
 ## Requirements
 
 - WordPress 5.0+
@@ -41,16 +45,19 @@ LLM Moderator for wpForo is a WordPress plugin that integrates AI-powered conten
    - Enable "allow as secondary group" option
    - Remove read access from private forums for this group
    - Customize permissions to restrict muted users as needed
+   - Monitor the muted users' table, remove users, or let the system auto un-mute users when their mute expires (this will delete any pending approval posts that initially got the user muted)
 
 2. **OpenRouter API Configuration**:
    - Get an API key from [OpenRouter](https://openrouter.ai/)
    - Enter the API key in plugin settings
    - Configure your preferred AI model
+   - Free models are available on OpenRouter, but are not recommended. AI moderation is relatively cost effective.
 
 3. **Flag Types Setup**:
    - Configure different flag types (flag, nsfw, spam, etc.)
    - Set individual mute durations for each flag type
    - Enable/disable flag types as needed
+   - Append a custom message at the end of the post or topic body with formatting tags for AI response {TYPE} and {REASON}
 
 ### User Group Permissions
 
@@ -66,8 +73,10 @@ The plugin automatically manages permissions for different user roles:
 The plugin automatically:
 - Scans new posts and topics for guideline violations
 - Flags inappropriate content using AI analysis
-- Mutes users who violate guidelines for configured durations
-- Maintains a record of all moderation actions
+- Mutes users who violate guidelines for configured durations, and unapproves offending post/topic
+- Appends custom message with formatting tags for AI type and reason to the end of the post/topic
+- Can be used to just append the custom message after AI analysis without forced muting
+- Automatically removes expired muted users if not un-muted by the human moderator before the mute expiration time, deletes any pending unapproved post/topic
 
 ### Manual Management
 
@@ -82,8 +91,8 @@ Administrators and Moderators can:
 The AI must respond in JSON format. Engineer the prompt to receive the response in valid JSON format.
 ```json
 {
-  "type": "FLAG|OK|NSFW|SPAM",
-  "reason": "Brief explanation (20 words or less)"
+  "type": "FLAG",
+  "reason": "Brief explanation usually in 20 words or less (limit through prompt)"
 }
 ```
 
@@ -94,6 +103,7 @@ The AI must respond in JSON format. Engineer the prompt to receive the response 
 - **Model Selection**: Choose your preferred AI model
 - **Default Mute Duration**: Fallback duration if flag type not specified
 - **Custom Prompt**: Override the default moderation prompt
+- **Append Message**: Optional append a custom message at the end of the post body
 
 ### Flag Types Management
 - Add/remove custom flag types
@@ -122,22 +132,11 @@ The plugin creates a custom table `wp_wpforo_ai_muted_users` to track:
 
 ## Version History
 
-**Version 1.3**
-- Configurable flag types through admin panel
-- Enhanced type-based moderation system
-
-**Version 1.2**
-- Standalone admin menu item
-- Dedicated moderator interface
-
-**Version 1.1**
-- Moderator/Admin capability system
-- wpForo user group integration
-- Custom capability management
+**Still in beta**
 
 ## Support
 
-For support and bug reports, please create an issue, or create a pull request.
+For support and bug reports, please create an issue, or create a pull request, or contact @coliasq on .
 
 ## License
 
