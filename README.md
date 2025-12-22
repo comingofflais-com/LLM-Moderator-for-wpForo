@@ -17,14 +17,15 @@ LLM Moderator for wpForo is a WordPress plugin that integrates AI-powered conten
 - **Content Cleanup**: Automatically handles unapproved content removal when users are unmuted
 - **Scheduled Maintenance**: Daily cleanup of expired mutes and orphaned records
 - **Premium**: Has an automatically updating premium version available for purchase that includes:
-   - **Essential "Moderator" usergroup members' control panel** short-code page for your human moderators to manage admin page actions for AI muted users such as see muted user, un-mute muted users, view triggering post and approve, or delete it.
+   - **Essential "Moderator" usergroup members' control panel** short-code page for your human moderators to manage admin page actions for AI muted users such as view muted users, un-mute muted users, view triggering post and approve, or delete it.
    - **Easy Prompt panel** to help you create llm prompts with organized structure  
    - **Forum flood control and user post limit** to stop excessive user posting resulting in excessive AI use
-- **Purchase the premium**: The purchase for the premium features will be available soon at https://comingofflais.com (after we finish some primary tests for both the this and the premium versions). Your purchase is greatly appreciated because it supports me and my work.
+   **Purchase the premium**: The purchase for the premium features will be available soon at https://comingofflais.com (after we finish some primary tests for both the this and the premium versions). Your purchase is greatly appreciated because it supports me and my work.
+
 ## Requirements
 
 - WordPress 5.0+
-- wpForo plugin (active)
+- wpForo plugin (active) tested up to version 2.4.10
 - OpenRouter API key
 - PHP 7.4+
 
@@ -77,14 +78,14 @@ The plugin automatically:
 - Appends custom message with formatting tags for AI type and reason to the end of the post/topic
 - Can be used to just append the custom message after AI analysis without forced muting
 - Automatically removes expired muted users if not un-muted by the human moderator before the mute expiration time, deletes any pending unapproved post/topic
-- Allow the moderators to monitor the muted users' table, remove users, or let the system auto un-mute users when their mute expires (this will delete any pending approval posts that initially got the user muted)
+- Allow the admin to monitor (other human moderators can use the premium moderation page) the muted users' table, remove users, or let the system auto un-mute users when their mute expires (this will delete any pending approval posts that initially got the user muted)
 ### Manual Management
 
-Administrators and Moderators can:
+Administrators (and other human moderators with the premium plugin) can:
 - View all currently muted users
 - Manually unmute users ahead of schedule
 - Easy navigate to the triggering post or topic
-- Run cleanup operations manually
+- Run cleanup operations manually (admin only)
 
 ### API Response Format
 
@@ -95,6 +96,7 @@ The AI must respond in JSON format. Engineer the prompt to receive the response 
   "reason": "Brief explanation usually in 20 words or less (limit through prompt)"
 }
 ```
+WARNING: This plugin will not function correctly if you do not request the response in the eligible format or use an AI model, such as ChatGPT, that is incapable of responding according the the prompt.
 
 ## Settings
 
@@ -134,6 +136,35 @@ The plugin creates a custom table `wp_wpforo_ai_muted_users` to track:
 ## Version History
 
 **Still in beta**
+
+Version: 1.4.0
+Requires Plugins: wpforo
+Author: comingofflais.com
+
+Make sure to add: ["*","wordpress"] in php stubs for the IDE
+
+New in Version 1.4:
+- Enable or disable informational error logging from dashboard
+- Append a custom message at the bottom of the post with AI {TYPE} and {REASON} formatting tags. 
+
+New in Version 1.34:
+- Prompt types can now be set through the admin panel instead of hardcode predetermined types.
+- Updated logging
+
+New in Version 1.3:
+- Prompt types can now be set through the admin panel instead of hardcode predetermined types.
+- Updated logging
+
+New in Version 1.2:
+- Standalone admin menu item for AI Moderation
+- Dedicated interface accessible to Moderators and Admins
+
+New in Version 1.1:
+- Added moderator/Admin capability checking system
+- Custom capability 'wpforo_ai_can_access_moderation' for access control
+- Support for wpForo Moderator and Admin user groups
+- Automatic capability assignment to WordPress admin roles
+
 
 ## Support
 
