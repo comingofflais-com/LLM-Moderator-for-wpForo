@@ -8,14 +8,15 @@ LLM Moderator for wpForo is a WordPress plugin that integrates AI-powered conten
 
 ## Features
 
-- **AI-Powered Moderation**: Uses OpenRouter API with configurable AI models (default: deepseek/deepseek-chat-v3-0324:free)
+- **AI-Powered Moderation**: Uses OpenRouter API with configurable AI models (default: deepseek/deepseek-chat-v3.1)
 - **Flexible Flagging System**: Customizable flag types (flag, nsfw, spam, etc.) with individual mute durations
 - **User Management**: Automatically moves flagged users to a "Muted" wpForo group with customizable permissions
 - **Standalone Admin Interface**: Accessible to both Administrators and Moderators with proper capability controls
 - **Real-time Processing**: Analyzes posts and topics as they're submitted
+- **Append AI Message to post**: Append a custom string with {TYPE} and {REASON} formatting tags for AI response to the original post or topic after the edit 
 - **Content Cleanup**: Automatically handles unapproved content removal when users are unmuted
 - **Scheduled Maintenance**: Daily cleanup of expired mutes and orphaned records
-
+- **Premium**: Has an automatically updating premium version available for purchase that include: Essential "Moderator" usergroup members' control panel page for moderators to manage actions for AI muted users, Easy Prompt panel to add llm prompts without having to modify source code, Forum flood control and user post limit
 ## Requirements
 
 - WordPress 5.0+
