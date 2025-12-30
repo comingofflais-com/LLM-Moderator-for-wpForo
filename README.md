@@ -16,11 +16,14 @@ LLM Moderator for wpForo is a WordPress plugin that integrates AI-powered conten
 - **Append AI Message to post**: Append a custom string with {TYPE} and {REASON} formatting tags for AI response to the original post or topic after the edit 
 - **Content Cleanup**: Automatically handles unapproved content removal when users are unmuted
 - **Scheduled Maintenance**: Daily cleanup of expired mutes and orphaned records
-- **Premium**: Has an automatically updating premium version available for purchase that includes:
+
+## Premium (coming soon)
+**Premium**: Has an automatically updating premium version available for purchase that includes:
    - **Essential "Moderator" usergroup members' control panel** short-code page for your human moderators to manage admin page actions for AI muted users such as view muted users, un-mute muted users, view triggering post and approve, or delete it.
    - **Easy Prompt panel** to help you create llm prompts with organized structure  
    - **Forum flood control and user post limit** to stop excessive user posting resulting in excessive AI use
-   **Purchase the premium**: The purchase for the premium features will be available soon at https://comingofflais.com (after we finish some primary tests for both the this and the premium versions). Your purchase is greatly appreciated because it supports me and my work.
+   
+   **Purchase the premium**: The purchase for the premium features will be available soon (after we finish some primary tests for both the this and the premium versions). Your purchase is greatly appreciated because it supports me and my work.
 
 ## Screenshots
 ![Alt text](screenshots/2.png)
