@@ -22,6 +22,14 @@ LLM Moderator for wpForo is a WordPress plugin that integrates AI-powered conten
    - **Forum flood control and user post limit** to stop excessive user posting resulting in excessive AI use
    **Purchase the premium**: The purchase for the premium features will be available soon at https://comingofflais.com (after we finish some primary tests for both the this and the premium versions). Your purchase is greatly appreciated because it supports me and my work.
 
+## Screenshots
+![Alt text](screenshots/2.png)
+![Alt text](screenshots/3.png)
+![Alt text](screenshots/4.png)
+![Alt text](screenshots/5.png)
+![Alt text](screenshots/6.png)
+![Alt text](screenshots/7.png)
+
 ## Requirements
 
 - WordPress 5.0+
