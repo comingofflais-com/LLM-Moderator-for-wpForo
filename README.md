@@ -52,33 +52,35 @@ LLM Moderator for wpForo is a WordPress plugin that integrates AI-powered conten
    - Get an API key from [OpenRouter](https://openrouter.ai/)
    - Enter the API key in plugin settings
    - Configure your preferred AI model
-   - Free models are available on OpenRouter, but are not recommended. AI moderation is relatively cost effective.
+   - Free models are available on OpenRouter, but are not recommended. AI moderation is relatively cost efficient.
 
 3. **Flag Types Setup**:
    - Configure different flag types (flag, nsfw, spam, etc.)
    - Set individual mute durations for each flag type
    - Enable/disable flag types as needed
-   - Append a custom message at the end of the post or topic body with formatting tags for AI response {TYPE} and {REASON}
+   - Append a custom message at the end of the post or topic body with formatting tags {TYPE} and {REASON} for AI response 
 
 ### User Group Permissions
 
 The plugin automatically manages permissions for different user roles:
 - **Administrators**: Full access to all moderation features
 - **Moderators**: Access to muted users list and unmute capabilities
-- Custom wpForo user groups can be granted unmute permissions through the settings interface
 
 ## Usage
 
 ### Automatic Moderation
 
 The plugin automatically:
-- Scans new posts and topics for guideline violations
+- Scans new or edited posts and topics for guideline violations
 - Flags inappropriate content using AI analysis
-- Mutes users who violate guidelines for configured durations, and unapproves offending post/topic
-- Appends custom message with formatting tags for AI type and reason to the end of the post/topic
-- Can be used to just append the custom message after AI analysis without forced muting
-- Automatically removes expired muted users if not un-muted by the human moderator before the mute expiration time, deletes any pending unapproved post/topic
-- Allow the admin to monitor (other human moderators can use the premium moderation page) the muted users' table, remove users, or let the system auto un-mute users when their mute expires (this will delete any pending approval posts that initially got the user muted)
+- Mutes users who violate guidelines for configured durations, and unapproves offending post, topic, or edits. Muted users will see an error page that they are currently muted and can not post until their expiration time or the human moderators unmute them before then.
+- Allows the admin to set different mute expiration times for flag types 
+- Appends custom message with formatting tags for AI type and reason to the end of the post, topic, and edits after LLM analysis
+- Can be used to just append the custom message at the end of the post body after AI analysis (without forced muting)
+- Automatically removes expired muted users on cleanup if not previously un-muted by the human moderator before the mute expiration time. This deletes any pending unapproved post or topic
+- Allows the admin to monitor the muted users' table, remove users, or let the system auto un-mute users when their mute expires (other human moderators can use the essential premium moderation page feature)
+- Allows the web admin to customize the prompt to have the LLM select the most appropriate "type" tag for the post 
+
 ### Manual Management
 
 Administrators (and other human moderators with the premium plugin) can:
@@ -137,11 +139,14 @@ The plugin creates a custom table `wp_wpforo_ai_muted_users` to track:
 
 **Still in beta**
 
-Version: 1.4.0
+Version: 1.5.0
 Requires Plugins: wpforo
 Author: comingofflais.com
 
-Make sure to add: ["*","wordpress"] in php stubs for the IDE
+New in Version 1.5.0:
+- Major re-write of how the topic, post, topic-edit, post-edit are used with hooks.
+- Added a global dictionary for pending topics, posts, and edits, to preserve data-results through the moderation chain of events/hooks
+- Fixed bug where the LLM message could not be appended to post body
 
 New in Version 1.4:
 - Enable or disable informational error logging from dashboard
@@ -165,6 +170,10 @@ New in Version 1.1:
 - Support for wpForo Moderator and Admin user groups
 - Automatic capability assignment to WordPress admin roles
 
+## Other
+Wanted features (unknown timeline):
+- Provide a few preceding approved posts for LLM moderation for better context
+- Or provide the replying to post for LLM moderation  
 
 ## Support
 
