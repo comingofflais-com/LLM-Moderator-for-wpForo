@@ -3,14 +3,11 @@
 Plugin Name: LLM Moderator for wpForo
 Description: AI-powered moderation using OpenRouter with standalone Moderator/Admin interface
 
-Version: 1.5.2
+Version: 1.5.1
 Requires Plugins: wpforo
 Author: comingofflais.com
 
 Make sure to add: ["*","wordpress"] in php stubs for the IDE
-
-New in Version 1.5.2:
-- Quick fix of site breaking bug passed into prod.
 
 New in Version 1.5.1:
 - Removed the mandatory requirement for nonessential "Muted" usergroup, muting is done entirely through database, but usergroup option can remain for future option
@@ -209,16 +206,8 @@ function wpforo_ai_plugin_activation() {
     // Setup daily cleanup schedule
     wpforo_ai_schedule_cleanup();
     
-    // Check if WPForo is fully initialized before trying to manipulate permissions
-    if (function_exists('WPF') && isset(WPF()->usergroup)) {
-        // Add unmute permission to Administrator group (group ID 1)
-        wpforo_ai_manage_unmute_permission(1, 'add');
-    } else {
-        // Schedule the permission setup for later when WPForo is fully loaded
-        add_action('wpforo_after_init', function() {
-            wpforo_ai_manage_unmute_permission(1, 'add');
-        });
-    }
+    // Add unmute permission to Administrator group (group ID 1)
+    wpforo_ai_manage_unmute_permission(1, 'add');
 }
 
 function wpforo_ai_plugin_deactivation() {
@@ -867,7 +856,15 @@ function llm_settings_page(){
     
 
     
-   
+    // Check if "Muted" user group exists
+    $muted_group_exists = false;
+    $group_name = 'Muted';
+    $muted_group_id = check_wpforo_usergroup_exists( $group_name );
+
+    if ( $muted_group_id ) {
+        $muted_group_exists = true;
+    }
+    
     // Handle unmute action
     if (isset($_GET['action']) && $_GET['action'] === 'unmute' && isset($_GET['user_id']) && isset($_GET['_wpnonce'])) {
         if (wp_verify_nonce($_GET['_wpnonce'], 'wpforo_ai_unmute_' . $_GET['user_id'])) {
@@ -954,13 +951,31 @@ function llm_settings_page(){
                 <?php endif; ?>
             </div>
         
-                <div class="notice is-dismissible">
-                    <p><strong style="color: green;">✅. Is everything working fine?</strong> Let me know, you can reach out to me directly through telegram for the quickest response.
-                    <br>🤖 
+            <?php if ($muted_group_exists): ?>
+                <div class="notice notice-info is-dismissible">
+                    <p><strong style="color: green;">✅ Great. "Muted" usergroup exists! Now make sure all new and old private topics removed permission for this group.</strong> This is where muted users will be placed when flagged by the 🤖 AI moderation system.
+                    <br>🛑 Ensure "allow as secondary group" is checked for the "Muted" usergroup, and read access from private forums is removed by editing the private forum category/topics for this new group.
+                    <br>🛑❗IMPORTANT: Remove read access from private forums by editing the private forum category/topics for the "Muted" group, otherwise muted users will be able to see the contents of a private topic.
+                    <br>⚠️ Manually assigning users to the "Muted" usergroup does not mute then. This usergroup is not taken into consideration for automatic muting purposes, it is used simply for labeling purposes. The plugin places offending user in the "Muted" usergroup. It is not essential to have this group for the plugin to function, but creating it helps everyone see which users have been muted by its assignment. This feature may be required in the future, but currently is not recommended as it can introduce user level problems.
+                    <br>🐢 Moderation can be slower with this group enabled.
+                    <br>
                     <br>⚠️ When adding Moderators, place them in usergroup "Moderator".
                     <br>ℹ️ Follow wpForo's instructions on how to enable adding users to secondary usergroups before assigning moderators.
                     </p>
                 </div>
+            <?php else: ?>
+                <div class="notice is-dismissible">
+                    <p><strong style="color: red;">❌"Muted" usergroup not found.</strong> The plugin places offending user in the "Muted" usergroup.
+                    <br> ⚠️ It is not essential to have this group for the plugin to function, but creating it helps everyone see which users have been muted by its assignment. This feature may be required in the future, but currently is not recommended as it can introduce user level problems.
+                    <br> 🆗 It is OKAY to ignore error logs about the missing "Muted" usergroup, for now.
+                    <br> ⚙️ Setup: Create a "Muted" usergroup through the <u>wpForo->Usergroups</u> admin section of the WordPress admin panel. Make sure to "allow as secondary group" and customize user permissions. Recommended no permissions.
+                    <br> 🛑❗Then remove read and write access, especially remove read access from private topics, by editing the private forum category/topics per each topic for this new group.
+                    <br>
+                    <br>⚠️ INFO: When adding Moderators, place them in usergroup "Moderator".
+                    <br>ℹ️ Follow wpForo's instructions on how to enable adding users to secondary usergroups before assigning moderators.
+                    </p>
+                </div>
+            <?php endif; ?>
             
             <form method="post" action="">
             <?php wp_nonce_field('wpforo_ai_save_settings', 'wpforo_ai_nonce'); ?>
