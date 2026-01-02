@@ -3,18 +3,11 @@
 Plugin Name: LLM Moderator for wpForo
 Description: AI-powered moderation using OpenRouter with standalone Moderator/Admin interface
 
-Version: 1.5.1
+Version: 1.5.0
 Requires Plugins: wpforo
 Author: comingofflais.com
 
 Make sure to add: ["*","wordpress"] in php stubs for the IDE
-
-New in Version 1.5.1:
-- Removed the mandatory requirement for nonessential "Muted" usergroup, muting is done entirely through database, but usergroup option can remain for future option
-- Improved wpforo_ai_muted_users table creation and update
-- DRYer unmute of users, automatic unmute/removal
-- Cleanup of unused codes
- 
 
 New in Version 1.5.0:
 - Major re-write of how the topic, post, topic-edit, post-edit are used with hooks.
@@ -120,7 +113,7 @@ class WPFORO_AI_Utilities {
     }
     
     /**
-     * Checks if user is in "moderator" or "admin" usergroup, or has manage_options cap
+     * Check if user is moderator or admin
      * 
      * @param int|null $user_id User ID (null for current user)
      * @return bool True if user is moderator/admin
@@ -182,14 +175,11 @@ class WPFORO_AI_Utilities {
 function wpforo_ai_log_info($message) {
     WPFORO_AI_Utilities::wpforo_ai_log_info($message);
 }
-// should check type
+
 function wpforo_ai_should_check_type($type) {
     return WPFORO_AI_Utilities::should_check_type($type);
 }
 
-// should mute for type TODO also needs to be static, will likely be needed in future external upgrades
-
-// Check capabilities to control AI moderation features
 function wpforo_ai_is_moderator_or_admin($user_id = null) {
     return WPFORO_AI_Utilities::is_moderator_or_admin($user_id);
 }
@@ -197,11 +187,13 @@ function wpforo_ai_is_moderator_or_admin($user_id = null) {
 // Combined activation hook
 register_activation_hook(__FILE__, 'wpforo_ai_plugin_activation');
 register_deactivation_hook(__FILE__, 'wpforo_ai_plugin_deactivation');
-add_action('plugins_loaded', 'wpforo_ai_plugin_activation');
-function wpforo_ai_plugin_activation() {
 
-    // Create or upgrade muted users table
-    wpforo_ai_create_or_upgrade_muted_users_table();
+function wpforo_ai_plugin_activation() {
+    // Create muted users table
+    wpforo_ai_create_muted_users_table();
+    
+    // Upgrade table if it already exists
+    wpforo_ai_upgrade_muted_users_table();
     
     // Setup daily cleanup schedule
     wpforo_ai_schedule_cleanup();
@@ -229,23 +221,63 @@ function wpforo_ai_cleanup_capabilities() {
     }
 }
 
-function wpforo_ai_create_or_upgrade_muted_users_table() {
+function wpforo_ai_upgrade_muted_users_table() {
     global $wpdb;
     
     $table_name = $wpdb->prefix . 'wpforo_ai_muted_users';
-    wpforo_ai_log_info('WPForo AI Moderation: Using table: ' . $table_name);
     
-    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+    // Check if topic_id column exists
+    $columns = $wpdb->get_results("SHOW COLUMNS FROM $table_name");
+    $topic_id_exists = false;
+    $type_exists = false;
+    $reason_exists = false;
     
+    foreach ($columns as $column) {
+        if ($column->Field == 'topic_id') {
+            $topic_id_exists = true;
+        }
+        if ($column->Field == 'type') {
+            $type_exists = true;
+        }
+        if ($column->Field == 'reason') {
+            $reason_exists = true;
+        }
+    }
+    
+    if (!$topic_id_exists) {
+        // Add topic_id column
+        $wpdb->query("ALTER TABLE $table_name ADD topic_id BIGINT(20) UNSIGNED DEFAULT NULL AFTER post_id");
+        $wpdb->query("ALTER TABLE $table_name ADD KEY topic_id (topic_id)");
+        wpforo_ai_log_info('WPForo AI Moderation: Added topic_id column to muted users table');
+    }
+    
+    if (!$type_exists) {
+        // Add type column
+        $wpdb->query("ALTER TABLE $table_name ADD type VARCHAR(50) DEFAULT 'flag' AFTER expiration_time");
+        $wpdb->query("ALTER TABLE $table_name ADD KEY type (type)");
+        wpforo_ai_log_info('WPForo AI Moderation: Added type column to muted users table');
+    }
+    
+    if (!$reason_exists) {
+        // Add reason column
+        $wpdb->query("ALTER TABLE $table_name ADD reason TEXT DEFAULT NULL AFTER type");
+        wpforo_ai_log_info('WPForo AI Moderation: Added reason column to muted users table');
+    }
+}
+
+function wpforo_ai_create_muted_users_table() {
+    global $wpdb;
+    
+    $table_name = $wpdb->prefix . 'wpforo_ai_muted_users';
+    
+    wpforo_ai_log_info('WPForo AI Moderation: Using table: ' . $table_name . ' for muted user');
     $charset_collate = $wpdb->get_charset_collate();
     
-    // Define the COMPLETE desired table structure (current version)
     $sql = "CREATE TABLE $table_name (
         id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
         user_id BIGINT(20) UNSIGNED NOT NULL,
         post_id BIGINT(20) UNSIGNED DEFAULT NULL,
         topic_id BIGINT(20) UNSIGNED DEFAULT NULL,
-        is_topic TINYINT(1) DEFAULT 0,
         post_content TEXT DEFAULT NULL,
         mute_time DATETIME NOT NULL,
         expiration_time DATETIME NOT NULL,
@@ -257,28 +289,41 @@ function wpforo_ai_create_or_upgrade_muted_users_table() {
         KEY topic_id (topic_id),
         KEY type (type)
     ) $charset_collate;";
+
+    // Upgrade existing table if it exists
+    $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$table_name'") === $table_name;
+    if ($table_exists) {
+        wpforo_ai_upgrade_muted_users_table();
+        return true;
+    }
     
-    // dbDelta will:
-    // 1. Create table if it doesn't exist
-    // 2. If table exists, compare and add missing columns (topic_id, type, reason, is_topic)
-    // 3. Update column definitions if changed
-    // 4. Add missing indexes
-    $result = dbDelta($sql);
+    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
     
-    // Log results for debugging
-    wpforo_ai_log_info('WPForo AI Moderation: dbDelta result: ' . print_r($result, true));
-    
-    // Check if table exists
+    // Check if table already exists
     $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$table_name'") === $table_name;
     
     if (!$table_exists) {
-        error_log('WPForo AI Moderation: Table creation/upgrade failed');
-        return false;
+        error_log('WPForo AI Moderation: Table not found at wpforo_ai_create_muted_users_table. Attempting to create table: ' . $table_name);
+        $result = dbDelta($sql);
+        
+        // Log the result for debugging
+        if (is_wp_error($result)) {
+            error_log('WPForo AI Moderation: Table creation failed - ' . $result->get_error_message());
+            return false;
+        } else {
+        wpforo_ai_log_info('WPForo AI Moderation: Table creation result: ' . print_r($result, true));
+            
+            // Double check if table was actually created
+            $table_exists_after = $wpdb->get_var("SHOW TABLES LIKE '$table_name'") === $table_name;
+        error_log('WPForo AI Moderation: Table exists after creation attempt: ' . ($table_exists_after ? 'Yes' : 'No'));
+            
+            return $table_exists_after;
+        }
     }
     
+    wpforo_ai_log_info('WPForo AI Moderation: Table already exists');
     return true;
 }
-
 
 // Function to check if a flag type should mute users
 function wpforo_ai_should_mute_for_type($flag_type) {
@@ -302,9 +347,9 @@ function wpforo_ai_should_mute_for_type($flag_type) {
         }
     }
     
-    // Fallback to false if flag type not found or not enabled
-    error_log('WPForo AI Moderation: Unknown Error MUTE for type ' . $flag_type_lower . ' is not found in flag types. Returning false');
-    return false;
+    // Fallback to true if flag type not found or not enabled
+    error_log('WPForo AI Moderation: Unknown Error MUTE for type ' . $flag_type_lower . ' is not found in flag types. Returning true');
+    return true;
 }
 
 // Function to get mute duration for a specific flag type
@@ -333,9 +378,10 @@ function wpforo_ai_get_mute_duration_for_type($flag_type) {
 }
 
 // Function to add or update muted user in database
-function wpforo_ai_add_muted_user($user_id, $post_id = null, $post_content = null, $topic_id = null, $is_topic = false, $type = 'flag', $reason = '') {
+function wpforo_ai_add_muted_user($user_id, $post_id = null, $post_content = null, $topic_id = null, $type = 'flag', $reason = '') {
     global $wpdb;
     
+    global $wpforo_ai_config;
     $mute_duration = wpforo_ai_get_mute_duration_for_type($type);
     
     // If mute duration is less than 0, don't mute the user
@@ -364,7 +410,6 @@ function wpforo_ai_add_muted_user($user_id, $post_id = null, $post_content = nul
             array(
                 'post_id' => $post_id,
                 'topic_id' => $topic_id,
-                'is_topic' => $is_topic ? 1 : 0,
                 'post_content' => $post_content,
                 'mute_time' => $mute_time,
                 'expiration_time' => $expiration_time,
@@ -372,7 +417,7 @@ function wpforo_ai_add_muted_user($user_id, $post_id = null, $post_content = nul
                 'reason' => $reason
             ),
             array('user_id' => $user_id),
-            array('%d', '%d', '%d', '%s', '%s', '%s', '%s', '%s'),
+            array('%d', '%d', '%s', '%s', '%s', '%s', '%s'),
             array('%d')
         );
         
@@ -388,7 +433,6 @@ function wpforo_ai_add_muted_user($user_id, $post_id = null, $post_content = nul
                 'user_id' => $user_id,
                 'post_id' => $post_id,
                 'topic_id' => $topic_id,
-                'is_topic' => $is_topic ? 1 : 0,
                 'post_content' => $post_content,
                 'mute_time' => $mute_time,
                 'expiration_time' => $expiration_time,
@@ -396,7 +440,7 @@ function wpforo_ai_add_muted_user($user_id, $post_id = null, $post_content = nul
                 'reason' => $reason
             ),
             array(
-                '%d', '%d', '%d', '%d', '%s', '%s', '%s', '%s', '%s'
+                '%d', '%d', '%d', '%s', '%s', '%s', '%s', '%s'
             )
         );
         
@@ -414,7 +458,7 @@ function wpforo_ai_add_muted_user($user_id, $post_id = null, $post_content = nul
 function wpforo_ai_clean_expired_mutes() {
     global $wpdb;
     
-    wpforo_ai_log_info('WPForo AI Moderation: Starting automatic cron job for expired mutes cleanup');
+    wpforo_ai_log_info('WPForo AI Moderation: Starting wpforo_ai_clean_expired_mutes cleanup');
     
     $table_name = $wpdb->prefix . 'wpforo_ai_muted_users';
     $current_time = current_time('mysql');
@@ -441,13 +485,126 @@ function wpforo_ai_clean_expired_mutes() {
     if (!empty($expired_users)) {
         wpforo_ai_log_info('WPForo AI Moderation: Cleaning up ' . count($expired_users) . ' expired muted users');
         
-        foreach ($expired_users as $user) {            
-            // Use the existing unmute function to handle all cleanup logic
-            // This eliminates code duplication for group removal, post/topic deletion, and database cleanup
-            wpforo_ai_unmute_user($user->user_id, true);
+        foreach ($expired_users as $user) {
+            wpforo_ai_log_info('WPForo AI Moderation: Processing expired muted user ID: ' . $user->user_id . ', Mute ID: ' . $user->id);
+            
+            // Remove user from wpForo muted group if wpForo is available
+            if (function_exists('WPF')) {
+                wpforo_ai_log_info('WPForo AI Moderation: WPF() function exists, checking for muted groups');
+                $usergroups = WPF()->usergroup->get_usergroups('full');
+                $muted_group_id = false;
+                
+                foreach ($usergroups as $group) {
+                    if (stripos($group['name'], 'Muted') !== false) {
+                        $muted_group_id = $group['groupid'];
+                        wpforo_ai_log_info('WPForo AI Moderation: Found muted group ID: ' . $muted_group_id);
+                        break;
+                    }
+                }
+                
+                if (!$muted_group_id) {
+                    error_log('WPForo AI Moderation: No muted group found in wpForo usergroups');
+                }
+                
+                if ($muted_group_id) {
+                    // Remove the muted group from the user's secondary groups
+                    $user_secondary_groups = WPF()->member->get_secondary_groupids($user->user_id, true);
+                    if (is_array($user_secondary_groups) && in_array($muted_group_id, $user_secondary_groups)) {
+                        $updated_groups = array_diff($user_secondary_groups, [$muted_group_id]);
+                        WPF()->member->set_secondary_groupids($user->user_id, $updated_groups);
+                        wpforo_ai_log_info('WPForo AI Moderation: Removed user ' . $user->user_id . ' from muted group');
+                    } else {
+                        wpforo_ai_log_info('WPForo AI Moderation: User ' . $user->user_id . ' is not in muted group, skipping removal');
+                    }
+                }
+            }
+            
+            // Delete the post only if it still exists and is still unapproved
+            if ($user->post_id && function_exists('WPF')) {
+                wpforo_ai_log_info('WPForo AI Moderation: Checking post ' . $user->post_id . ' during cleanup for user ' . $user->user_id);
+                
+                // Check if post still exists and is unapproved (status = 1)
+                $post = WPF()->db->get_row($wpdb->prepare(
+                    "SELECT status FROM " . WPF()->tables->posts . " WHERE postid = %d",
+                    $user->post_id
+                ));
+                
+                if ($post) {
+                    wpforo_ai_log_info('WPForo AI Moderation: Post ' . $user->post_id . ' found with status: ' . $post->status);
+                    
+                    if ($post->status == 1) {
+                        // Post exists and is still unapproved, delete it
+                        $delete_result = WPF()->db->delete(
+                            WPF()->tables->posts,
+                            array('postid' => $user->post_id),
+                            array('%d')
+                        );
+                        
+                        if ($delete_result) {
+                            wpforo_ai_log_info('WPForo AI Moderation: Successfully deleted unapproved post ' . $user->post_id . ' for expired muted user ' . $user->user_id);
+                        } else {
+                            error_log('WPForo AI Moderation: Failed to delete post ' . $user->post_id . ' for user ' . $user->user_id . ', Error: ' . WPF()->db->last_error);
+                        }
+                    } else {
+                        wpforo_ai_log_info('WPForo AI Moderation: Post ' . $user->post_id . ' was approved (status: ' . $post->status . '), not deleting for user ' . $user->user_id);
+                    }
+                } else {
+                    wpforo_ai_log_info('WPForo AI Moderation: Post ' . $user->post_id . ' no longer exists for user ' . $user->user_id);
+                }
+            } else if ($user->post_id) {
+                wpforo_ai_log_info('WPForo AI Moderation: WPF() not available, cannot check post ' . $user->post_id . ' for user ' . $user->user_id);
+            }
+            
+            // Delete the topic only if it still exists, is still unapproved, and user was muted for a topic
+            if ($user->topic_id && function_exists('WPF')) {
+                wpforo_ai_log_info('WPForo AI Moderation: Checking topic ' . $user->topic_id . ' for cleanup for user ' . $user->user_id);
+                
+                // Check if topic still exists and is unapproved (status = 1)
+                $topic = WPF()->db->get_row($wpdb->prepare(
+                    "SELECT status FROM " . WPF()->tables->topics . " WHERE topicid = %d",
+                    $user->topic_id
+                ));
+                
+                if ($topic) {
+                    wpforo_ai_log_info('WPForo AI Moderation: Topic ' . $user->topic_id . ' found with status: ' . $topic->status);
+                    
+                    if ($topic->status == 1) {
+                        // Topic exists and is still unapproved, delete it and all its posts
+                        // First delete all posts in the topic
+                        $posts_deleted = WPF()->db->delete(
+                            WPF()->tables->posts,
+                            array('topicid' => $user->topic_id),
+                            array('%d')
+                        );
+                        
+                        // Then delete the topic itself
+                        $topic_deleted = WPF()->db->delete(
+                            WPF()->tables->topics,
+                            array('topicid' => $user->topic_id),
+                            array('%d')
+                        );
+                        
+                        if ($topic_deleted) {
+                wpforo_ai_log_info('WPForo AI Moderation: Successfully deleted unapproved topic ' . $user->topic_id . ' and ' . $posts_deleted . ' posts for expired muted user ' . $user->user_id);
+                            
+                            // Delete topic subscriptions after successful topic deletion
+                            $subscriptions_deleted = WPF()->sbscrb->delete( [ 'type' => 'topic', 'itemid' => $user->topic_id ] );
+                            wpforo_ai_log_info('WPForo AI Moderation: Deleted ' . $subscriptions_deleted . ' subscriptions for topic ' . $user->topic_id);
+                        } else {
+                            error_log('WPForo AI Moderation: Failed to delete topic ' . $user->topic_id . ' for user ' . $user->user_id . ', Error: ' . WPF()->db->last_error);
+                        }
+                    } else {
+                        wpforo_ai_log_info('WPForo AI Moderation: Topic ' . $user->topic_id . ' was approved (status: ' . $topic->status . '), not deleting for user ' . $user->user_id);
+                    }
+                } else {
+                    wpforo_ai_log_info('WPForo AI Moderation: Topic ' . $user->topic_id . ' no longer exists for user ' . $user->user_id);
+                }
+            } else if ($user->topic_id) {
+                wpforo_ai_log_info('WPForo AI Moderation: WPF() not available, cannot check topic ' . $user->topic_id . ' for user ' . $user->user_id);
+            }
         }
         
-        // Needed for is_automatic_cleanup. Delete all expired records from muted users table (using same buffer for consistency)
+        // Delete all expired records from muted users table (using same buffer for consistency)
         $wpdb->query($wpdb->prepare(
             "DELETE FROM $table_name WHERE expiration_time <= %s OR expiration_time <= DATE_SUB(%s, INTERVAL 1 MINUTE)",
             $current_time,
@@ -580,7 +737,7 @@ function wpforo_ai_manage_unmute_permission($group_id, $action = 'add') {
         
         return true;
     } else {
-        error_log('WPForo AI Moderation: Failed to update wpforo db group ' . $group_id);
+        error_log('WPForo AI Moderation: Failed to update group ' . $group_id);
         return false;
     }
 }
@@ -734,14 +891,12 @@ function llm_settings_page(){
         echo '<li>Advanced flood control system</li>';
         echo '</ul>';
         echo '<p><strong>Get it now at: <a href="https://insertmywebsitehere.com/shop" target="_blank" style="color: #0073aa; text-decoration: underline;">insertmywebsitehere.com/shop</a></strong></p>';
-        echo '<p>🛑❗Note non-admin level users in the "Moderator" usergroup can only unmute if premium is purchased. Premium includes the human moderator shortcode [wpforo_ai_moderator] to create either the moderation control page or control panel for your moderators.</p>';
         echo '<p>Features automatic new version upgrade notification in Dashboard -> Plugins</p>';
-        echo '<p>🤖 Your active participation in development is greatly appreciated. Check out the repository on Github <a href="https://github.com/comingofflais-com/LLM-Moderator-for-wpForo" target="_blank" style="color: #0073aa; text-decoration: underline;">https://github.com/comingofflais-com/LLM-Moderator-for-wpForo</a>. Enjoy the moderation features!</p>';
         echo '</div>';
     } else {
         echo '<div class="notice notice-success is-dismissible" style="border-left-color: #46b450; background: #f0fff0; padding: 15px; margin: 20px 0;">';
         echo '<h3 style="margin-top: 0; color: #46b450;">🎉 Thank You for Using Premium!</h3>';
-        echo '<p>🤖 Your active participation in development is greatly appreciated. Check out the repository on Github <a href="https://github.com/comingofflais-com/LLM-Moderator-for-wpForo" target="_blank" style="color: #0073aa; text-decoration: underline;">https://github.com/comingofflais-com/LLM-Moderator-for-wpForo</a>. Enjoy the extra moderation features!</p>';
+        echo '<p>🤖 Your active participation in development is greatly appreciated. Enjoy the enhanced moderation features!</p>';
         echo '</div>';
     }
     
@@ -859,9 +1014,9 @@ function llm_settings_page(){
     // Check if "Muted" user group exists
     $muted_group_exists = false;
     $group_name = 'Muted';
-    $muted_group_id = check_wpforo_usergroup_exists( $group_name );
+    $group_id = check_wpforo_usergroup_exists( $group_name );
 
-    if ( $muted_group_id ) {
+    if ( $group_id ) {
         $muted_group_exists = true;
     }
     
@@ -952,28 +1107,12 @@ function llm_settings_page(){
             </div>
         
             <?php if ($muted_group_exists): ?>
-                <div class="notice notice-info is-dismissible">
-                    <p><strong style="color: green;">✅ Great. "Muted" usergroup exists! Now make sure all new and old private topics removed permission for this group.</strong> This is where muted users will be placed when flagged by the 🤖 AI moderation system.
-                    <br>🛑 Ensure "allow as secondary group" is checked for the "Muted" usergroup, and read access from private forums is removed by editing the private forum category/topics for this new group.
-                    <br>🛑❗IMPORTANT: Remove read access from private forums by editing the private forum category/topics for the "Muted" group, otherwise muted users will be able to see the contents of a private topic.
-                    <br>⚠️ Manually assigning users to the "Muted" usergroup does not mute then. This usergroup is not taken into consideration for automatic muting purposes, it is used simply for labeling purposes. The plugin places offending user in the "Muted" usergroup. It is not essential to have this group for the plugin to function, but creating it helps everyone see which users have been muted by its assignment. This feature may be required in the future, but currently is not recommended as it can introduce user level problems.
-                    <br>🐢 Moderation can be slower with this group enabled.
-                    <br>
-                    <br>⚠️ When adding Moderators, place them in usergroup "Moderator".
-                    <br>ℹ️ Follow wpForo's instructions on how to enable adding users to secondary usergroups before assigning moderators.
-                    </p>
+                <div class="notice notice-success is-dismissible">
+                    <p><strong style="color: green;">✅ Great. "Muted" usergroup exists!</strong> This is where muted users will be placed when flagged by the 🤖 AI moderation system.<br>🛑Ensure "allow as secondary group" is checked for the "Muted" usergroup, and read access from private forums is removed by editing the private forum category/topics for this new group. When adding Moderators, place them in usergroup "Moderator".<br>❗IMPORTANT: Remove read access from private forums by editing the private forum category/topics for the "Muted" group, otherwise muted users will be able to see the contents of a private topic.<br>ℹ️ Follow wpForo's instructions on how to enable adding users to secondary usergroups before assigning moderators. </p>
                 </div>
             <?php else: ?>
-                <div class="notice is-dismissible">
-                    <p><strong style="color: red;">❌"Muted" usergroup not found.</strong> The plugin places offending user in the "Muted" usergroup.
-                    <br> ⚠️ It is not essential to have this group for the plugin to function, but creating it helps everyone see which users have been muted by its assignment. This feature may be required in the future, but currently is not recommended as it can introduce user level problems.
-                    <br> 🆗 It is OKAY to ignore error logs about the missing "Muted" usergroup, for now.
-                    <br> ⚙️ Setup: Create a "Muted" usergroup through the <u>wpForo->Usergroups</u> admin section of the WordPress admin panel. Make sure to "allow as secondary group" and customize user permissions. Recommended no permissions.
-                    <br> 🛑❗Then remove read and write access, especially remove read access from private topics, by editing the private forum category/topics per each topic for this new group.
-                    <br>
-                    <br>⚠️ INFO: When adding Moderators, place them in usergroup "Moderator".
-                    <br>ℹ️ Follow wpForo's instructions on how to enable adding users to secondary usergroups before assigning moderators.
-                    </p>
+                <div class="notice notice-error is-dismissible">
+                    <p><strong style="color: red;">❌ CRITICAL: "Muted" usergroup not found!</strong> The plugin cannot function properly without the wpForo user group "Muted". <br> Create a "Muted" usergroup through the <u>wpForo->Usergroups</u> admin section of the WordPress admin panel. Make sure to "allow as secondary group" and customize user permissions as needed.<br>Then remove read access from private forums by editing the private forum category/topics for this new group.</p>
                 </div>
             <?php endif; ?>
             
@@ -1159,7 +1298,7 @@ function llm_settings_page(){
                 wpforo_ai_log_info('WPForo AI Moderation: Table does not exist, attempting to create it...');
                 
                 // Try to create the table
-                $creation_result = wpforo_ai_create_or_upgrade_muted_users_table();
+                $creation_result = wpforo_ai_create_muted_users_table();
                 $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$table_name'") === $table_name;
                 
                 if ($table_exists) {
@@ -1187,11 +1326,8 @@ function llm_settings_page(){
     <?php
 }
 
-/* Function to unmute a user and delete their trigger post if unapproved. 
-* @param $is_automatic_cleanup does not remove the user from db, requires a db query afterward to remove all expired users.
-* 
-*/
-function wpforo_ai_unmute_user($user_id, $is_automatic_cleanup = false) {
+// Function to unmute a user and delete their trigger post if unapproved
+function wpforo_ai_unmute_user($user_id) {
     global $wpdb;
     
     $table_name = $wpdb->prefix . 'wpforo_ai_muted_users';
@@ -1226,12 +1362,7 @@ function wpforo_ai_unmute_user($user_id, $is_automatic_cleanup = false) {
                     // Remove the muted group from the secondary groups array
                     $updated_groups = array_diff($user_secondary_groups, [$muted_group_id]);
                     WPF()->member->set_secondary_groupids($user_id, $updated_groups);
-                    if (!$is_automatic_cleanup) {
-                        wpforo_ai_log_info('WPForo AI Moderation: Manually removed user ' . $user_id . ' from muted group ' . $muted_group_id);
-                    }
-                    else {
-                        wpforo_ai_log_info('WPForo AI Moderation: Automatic cleanup removed user ' . $user_id . ' from muted group ' . $muted_group_id);
-                    }
+                    wpforo_ai_log_info('WPForo AI Moderation: Manually removed user ' . $user_id . ' from muted group ' . $muted_group_id);
                 } else {
                     wpforo_ai_log_info('WPForo AI Moderation: User ' . $user_id . ' is not in muted group ' . $muted_group_id . ', skipping removal');
                 }
@@ -1255,7 +1386,7 @@ function wpforo_ai_unmute_user($user_id, $is_automatic_cleanup = false) {
                 array('postid' => $muted_user->post_id),
                 array('%d')
             );
-            wpforo_ai_log_info('WPForo AI Moderation: Deleted unapproved post ' . $muted_user->post_id . ' for unmuted user ' . $user_id);
+            wpforo_ai_log_info('WPForo AI Moderation: Manually deleted unapproved post ' . $muted_user->post_id . ' for unmuted user ' . $user_id);
         } else if ($post) {
             wpforo_ai_log_info('WPForo AI Moderation: Post ' . $muted_user->post_id . ' was approved, not deleting for user ' . $user_id);
         } else {
@@ -1264,7 +1395,7 @@ function wpforo_ai_unmute_user($user_id, $is_automatic_cleanup = false) {
     }
     
     // Delete the topic only if it still exists, is still unapproved, and user was muted for a topic
-    if ($muted_user->is_topic == 1 && $muted_user->topic_id && function_exists('WPF')) {
+    if ($muted_user->topic_id && function_exists('WPF')) {
         wpforo_ai_log_info('WPForo AI Moderation: Checking topic ' . $muted_user->topic_id . ' for cleanup for user ' . $user_id);
         
         // Check if topic still exists and is unapproved (status = 1)
@@ -1293,7 +1424,7 @@ function wpforo_ai_unmute_user($user_id, $is_automatic_cleanup = false) {
                 );
                 
                 if ($topic_deleted) {
-                    wpforo_ai_log_info('WPForo AI Moderation: Deleted unapproved topic ' . $muted_user->topic_id . ' and ' . $posts_deleted . ' posts for unmuted user ' . $user_id);
+                    wpforo_ai_log_info('WPForo AI Moderation: Manually deleted unapproved topic ' . $muted_user->topic_id . ' and ' . $posts_deleted . ' posts for unmuted user ' . $user_id);
                     
                     // Delete topic subscriptions after successful topic deletion
                     $subscriptions_deleted = WPF()->sbscrb->delete( [ 'type' => 'topic', 'itemid' => $muted_user->topic_id ] );
@@ -1308,16 +1439,15 @@ function wpforo_ai_unmute_user($user_id, $is_automatic_cleanup = false) {
             wpforo_ai_log_info('WPForo AI Moderation: Topic ' . $muted_user->topic_id . ' no longer exists for user ' . $user_id);
         }
     }
-    // Delete the individual record from muted users table
-    if (!$is_automatic_cleanup) {
-        $wpdb->delete(
-            $table_name,
-            array('user_id' => $user_id),
-            array('%d')
-        );
-        wpforo_ai_log_info('WPForo AI Moderation: Successfully unmuted user ' . $user_id); 
-    }
-
+    
+    // Delete the record from muted users table
+    $wpdb->delete(
+        $table_name,
+        array('user_id' => $user_id),
+        array('%d')
+    );
+    
+    wpforo_ai_log_info('WPForo AI Moderation: Successfully unmuted user ' . $user_id);
     return true;
 }
 
@@ -1398,11 +1528,9 @@ function wpforo_ai_display_muted_users() {
                 <tr>
                     <th>User ID</th>
                     <th>Username</th>
-                    <th>Topic ID</th>
                     <th>Post ID</th>
-                    <th>Type</th>
                     <th>Post Content Preview</th>
-                    <th>Flag Type</th>
+                    <th>Type</th>
                     <th>Reason</th>
                     <th>Mute Time</th>
                     <th>Expiration Time</th>   
@@ -1424,9 +1552,7 @@ function wpforo_ai_display_muted_users() {
                                 }
                                 ?>
                             </td>
-                            <td><?php echo $muted_user->topic_id ? esc_html($muted_user->topic_id) : 'N/A'; ?></td>
                             <td><?php echo $muted_user->post_id ? esc_html($muted_user->post_id) : 'N/A'; ?></td>
-                            <td><?php echo $muted_user->is_topic ? esc_html($muted_user->is_topic == 1 ? 'Topic' : 'Post') : 'N/A'; ?></td>
                             <td>
                                 <?php 
                                 if ($muted_user->post_content) {
@@ -1529,6 +1655,123 @@ function wpforo_ai_display_muted_users() {
     <?php
 }
 
+// Function to display muted users table with pagination
+function wpforo_ai_display_muted_users_table() {
+    global $wpdb;
+    
+    $table_name = $wpdb->prefix . 'wpforo_ai_muted_users';
+    
+    // Setup pagination
+    $per_page = 100;
+    $current_page = isset($_GET['paged']) ? max(1, intval($_GET['paged'])) : 1;
+    $offset = ($current_page - 1) * $per_page;
+    
+    // Get total count
+    $total_items = $wpdb->get_var("SELECT COUNT(*) FROM $table_name");
+    $total_pages = ceil($total_items / $per_page);
+    
+    // Get muted users for current page
+    $muted_users = $wpdb->get_results($wpdb->prepare(
+        "SELECT * FROM $table_name ORDER BY mute_time DESC LIMIT %d OFFSET %d",
+        $per_page,
+        $offset
+    ));
+    
+    ?>
+    <div class="wrap">
+        <h2>Muted Users</h2>
+        
+        <div class="tablenav top">
+            <div class="tablenav-pages">
+                <span class="displaying-num"><?php echo sprintf(_n('%s muted user', '%s muted users', $total_items), number_format_i18n($total_items)); ?></span>
+                <?php
+                if ($total_pages > 1) {
+                    echo paginate_links(array(
+                        'base' => add_query_arg('paged', '%#%'),
+                        'format' => '',
+                        'prev_text' => '&laquo;',
+                        'next_text' => '&raquo;',
+                        'total' => $total_pages,
+                        'current' => $current_page
+                    ));
+                }
+                ?>
+            </div>
+        </div>
+        
+        <table class="wp-list-table widefat fixed striped">
+            <thead>
+                <tr>
+                    <th>User ID</th>
+                    <th>Username</th>
+                    <th>Post ID</th>
+                    <th>Post Content Preview</th>
+                    <th>Type</th>
+                    <th>Reason</th>
+                    <th>Mute Time</th>
+                    <th>Expiration Time</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (!empty($muted_users)): ?>
+                    <?php foreach ($muted_users as $user): ?>
+                        <tr>
+                            <td><?php echo esc_html($user->user_id); ?></td>
+                            <td>
+                                <?php 
+                                $user_info = get_user_by('id', $user->user_id);
+                                if ($user_info) {
+                                    echo esc_html($user_info->user_login);
+                                } else {
+                                    echo '<span style="color: #999;">User not found</span>';
+                                }
+                                ?>
+                            </td>
+                            <td><?php echo $user->post_id ? esc_html($user->post_id) : 'N/A'; ?></td>
+                            <td>
+                                <?php 
+                                if ($user->post_content) {
+                                    echo esc_html(wp_trim_words($user->post_content, 10));
+                                } else {
+                                    echo 'N/A';
+                                }
+                                ?>
+                            </td>
+                            <td><?php echo esc_html($user->type ?: 'flag'); ?></td>
+                            <td><?php echo esc_html($user->reason ?: 'N/A'); ?></td>
+                            <td><?php echo esc_html(date('Y-m-d H:i', strtotime($user->mute_time))); ?></td>
+                            <td><?php echo esc_html(date('Y-m-d H:i', strtotime($user->expiration_time))); ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <tr>
+                        <td colspan="8" style="text-align: center;">No muted users found.</td>
+                    </tr>
+                <?php endif; ?>
+            </tbody>
+        </table>
+        
+        <div class="tablenav bottom">
+            <div class="tablenav-pages">
+                <span class="displaying-num"><?php echo sprintf(_n('%s muted user', '%s muted users', $total_items), number_format_i18n($total_items)); ?></span>
+                <?php
+                if ($total_pages > 1) {
+                    echo paginate_links(array(
+                        'base' => add_query_arg('paged', '%#%'),
+                        'format' => '',
+                        'prev_text' => '&laquo;',
+                        'next_text' => '&raquo;',
+                        'total' => $total_pages,
+                        'current' => $current_page
+                    ));
+                }
+                ?>
+            </div>
+        </div>
+    </div>
+    <?php
+}
+
 // === LLM API CALL ===
 function wpforo_ai_query_llm($api_key, $model, $prompt)
 {
@@ -1539,6 +1782,7 @@ function wpforo_ai_query_llm($api_key, $model, $prompt)
             'Content-Type' => 'application/json',
         ];
         
+        // Modify prompt to request JSON response
         $json_prompt = $prompt ;
         
         $body = json_encode([
@@ -1676,20 +1920,18 @@ function wpforo_ai_enqueue_admin_scripts($hook) {
             }
             
             // Add muted group as secondary usergroup to the user only if the flag type should mute
-            if (!empty($muted_group_id) && $user_id) {
-                wpforo_ai_log_info('WPForo AI Moderation: Adding user ' . $user_id . ' to muted group ' . $muted_group_id);
-                WPF()->member->append_secondary_groupids($user_id, [$muted_group_id]);   
-            }
-
-            if ($user_id) {
-                // Add or update user in muted users table - store topic ID for topic-level moderation
-                wpforo_ai_add_muted_user($user_id,
-                isset($topic['first_postid']) ? $topic['first_postid'] : null,
-                $content,
-                $topic['topicid'],
-                true, // is_topic = true for topic-level moderation
-                $type,
-                $reason);
+            if (!empty($muted_group_id)) {
+                if ($user_id) {
+                    WPF()->member->append_secondary_groupids($user_id, [$muted_group_id]);
+                    
+                    // Add or update user in muted users table - store topic ID for topic-level moderation
+                    wpforo_ai_add_muted_user($user_id,
+                    isset($topic['first_post']['postid']) ? $topic['first_post']['postid'] : null,
+                    $content,
+                    $topic['topicid'],
+                    $type,
+                    $reason);
+                }
             }
             
             // Update the topic status to unapproved in the database
@@ -1741,22 +1983,22 @@ function wpforo_ai_enqueue_admin_scripts($hook) {
             }
             
             // Add muted group as secondary usergroup to the user only if the flag type should mute
-            if (!empty($muted_group_id) && $user_id) {
-                wpforo_ai_log_info('WPForo AI Moderation: Adding user ' . $user_id . ' to muted group ' . $muted_group_id);
-                WPF()->member->append_secondary_groupids($user_id, [$muted_group_id]);
-            }
-            if ($user_id) {
-                // Add or update user in muted users table - store post ID for post-level moderation, topic_id for topic-level moderation
-                wpforo_ai_log_info('WPForo AI Moderation: Adding user to muted users table');
-                wpforo_ai_add_muted_user($user_id, 
-                $post['postid'],
-                $content,
-                $post['topicid'],
-                false, // is_topic = false for post-level moderation
-                $type,
-                $reason);
-            } else {
-                error_log('WPForo AI Moderation: No user ID available for muting');
+            if (!empty($muted_group_id)) {
+                if ($user_id) {
+                    wpforo_ai_log_info('WPForo AI Moderation: Adding user ' . $user_id . ' to muted group ' . $muted_group_id);
+                    WPF()->member->append_secondary_groupids($user_id, [$muted_group_id]);
+                    
+                    // Add or update user in muted users table - store post ID for post-level moderation, topic_id for topic-level moderation
+                    wpforo_ai_log_info('WPForo AI Moderation: Adding user to muted users table');
+                    wpforo_ai_add_muted_user($user_id, 
+                    $post['postid'],
+                    $content,
+                    null, // do not add topic_id for posts, otherwise it will try to delete posts on clean up.
+                    $type,
+                    $reason);
+                } else {
+                    error_log('WPForo AI Moderation: No user ID available for muting');
+                }
             }
             
             // Update the post status to unapproved in the database
@@ -1866,6 +2108,43 @@ function wpforo_ai_clear_moderation_data($key) {
     global $wpforo_ai_moderation_data;
     unset($wpforo_ai_moderation_data[$key]);
 }
+
+/**
+ * Run AI moderation on content (based on existing post moderation logic)
+ */
+function wpforo_ai_moderate_content($content, $context = 'post') {
+    $user = wp_get_current_user();
+    
+    // Skip moderation for administrators
+    if (in_array('administrator', (array) $user->roles)) {
+        wpforo_ai_log_info('WPForo AI Moderation: Skipping moderation for administrator user ID: ' . $user->ID);
+        return null;
+    }
+
+    $api_key = get_option('openrouter_api_key');
+    global $wpforo_ai_config;
+    $model = get_option('openrouter_model', $wpforo_ai_config['default_model']);
+    
+    if (empty($api_key)) {
+        error_log('WPForo AI Moderation: No API key found, skipping moderation');
+        return null;
+    }
+    
+    wpforo_ai_log_info('WPForo AI Moderation: API key found, proceeding with moderation for ' . $context);
+    
+    $custom_prompt = trim(get_option('wpforo_ai_moderation_prompt', ''));
+    $default_prompt = $wpforo_ai_config['default_prompt'];
+    $prompt = ($custom_prompt ?: $default_prompt) . "\n\n" . $content;
+    
+    wpforo_ai_log_info('WPForo AI Moderation: Sending content to LLM for moderation');
+    
+    $response = wpforo_ai_query_llm($api_key, $model, $prompt);
+    wpforo_ai_log_info('WPForo AI Moderation: LLM response: ' . ($response ? json_encode($response) : 'No response'));
+    
+    return $response;
+}
+
+
 
 // === TOPIC ADDITION HOOKS ===
 

@@ -44,10 +44,10 @@ LLM Moderator for wpForo is a WordPress plugin that integrates AI-powered conten
 
 ## Requirements
 
-- WordPress 5.0+
-- wpForo plugin (active) tested up to version 2.4.10
+- WordPress 6.0+
+- wpForo plugin (active) tested through to versions 2.4.8 - 2.4.13, currently version working on 2.4.13
 - OpenRouter API key
-- PHP 7.4+
+- PHP 8.0+
 
 ## Installation
 
@@ -55,30 +55,35 @@ LLM Moderator for wpForo is a WordPress plugin that integrates AI-powered conten
 2. Activate the plugin through the 'Plugins' menu in WordPress
 3. Navigate to **WPForo AI Moderation → Settings** in the admin menu
 4. Configure your OpenRouter API key and settings
-5. Set up the "Muted" user group in wpForo (see Configuration section)
+(Optional) Set up the "Muted" user group in wpForo (see Configuration section)
 
 ## Configuration
 
-### Essential Setup
+1. **Set up the Moderator user group**
+   - See wpForo instructions on how to enable secondary groups for human moderators
 
-1. **wpForo "Muted" User Group**: 
+   (Optional) **wpForo "Muted" User Group**: 
+    *This feature is not essential, and is reserved for future integrations. It is recommended to ignore setting this up presently, as doing so introduces more problems*
    - Create a "Muted" user group in wpForo admin area
    - Enable "allow as secondary group" option
    - Remove read access from private forums for this group
    - Customize permissions to restrict muted users as needed
-   - See wpForo instructions on how to enable secondary groups for human moderators
 
-2. **OpenRouter API Configuration**:
+### Essential Setup
+
+1. **OpenRouter API Configuration**:
    - Get an API key from [OpenRouter](https://openrouter.ai/)
    - Enter the API key in plugin settings
    - Configure your preferred AI model
    - Free models are available on OpenRouter, but are not recommended. AI moderation is relatively cost efficient.
 
-3. **Flag Types Setup**:
+2. **Flag Types Setup**:
    - Configure different flag types (flag, nsfw, spam, etc.)
    - Set individual mute durations for each flag type
    - Enable/disable flag types as needed
    - Append a custom message at the end of the post or topic body with formatting tags {TYPE} and {REASON} for AI response 
+
+
 
 ### User Group Permissions
 
@@ -110,15 +115,16 @@ Administrators (and other human moderators with the premium plugin) can:
 - Run cleanup operations manually (admin only)
 
 ### API Response Format
-
+## (Important!)
 The AI must respond in JSON format. Engineer the prompt to receive the response in valid JSON format.
+Example JSON response from OpenRouter AI:
 ```json
 {
   "type": "FLAG",
-  "reason": "Brief explanation usually in 20 words or less (limit through prompt)"
+  "reason": "Brief explanation usually in 20 words or less (limited through prompt)"
 }
 ```
-WARNING: This plugin will not function correctly if you do not request the response in the eligible format or use an AI model, such as ChatGPT, that is incapable of responding according the the prompt.
+WARNING: This plugin will not function correctly if you do not request the response in the eligible format or use an AI model that is incapable of responding according the the prompt. Deepseek v3.1 is recommended because it was used for testing, is guaranteed to work, and is very low cost.
 
 ## Settings
 
@@ -191,10 +197,23 @@ New in Version 1.1:
 - Automatic capability assignment to WordPress admin roles
 
 ## Other
-Wanted features (unknown timeline):
+Wanted features (unknown timeline) and community help requested :
+   **HELP WANTED!**
+   This is an opensource project with source available on github
+    
+   I, the developer, have put a lot of effort into creating this plugin, only to find out late that the gVectors team has been working on their on moderation plugin "for quite some time" but another post 9 months easlier . The result of the failure of communication means a significant amount of time, effort, and financial losses to me. 
+   Their features are marketed as cheaper, more feature rich, and with their own AI running on AWS. I disagree about costs as OpenRouter also has free and extremely low cost models. However, with a small update, it will be possible to use their AI with this plugin.
+   
+   The wpForo AI suit may have more features, but this plugin still solves the critical need for AI moderation, is effective, and free.
+   This plugin was an essential feature that was needed by my website. I created this with the intention to capitalize on a commercial opportunity, otherwise the project was completed very early on.
+   
+   I have requested a possible means to integrate my plugin wpForo features. I understand the frustration of both parties. It is important to note that all wordpress
+   plugins are released under open-source licenses, therefore, I had every right to make this.
+ 
 - Provide a few preceding approved posts for LLM moderation for better context
-- Or provide the replying to post for LLM moderation  
-
+- Or provide the replying to post for LLM moderation
+- Metrics, add flag type to a database after moderation. Use database to show full forum offenses over the past X time, or tagged post of the user. Categorize as "Mutable" or not. Clean old flag types. Charts possible after metrics integration.  (easy (?) doable)  
+- AI topic tags (easy)
 ## Support
 
 For support and bug reports, please create an issue, or create a pull request, or better contact @colaiasq on telegram or "Imre" from the https://comingofflais.com forum telegram group.
