@@ -200,7 +200,7 @@ function wpforo_ai_is_moderator_or_admin($user_id = null) {
 // Combined activation hook
 register_activation_hook(__FILE__, 'wpforo_ai_plugin_activation');
 register_deactivation_hook(__FILE__, 'wpforo_ai_plugin_deactivation');
-add_action('plugins_loaded', 'wpforo_ai_plugin_activation');
+add_action('after_setup_theme', 'wpforo_ai_plugin_activation');
 function wpforo_ai_plugin_activation() {
 
     // Create or upgrade muted users table
@@ -214,9 +214,11 @@ function wpforo_ai_plugin_activation() {
         // Add unmute permission to Administrator group (group ID 1)
         wpforo_ai_manage_unmute_permission(1, 'add');
     } else {
-        // Schedule the permission setup for later when WPForo is fully loaded
-        add_action('wpforo_after_init', function() {
-            wpforo_ai_manage_unmute_permission(1, 'add');
+        // Fallback: Try again on wp_loaded which fires after after_setup_theme
+        add_action('wp_loaded', function() {
+            if (function_exists('WPF') && isset(WPF()->usergroup)) {
+                wpforo_ai_manage_unmute_permission(1, 'add');
+            }
         });
     }
 }
