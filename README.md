@@ -116,12 +116,12 @@ Administrators (and other human moderators with the premium plugin) can:
 
 ### API Response Format
 ## (Important!)
-The AI must respond in JSON format. Engineer the prompt to receive the response in valid JSON format.
-Example JSON response from OpenRouter AI:
+The AI must respond in JSON format and it must contain the "type" key. Optionally the "reason" key. You must engineer the prompt to receive the response in valid JSON format.
+Example of what JSON format response looks like, that is expected from the OpenRouter LLM model:
 ```json
 {
   "type": "FLAG",
-  "reason": "Brief explanation usually in 20 words or less (limited through prompt)"
+  "reason": "This is a brief explanation usually in 20 words or less (limited through prompt)"
 }
 ```
 WARNING: This plugin will not function correctly if you do not request the response in the eligible format or use an AI model that is incapable of responding according the the prompt. Deepseek v3.1 is recommended because it was used for testing, is guaranteed to work, and is very low cost.
@@ -199,24 +199,28 @@ New in Version 1.1:
 ## Other
 Wanted features (unknown timeline) and community help requested :
    **HELP WANTED!**
-   This is an opensource project with source available on github
-    
-   I, the developer, have put a lot of effort into creating this plugin, only to find out late that the gVectors team has been working on their on moderation plugin "for quite some time" but another post 9 months easlier . The result of the failure of communication means a significant amount of time, effort, and financial losses to me. 
-   Their features are marketed as cheaper, more feature rich, and with their own AI running on AWS. I disagree about costs as OpenRouter also has free and extremely low cost models. However, with a small update, it will be possible to use their AI with this plugin.
+   This is an opensource project source available on github. This is built upon two different, changing, and evolving ecosystems. The wordpress, and more importantly wpForo.
+   This means that we need community updates to this free plugin to keep it running consistently with version updates. At the very least, I need you to join my telegram group to immediately update/notify me of changes, and provide the help.
+   I, the developer, have put a lot of effort into creating this plugin, wanting to capitalize on the lack of moderation opportunity, that is essential to my website, only to find out late that the gVectors team has been working on their on moderation plugin, development starting the same month. Had I known, I wouldn't have made this.
+   But maybe that is a good thing for you. And not only that, there maybe some considerable differences where this might be all you need. This is a low cost, user controlled, moderation system. The wpForo AI suit may have more features (?), but this plugin still solves the critical need for AI moderation, is effective, and free (or very low cost due to using OpenRouter for moderation), and gives control over your moderation needs.
+   I was told by the team that their system is an "Enterprise" level AI suit. They had a RAG based search system. This is a moderation only system, it does not robust provide search, but it still solves the issue of unwanted messages.
    
-   The wpForo AI suit may have more features, but this plugin still solves the critical need for AI moderation, is effective, and free.
-   This plugin was an essential feature that was needed by my website. I created this with the intention to capitalize on a commercial opportunity, otherwise the project was completed very early on.
+   However, it can do stuff beyond just moderation. This follows a "chain-of-responsibility" pattern, making it easy for developers to understand and expand upon, this is explained in more detail in the development section.  
+   In short, that means this plugin can be expanded do just about anything because of how data is passed between the "chain-points", which makes it rather easy to develop with it for moderation purposes. 
    
-   I have requested a possible means to integrate my plugin wpForo features. I understand the frustration of both parties. It is important to note that all wordpress
-   plugins are released under open-source licenses, therefore, I had every right to make this.
- 
-- Provide a few preceding approved posts for LLM moderation for better context
-- Or provide the replying to post for LLM moderation
-- Metrics, add flag type to a database after moderation. Use database to show full forum offenses over the past X time, or tagged post of the user. Categorize as "Mutable" or not. Clean old flag types. Charts possible after metrics integration.  (easy (?) doable)  
-- AI topic tags (easy)
+   As noted, I created this with the intention to capitalize on a commercial opportunity, otherwise the project was completed very early on. This means I had the idea to create "premium features".
+   So I encourage the community to also develop premium features, built upon this "backbone" plugin.
+
+Desired features (before you start, check our telegram and ask whether someone else is working on the same features):  
+- Code rail guards. If the official code is suddenly changed, try-catch blocks should be able to avert disaster, and simply stop moderation while sending the alert to the admin that an error has occurred and that they need to contact me, or other helpful developers from the telegram group. (Priority, can't have the code crash websites after wpForo or other updates)
+- Provide a few preceding approved posts for LLM moderation for better context. This likely requires the OpenRouter "memory" feature that is currently not supported (?, I may need an update if it is now), so there is no need to build it out now. The idea would be to get the AI to request back for more context, up to a few posts if it doesn't have enough certainty. Posts will need to be sent with user id, name, order, and post content. User will need to be kept in what's happening with moderation, can be shown why llm wants more context. (Some what time consuming and requires some LLM knowledge)
+- Metrics/Analytics, add data to a new database tables for stats. Use new tables to show full forum offenses over the past X time, or tagged post of the user. Categorize as "mute-able" or not, etc. Charts possible after metrics integration. Can it be done with one table, or does it need two? (easy (?) doable)  
+- AI topic tags (?). Have the llm provide a "tags" key in the json response, then use those to set topic tags. (easy)
+
+
 ## Support
 
-For support and bug reports, please create an issue, or create a pull request, or better contact @colaiasq on telegram or "Imre" from the https://comingofflais.com forum telegram group.
+For support and bug reports, please create an issue, or create a pull request, or best contact @colaiasq or "Imre" on the official telegram group https://t.me/wpforo_ai.
 
 ## License
 
