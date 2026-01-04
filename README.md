@@ -62,19 +62,15 @@ LLM Moderator for wpForo is a WordPress plugin that integrates AI-powered conten
 1. **Set up the Moderator user group**
    - See wpForo instructions on how to enable secondary groups for human moderators
 
-   (Optional) **wpForo "Muted" User Group**: 
-    *This feature is not essential, and is reserved for future integrations. It is recommended to ignore setting this up presently, as doing so introduces more problems*
-   - Create a "Muted" user group in wpForo admin area
-   - Enable "allow as secondary group" option
-   - Remove read access from private forums for this group
-   - Customize permissions to restrict muted users as needed
 
 ### Essential Setup
 
 1. **OpenRouter API Configuration**:
    - Get an API key from [OpenRouter](https://openrouter.ai/)
    - Enter the API key in plugin settings
-   - Configure your preferred AI model
+   - Configure your preferred AI model 
+      Single model: deepseek/deepseek-chat-v3.1
+      Model chain: deepseek/deepseek-chat-v3.1:x-ai/grok-beta:mistralai/mistral-7b-instruct
    - Free models are available on OpenRouter, but are not recommended. AI moderation is relatively cost efficient.
 
 2. **Flag Types Setup**:
@@ -87,9 +83,9 @@ LLM Moderator for wpForo is a WordPress plugin that integrates AI-powered conten
 
 ### User Group Permissions
 
-The plugin automatically manages permissions for different user roles:
+The plugin automatically manages permissions for different user roles. Capability can be assigned to different usergroups:
 - **Administrators**: Full access to all moderation features
-- **Moderators**: Access to muted users list and unmute capabilities
+- **Moderators**: Access to muted users list and unmute capabilities (Must be assigned)
 
 ## Usage
 
@@ -103,7 +99,7 @@ The plugin automatically:
 - Appends custom message with formatting tags for AI type and reason to the end of the post, topic, and edits after LLM analysis
 - Can be used to just append the custom message at the end of the post body after AI analysis (without forced muting)
 - Automatically removes expired muted users on cleanup if not previously un-muted by the human moderator before the mute expiration time. This deletes any pending unapproved post or topic
-- Allows the admin to monitor the muted users' table, remove users, or let the system auto un-mute users when their mute expires (other human moderators can use the essential premium moderation page feature)
+- Allows the admin to monitor the muted users' table, remove users, run cleanup, or see when next cleanup will occur (other human moderators can use the essential premium moderation page feature)
 - Allows the web admin to customize the prompt to have the LLM select the most appropriate "type" tag for the post 
 
 ### Manual Management
@@ -111,7 +107,7 @@ The plugin automatically:
 Administrators (and other human moderators with the premium plugin) can:
 - View all currently muted users
 - Manually unmute users ahead of schedule
-- Easy navigate to the triggering post or topic
+- Easy navigate to the triggering post or topic, and approve it
 - Run cleanup operations manually (admin only)
 
 ### API Response Format
@@ -124,13 +120,15 @@ Example of what JSON format response looks like, that is expected from the OpenR
   "reason": "This is a brief explanation usually in 20 words or less (limited through prompt)"
 }
 ```
-WARNING: This plugin will not function correctly if you do not request the response in the eligible format or use an AI model that is incapable of responding according the the prompt. Deepseek v3.1 is recommended because it was used for testing, is guaranteed to work, and is very low cost.
+WARNING: This plugin must request a JSON response with "type" key. The query to OpenRouter is expected to format to JSON.
 
 ## Settings
 
 ### Main Configuration
 - **OpenRouter API Key**: Your OpenRouter API key for AI access
 - **Model Selection**: Choose your preferred AI model
+      Single model: deepseek/deepseek-chat-v3.1
+      Model chain: deepseek/deepseek-chat-v3.1:x-ai/grok-beta:mistralai/mistral-7b-instruct
 - **Custom Prompt**: Override the default moderation prompt
 
 ### Flag Types Management
@@ -165,9 +163,15 @@ The plugin creates a custom table `wp_wpforo_ai_muted_users` to track:
 
 **Still in beta**
 
-Version: 1.5.0
+Version: 1.5.3
 Requires Plugins: wpforo
 Author: comingofflais.com
+
+New in Version 1.5.3:
+Works with wpForo 2.4.13, wordpress 6.9, php 8.2.27, MySQL 8.0.35
+- Major changes:
+- WPF based post and topic deletion and status change! (Deleting and status changing of first-post apparently applied to topic)
+- But broken AI notices
 
 New in Version 1.5.0:
 - Major re-write of how the topic, post, topic-edit, post-edit are used with hooks.
@@ -199,7 +203,7 @@ New in Version 1.1:
 ## Other
 Wanted features (unknown timeline) and community help requested :
    **HELP WANTED!**
-   This is an opensource project source available on github. This is built upon two different, changing, and evolving ecosystems. The wordpress, and more importantly wpForo.
+   This is an opensource project source available on github. This is built upon several different, changing, and evolving ecosystems. Most importantly wpForo.
    This means that we need community updates to this free plugin to keep it running consistently with version updates. At the very least, I need you to join my telegram group to immediately update/notify me of changes, and provide the help.
    I, the developer, have put a lot of effort into creating this plugin, wanting to capitalize on the lack of moderation opportunity, that is essential to my website, only to find out late that the gVectors team has been working on their on moderation plugin, development starting the same month. Had I known, I wouldn't have made this.
    But maybe that is a good thing for you. And not only that, there maybe some considerable differences where this might be all you need. This is a low cost, user controlled, moderation system. The wpForo AI suit may have more features (?), but this plugin still solves the critical need for AI moderation, is effective, and free (or very low cost due to using OpenRouter for moderation), and gives control over your moderation needs.
