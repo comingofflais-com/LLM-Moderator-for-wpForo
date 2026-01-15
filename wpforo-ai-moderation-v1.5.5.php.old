@@ -1,89 +1,70 @@
 <?php
-/**
- * Plugin Name: LLM Moderator for wpForo
- * Plugin URI: https://github.com/comingofflais-com/LLM-Moderator-for-wpForo
- * Description: AI-powered moderation using OpenRouter with standalone Moderator/Admin interface
- * Version: 1.5.6
- * Requires at least: 5.0
- * Requires PHP: 7.4
- * Requires Plugins: wpforo
- * Author: comingofflais.com
- * Author URI: https://comingofflais.com
- * License: GPL v2 or later
- * License URI: https://www.gnu.org/licenses/gpl-2.0.html
- * Text Domain: wpforo-ai-moderation
- * Domain Path: /languages
- *
- * Make sure to add: 
- * - ["*","wordpress"] in php stubs for the IDE
- * - No imports needed - use global namespace operator \ for global classes
- * - Example: $e = new \Exception(); $error = new \WP_Error();
- * - error logs include emojis 🤖 ❌ ⚠️ 💀 😵 ⏱️
-* 
-* 
-*
-*   New in Version 1.5.6:
-* - Sanitized $_GET, $_POST, $_SERVER,  
-* - In-house testing "Reset Defaults" populate function
-* 
-*   New in Version 1.5.5:
-* - More fixes, hard db rm again, and logging
-* - An automated testing system (not included)
-* - Metrics table, and basic metrics
-* - Batch cleanup of expired mutes and old flag metrics for large databases
-*
-*  New in Version 1.5.4:
-* - Async logging to be notified whether post or topic was successfully manipulated
-* - Error handling, prevent website from crashing if the version of wpForo is not compatible. 
-* - Try-Catch exception handling for everything, with logs. Lots of helpful emojis... more emojis still needed
-* - Organized code into sections, moved it together
-* - Still broken notifications, unable to implement better solution, but will need to try GUI next time
-* 
-* New in Version 1.5.3:
-* - Major changes:
-* - WPF based post and topic deletion and status change! (Deleting and status changing of first-post apparently applied to topic)
-* - But broken AI notices
-* 
-* New in Version 1.5.2:
-* - Quick fix of site breaking bug passed into prod.
-* 
-* New in Version 1.5.1:
-* - Removed the mandatory requirement for nonessential "Muted" usergroup, muting is done entirely through database, but usergroup option can remain for future option
-* - Improved wpforo_ai_muted_users table creation and update
-* - DRYer unmute of users, automatic unmute/removal
-* - Cleanup of unused codes
-*  
-* New in Version 1.5.0:
-* - Major re-write of how the topic, post, topic-edit, post-edit are used with hooks.
-* - Added a global dictionary for pending topics, posts, and edits, to preserve data-results through the moderation chain of events/hooks
-* 
-* New in Version 1.4:
-* - Append a custom message at the bottom of the post with AI {TYPE} and {REASON} formatting tags. 
-* 
-* New in Version 1.3:
-* - Prompt types can now be set through the admin panel instead of hardcode predetermined types.
-* - Updated logging
-* 
-* New in Version 1.2:
-* - Standalone admin menu item for AI Moderation
-* - Dedicated interface accessible to Moderators and Admins
-* 
-* New in Version 1.1:
-* - Added moderator/Admin capability checking system
-* - Custom capability 'wpforo_ai_can_access_moderation' for access control
-* - Support for wpForo Moderator and Admin user groups
-* - Automatic capability assignment to WordPress admin roles
+/*
+Plugin Name: LLM Moderator for wpForo
+Description: AI-powered moderation using OpenRouter with standalone Moderator/Admin interface
+
+Version: 1.5.5
+Requires Plugins: wpforo
+Author: comingofflais.com
+
+Make sure to add: 
+ - ["*","wordpress"] in php stubs for the IDE
+ - No imports needed - use global namespace operator \ for global classes
+ - Example: $e = new \Exception(); $error = new \WP_Error();
+ - error logs include emojis 🤖 ❌ ⚠️ 💀 😵 ⏱️
+
+  New in Version 1.5.5:
+- More fixes, hard db rm again, and logging
+- An automated testing system (not included)
+- Metrics table, and basic metrics
+- Batch cleanup of expired mutes and old flag metrics for large databases
+
+ New in Version 1.5.4:
+- Async logging to be notified whether post or topic was successfully manipulated
+- Error handling, prevent website from crashing if the version of wpForo is not compatible. 
+- Try-Catch exception handling for everything, with logs. Lots of helpful emojis... more emojis still needed
+- Organized code into sections, moved it together
+- Still broken notifications, unable to implement better solution, but will need to try GUI next time
+
+New in Version 1.5.3:
+- Major changes:
+- WPF based post and topic deletion and status change! (Deleting and status changing of first-post apparently applied to topic)
+- But broken AI notices
+
+New in Version 1.5.2:
+- Quick fix of site breaking bug passed into prod.
+
+New in Version 1.5.1:
+- Removed the mandatory requirement for nonessential "Muted" usergroup, muting is done entirely through database, but usergroup option can remain for future option
+- Improved wpforo_ai_muted_users table creation and update
+- DRYer unmute of users, automatic unmute/removal
+- Cleanup of unused codes
+ 
+New in Version 1.5.0:
+- Major re-write of how the topic, post, topic-edit, post-edit are used with hooks.
+- Added a global dictionary for pending topics, posts, and edits, to preserve data-results through the moderation chain of events/hooks
+
+New in Version 1.4:
+- Append a custom message at the bottom of the post with AI {TYPE} and {REASON} formatting tags. 
+
+New in Version 1.3:
+- Prompt types can now be set through the admin panel instead of hardcode predetermined types.
+- Updated logging
+
+New in Version 1.2:
+- Standalone admin menu item for AI Moderation
+- Dedicated interface accessible to Moderators and Admins
+
+New in Version 1.1:
+- Added moderator/Admin capability checking system
+- Custom capability 'wpforo_ai_can_access_moderation' for access control
+- Support for wpForo Moderator and Admin user groups
+- Automatic capability assignment to WordPress admin roles
 */
 
 // Required
 if (!defined('ABSPATH')) {
     exit; // Exit if accessed directly
-}
-
-// Load text domain for internationalization
-add_action('plugins_loaded', 'wpforo_ai_load_textdomain');
-function wpforo_ai_load_textdomain() {
-    load_plugin_textdomain('wpforo-ai-moderation', false, dirname(plugin_basename(__FILE__)) . '/languages');
 }
 
 // Configuration object for default values
@@ -200,9 +181,8 @@ function llm_settings_page(){
         // Handle permission management actions
         if (isset($_GET['action']) && isset($_GET['group_id']) && isset($_GET['_wpnonce'])) {
             $group_id = intval($_GET['group_id']);
-            $action = sanitize_text_field($_GET['action']);
             
-            if ($action === 'add_unmute_permission' && wp_verify_nonce($_GET['_wpnonce'], 'wpforo_ai_add_unmute_' . $group_id)) {
+            if ($_GET['action'] === 'add_unmute_permission' && wp_verify_nonce($_GET['_wpnonce'], 'wpforo_ai_add_unmute_' . $group_id)) {
                 if (wpforo_ai_manage_unmute_permission($group_id, 'add')) {
                     echo '<div class="notice notice-success is-dismissible"><p>' . sprintf(__('Added unmute permission to group ID %d!', 'wpforo-ai-moderation'), $group_id) . '</p></div>';
                 } else {
@@ -210,7 +190,7 @@ function llm_settings_page(){
                 }
             }
             
-            if ($action === 'remove_unmute_permission' && wp_verify_nonce($_GET['_wpnonce'], 'wpforo_ai_remove_unmute_' . $group_id)) {
+            if ($_GET['action'] === 'remove_unmute_permission' && wp_verify_nonce($_GET['_wpnonce'], 'wpforo_ai_remove_unmute_' . $group_id)) {
                 if (wpforo_ai_manage_unmute_permission($group_id, 'remove')) {
                     echo '<div class="notice notice-success is-dismissible"><p>' . sprintf(__('Removed unmute permission from group ID %d!', 'wpforo-ai-moderation'), $group_id) . '</p></div>';
                 } else {
@@ -310,10 +290,9 @@ function llm_settings_page(){
     
    
     // Handle unmute action
-    if (isset($_GET['action']) && isset($_GET['user_id']) && isset($_GET['_wpnonce'])) {
-        $action = sanitize_text_field($_GET['action']);
-        $user_id = isset($_GET['user_id']) ? intval($_GET['user_id']) : 0;
-        if ($action === 'unmute' && $user_id && wp_verify_nonce($_GET['_wpnonce'], 'wpforo_ai_unmute_' . $user_id)) {
+    if (isset($_GET['action']) && $_GET['action'] === 'unmute' && isset($_GET['user_id']) && isset($_GET['_wpnonce'])) {
+        if (wp_verify_nonce($_GET['_wpnonce'], 'wpforo_ai_unmute_' . $_GET['user_id'])) {
+            $user_id = intval($_GET['user_id']);
             // delete the penalty before deleating the user from the database
             wpforo_ai_delete_penalizing_topic_or_post_for_user($user_id);
             wpforo_ai_unmute_user($user_id);
@@ -344,14 +323,14 @@ function llm_settings_page(){
             // Check if table exists first, create it if not
             global $wpdb;
             $table_name = $wpdb->prefix . 'wpforo_ai_muted_users';
-            $table_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $table_name)) === $table_name;
+            $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$table_name'") === $table_name;
             
             if (!$table_exists) {
                 error_log('🤖 ❌ WPForo AI Moderation: ERROR. Muted users\' table does not exist. It should have been created on plugin activation, or plugin upgrade process. There may be further issues, and you may need to contact support if you notice any further issues. Attempting to create it (this log is for development)...');
                 
                 // Try to create the table
                 $creation_result = wpforo_ai_create_or_upgrade_muted_users_table();
-                $table_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $table_name)) === $table_name;
+                $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$table_name'") === $table_name;
                 wpforo_ai_log_info('WPForo AI Moderation: Table exists, displaying muted users...');
                 if ($table_exists) {
                     echo '<div class="notice notice-success"><p>Muted users table created successfully!</p></div>';
@@ -865,9 +844,9 @@ function wpforo_ai_display_metrics() {
         $table_name = $wpdb->prefix . 'wpforo_ai_flag_metrics';
         
         // Basic metrics queries
-        $past_year_flags = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $table_name WHERE is_muted = 0 AND hit_time >= DATE_SUB(NOW(), INTERVAL 1 YEAR)"));
-        $past_year_prevented_hits = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $table_name WHERE is_muted = 1 AND hit_time >= DATE_SUB(NOW(), INTERVAL 1 YEAR)"));
-        $past_year_mutable_hits = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $table_name WHERE is_mutable = 1 AND hit_time >= DATE_SUB(NOW(), INTERVAL 1 YEAR)"));
+        $past_year_flags = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE is_muted = 0 AND hit_time >= DATE_SUB(NOW(), INTERVAL 1 YEAR)");
+        $past_year_prevented_hits = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE is_muted = 1 AND hit_time >= DATE_SUB(NOW(), INTERVAL 1 YEAR)");
+        $past_year_mutable_hits = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE is_mutable = 1 AND hit_time >= DATE_SUB(NOW(), INTERVAL 1 YEAR)");
         
         // Get flag type counts
         $past_month_flag_types = $wpdb->get_results("
@@ -990,7 +969,22 @@ function wpforo_ai_display_metrics() {
                     </p>
                     
                     <!-- <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin: 25px 0;">
-                        
+                        <div style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); padding: 20px; border-radius: 8px; text-align: center;">
+                            <h4 style="color: #007bff; margin: 0 0 10px 0;">📈 Trend Analysis</h4>
+                            <p style="margin: 0; color: #6c757d;">Daily/weekly/monthly activity trends and patterns</p>
+                        </div>
+                        <div style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); padding: 20px; border-radius: 8px; text-align: center;">
+                            <h4 style="color: #007bff; margin: 0 0 10px 0;">👤 User Analytics</h4>
+                            <p style="margin: 0; color: #6c757d;">Individual user flagging patterns and risk scores</p>
+                        </div>
+                        <div style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); padding: 20px; border-radius: 8px; text-align: center;">
+                            <h4 style="color: #007bff; margin: 0 0 10px 0;">📊 Visual Charts</h4>
+                            <p style="margin: 0; color: #6c757d;">Interactive charts and graphs for better insights</p>
+                        </div>
+                        <div style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); padding: 20px; border-radius: 8px; text-align: center;">
+                            <h4 style="color: #007bff; margin: 0 0 10px 0;">🔔 Alerts</h4>
+                            <p style="margin: 0; color: #6c757d;">Custom alerts for unusual activity patterns</p>
+                        </div>
                     </div> -->
                     <?php
                         if (!$premium_plugin_active){ ?>
@@ -1219,15 +1213,13 @@ add_action('wpforo_ai_job_cleanup', 'wpforo_ai_clean_expired_mutes');
 add_action('wpforo_ai_job_flag_metrics_cleanup', 'wpforo_ai_clean_old_flag_metrics');
 
 function wpforo_ai_schedule_cleanup() {
-    // TODO: cleanup every 12 hours
     if (!wp_next_scheduled('wpforo_ai_job_cleanup')) {
         wp_schedule_event(time(), 'hourly', 'wpforo_ai_job_cleanup');
     }
     
-    // TODO: cleanup should be after 5 years, not 1 day. Make sure to fix that before sumission.
-    // Schedule flag metrics cleanup to run Xly (minimal frequency)
+    // Schedule flag metrics cleanup to run monthly (minimal frequency)
     if (!wp_next_scheduled('wpforo_ai_job_flag_metrics_cleanup')) {
-        wp_schedule_event(time(), 'hourly', 'wpforo_ai_job_flag_metrics_cleanup');
+        wp_schedule_event(time(), 'monthly', 'wpforo_ai_job_flag_metrics_cleanup');
     }
 }
 
@@ -1273,7 +1265,7 @@ function wpforo_ai_create_or_upgrade_muted_users_table() {
         wpforo_ai_log_info('WPForo AI Moderation: dbDelta result: ' . print_r($result, true));
         
         // Check if table exists
-        $table_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $table_name)) === $table_name;
+        $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$table_name'") === $table_name;
         
         if (!$table_exists) {
             error_log('🤖 ❌ WPForo AI Moderation: ERROR. Table '.$table_name.' creation/upgrade failed');
@@ -1327,7 +1319,7 @@ function wpforo_ai_create_or_upgrade_flag_metrics_table(){
         wpforo_ai_log_info('WPForo AI Moderation: dbDelta result: ' . print_r($result, true));
         
         // Check if table exists
-        $table_exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $table_name)) === $table_name;
+        $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$table_name'") === $table_name;
         
         if (!$table_exists) {
             error_log('🤖 ❌ WPForo AI Moderation: ERROR. Table '.$table_name.' creation/upgrade failed');
@@ -1510,11 +1502,11 @@ function wpforo_ai_plugin_uninstall(){
     // Drop the muted users table
     global $wpdb;
     $table_name = $wpdb->prefix . 'wpforo_ai_muted_users';
-    $wpdb->query($wpdb->prepare("DROP TABLE IF EXISTS %s", $table_name));
+    $wpdb->query("DROP TABLE IF EXISTS $table_name");
 
     // drop the metrics table
     $table_name = $wpdb->prefix . 'wpforo_ai_flag_metrics';
-    $wpdb->query($wpdb->prepare("DROP TABLE IF EXISTS %s", $table_name));
+    $wpdb->query("DROP TABLE IF EXISTS $table_name");
 }
 
 function wpforo_ai_cleanup_capabilities() {
@@ -1801,11 +1793,10 @@ function wpforo_ai_clean_old_flag_metrics() {
         $table_name = $wpdb->prefix . 'wpforo_ai_flag_metrics';
         $current_time = current_time('mysql');
         
-        // TODO: cleanup older than 5 years
-        // Calculate date X ago
-        $one_day_ago = date('Y-m-d H:i:s', strtotime('-1 days', strtotime($current_time)));
+        // Calculate date 5 years ago
+        $five_years_ago = date('Y-m-d H:i:s', strtotime('-5 years', strtotime($current_time)));
         
-        wpforo_ai_log_info('WPForo AI Moderation: Deleting flag metrics records older than: ' . $one_day_ago);
+        wpforo_ai_log_info('WPForo AI Moderation: Deleting flag metrics records older than: ' . $five_years_ago);
         
         $total_deleted = 0;
         $batch_size = 1000;
@@ -1816,7 +1807,7 @@ function wpforo_ai_clean_old_flag_metrics() {
                     "DELETE FROM $table_name
                      WHERE hit_time < %s
                      LIMIT %d",
-                    $one_day_ago,
+                    $five_years_ago,
                     $batch_size
                 )
             );
@@ -1885,7 +1876,7 @@ function check_wpforo_usergroup_exists( $group_name ) {
         
         // Check if the table exists before running a query
         $table_name = $wpdb->prefix . 'wpforo_usergroups';
-        if ( $wpdb->get_var( $wpdb->prepare("SHOW TABLES LIKE %s", $table_name) ) != $table_name ) {
+        if ( $wpdb->get_var( "SHOW TABLES LIKE '$table_name'" ) != $table_name ) {
             return false;
         }
 
