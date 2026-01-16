@@ -144,7 +144,7 @@ Example of what JSON format response looks like, that is expected from the OpenR
 
 ## Database
 
-The plugin creates a custom table `wp_wpforo_ai_muted_users` to track:
+The plugin creates a custom table `wp_colaias_wpforo_ai_muted_users` to track:
 - Muted user records
 - Post/topic associations
 - Moderation reasons and types
@@ -153,9 +153,6 @@ The plugin creates a custom table `wp_wpforo_ai_muted_users` to track:
 ## Development
 
 
-### Hooks Available
-- `wpforo_ai_plugin_activation`: Plugin activation hook
-- `wpforo_ai_plugin_deactivation`: Plugin deactivation hook
 - Custom capabilities for role management
 
 ### File Structure
@@ -263,7 +260,7 @@ New in Version 1.2:
 
 New in Version 1.1:
 - Added moderator/Admin capability checking system
-- Custom capability 'wpforo_ai_can_access_moderation' for access control
+- Custom capability 'colaias_wpforo_ai_can_access_moderation' for access control
 - Support for wpForo Moderator and Admin user groups
 - Automatic capability assignment to WordPress admin roles
 
