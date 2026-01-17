@@ -173,13 +173,14 @@ This is an open-source project available on GitHub that is built upon several di
 
 I, the developer, have put a lot of effort into creating this plugin, wanting to capitalize on the lack of moderation opportunity that is essential to my website, only to find out late that the gVectors team has been working on their own moderation plugin, with development starting the same month. Had I known, I wouldn't have made this.
 
-But maybe that is a good thing for you. And not only that, there may be some considerable differences where this might be all you need. This is a super low cost, user-controlled moderation system. The wpForo AI suite may have more features, but this plugin still solves the critical need for AI moderation. This is effective, and free (except for the very low cost OpenRouter fees), and gives you control over your moderation needs ✊ ✊ ✊.
+But maybe that is a good thing for you. And not only that, there may be some considerable differences where this might be all you need. This is a super low cost, user-controlled moderation system. Moderation only. The wpForo AI suite may have more features, but this plugin still solves the critical need for AI moderation. This is effective, and free (except for the very low cost OpenRouter fees), and gives you control over your moderation needs ✊ ✊ ✊ at a rather low cost.
 
 ### Comparison with wpForo AI Suite
 
-I was told by the gVectors team that their system is an "Enterprise" level AI suite with a RAG-based search system. Great - suppose a topic has 250 pages and a few thousand posts. They send the close and stale topics to train the AI for response. This is a moderation-only system that doesn't do robust search, but it still solves the issue of unwanted messages.
+I was told by the gVectors team that their system is an "Enterprise" level AI suite with a RAG-based search system. Great - suppose a topic has 250 pages and a few thousand posts. They send the close and stale topics to train the AI for response. They will also have topic summaries.
+ How this differs is that this is a moderation-only plugin that doesn't do robust search, but it still solves the issue of unwanted messages.
 
-However, this plugin can do stuff beyond just moderation. It follows a "chain-of-responsibility" pattern, making it easy for developers to understand and expand upon. It can be used to add topic tags upon topic creation.
+However, this plugin can potentially be expanded to do stuff beyond just moderation. It follows a "chain-of-responsibility" pattern, making it easy for developers to understand and expand upon. For example,  It can be used to add topic tags upon topic creation, or track posting metrics.
 
 In short, this plugin can be expanded to do just about anything because of how data is passed between the "chain-points", which makes it rather easy to develop with for moderation purposes.
 
@@ -197,15 +198,15 @@ As noted, I created this with the intention to capitalize on a commercial opport
 
 - **Exception Notification System**: Some sort of notification system on exceptions, passing the wpForo version, to quickly let me know if someone had crashing issues. GDPR compliant, opt-in permission needed.
 
-- **User Progress Notification**: Notification system to show AI moderation progress to user.
+- **User Progress Notification**: Notification system to show AI moderation progress to user. Somewhat implemented. Seems difficult to make.
 
-- **Testing Framework**: An independent code not running in WordPress but interacts with the browser. Mimics user actions - on-page, sign up, create topic, etc. Monitor for errors that occur during automatic test actions.
+- **Testing Framework**: Done. Test 192 difference scenarios, mostly related to posting. Doesn't cover everything.
 
 - **Context-Aware Moderation**: Provide a few preceding approved posts for LLM moderation for better context. The best way may be the "memory" feature that is currently not supported by OpenRouter, so there may be no need to build it out now. The idea would be to get the AI to request back for more context, up to a few posts if it doesn't have enough certainty. Posts will need to be sent with user ID, name, order, whether it is a reply, what posts it directly succeeds, and post content. Users will need to be kept in the loop with notices and shown LLM reasons why it wants more context. (Somewhat time-consuming and requires some LLM knowledge)
 
-- **Metrics and Analytics**: Add data to new database tables for stats. Use new tables to show full forum penalties over the past X time, or tagged posts of the user. Categorize as "mute-able" or not. Charts possible after metrics integration. Can it be done with one table, or does it need two? (Relatively easy to implement)
+- **Metrics and Analytics**: Done. Will need other wp plugins to show the graphs and charts
 
-- **AI Topic Tags**: Have the LLM provide a "tags" key if it is a topic, in the JSON response, then use those to set topic tags. (Easy to implement)
+- **AI Topic Tags**: Have the LLM provide a "tags" key if it is a topic, in the JSON response, then use those to set topic tags. (Easy to implement, not exactly an essential part of realtime moderation)
 
 
 ## Support
@@ -219,6 +220,23 @@ This plugin is released under the GPL v2 or later license.
 ## Version History
 
 **Still in beta**
+
+ New in Version 1.6.2:
+ - colaias_wpforo_ai_notice, better notices
+
+
+   New in Version 1.5.7:
+ - refactored wpforo_ai to colaias_wpforo_ai 
+
+   New in Version 1.5.6:
+ - Sanitized $_GET, $_POST, $_SERVER,  
+ - In-house testing "Reset Defaults" populate function
+ 
+   New in Version 1.5.5:
+ - More fixes, hard db rm again, and logging
+ - An automated testing system (not included)
+ - Metrics table, and basic metrics
+ - Batch cleanup of expired mutes and old flag metrics for large databases
 
  New in Version 1.5.4:
 - Async logging to be notified whether post or topic was successfully manipulated
