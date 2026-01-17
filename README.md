@@ -19,13 +19,14 @@ Get control over your moderation ✊ ✊ ✊. Moderate at mere pennies. During t
 - **Append AI Message to post**: Append a custom string with {TYPE} and {REASON} formatting tags for AI response to the original post or topic after the edit 
 - **Content Cleanup**: Automatically handles unapproved content removal when users are unmuted
 - **Scheduled Maintenance**: Daily cleanup of expired mutes and orphaned records
-
+- **Basic Metric**: Know how many posts resulted in muting, how many muted users were prevented, what the flag types were, and how many time they occurred in the past year. 
+- **Notifications**: Short-code for notification to user about the moderation and mute status
 ## Premium (coming soon)
 **Premium**: Has an automatically updating premium version available for purchase that includes:
    - **Essential "Moderator" usergroup members' control panel** short-code page for your human moderators to manage admin page actions for AI muted users such as view muted users, un-mute muted users, view triggering post and approve, or delete it.
    - **Easy Prompt panel** to help you create llm prompts with organized structure  
    - **Forum flood control and user post limit** to stop excessive user posting resulting in excessive AI use
-   
+   - **Premium Metrics** utilizing the robust pre-existing wordpress plugins to create charts and graphs
    **Purchase the premium**: The purchase for the premium features will be available soon (after we finish some primary tests for both the this and the premium versions). Your purchase is greatly appreciated because it supports me and my work.
 
 ## Screenshots
