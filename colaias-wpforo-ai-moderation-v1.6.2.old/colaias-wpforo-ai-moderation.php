@@ -3,7 +3,7 @@
  * Plugin Name: LLM Moderator for wpForo
  * Plugin URI: https://github.com/comingofflais-com/LLM-Moderator-for-wpForo
  * Description: AI-powered moderation using OpenRouter with standalone Moderator/Admin interface
- * Version: 1.6.3
+ * Version: 1.6.2
  * Requires at least: 5.0
  * Requires PHP: 7.4
  * Requires Plugins: wpforo
@@ -20,8 +20,64 @@
  * - Example: $e = new \Exception(); $error = new \WP_Error();
  * - error logs include emojis 🤖 ❌ ❗ ⚠️ 💀 😵 ⏱️ 📈 🤷‍♀️
 * 
-* Read the README on Github for information
+* 
+*   New in Version 1.6.2:
+* - colaias_wpforo_ai_notice
 *
+*   New in Version 1.5.7:
+* - refactored wpforo_ai to colaias_wpforo_ai 
+*
+*   New in Version 1.5.6:
+* - Sanitized $_GET, $_POST, $_SERVER,  
+* - In-house testing "Reset Defaults" populate function
+* 
+*   New in Version 1.5.5:
+* - More fixes, hard db rm again, and logging
+* - An automated testing system (not included)
+* - Metrics table, and basic metrics
+* - Batch cleanup of expired mutes and old flag metrics for large databases
+*
+*  New in Version 1.5.4:
+* - Async logging to be notified whether post or topic was successfully manipulated
+* - Error handling, prevent website from crashing if the version of wpForo is not compatible. 
+* - Try-Catch exception handling for everything, with logs. Lots of helpful emojis... more emojis still needed
+* - Organized code into sections, moved it together
+* - Still broken notifications, unable to implement better solution, but will need to try GUI next time
+* 
+* New in Version 1.5.3:
+* - Major changes:
+* - WPF based post and topic deletion and status change! (Deleting and status changing of first-post apparently applied to topic)
+* - But broken AI notices
+* 
+* New in Version 1.5.2:
+* - Quick fix of site breaking bug passed into prod.
+* 
+* New in Version 1.5.1:
+* - Removed the mandatory requirement for nonessential "Muted" usergroup, muting is done entirely through database, but usergroup option can remain for future option
+* - Improved wpforo_ai_muted_users table creation and update
+* - DRYer unmute of users, automatic unmute/removal
+* - Cleanup of unused codes
+*  
+* New in Version 1.5.0:
+* - Major re-write of how the topic, post, topic-edit, post-edit are used with hooks.
+* - Added a global dictionary for pending topics, posts, and edits, to preserve data-results through the moderation chain of events/hooks
+* 
+* New in Version 1.4:
+* - Append a custom message at the bottom of the post with AI {TYPE} and {REASON} formatting tags. 
+* 
+* New in Version 1.3:
+* - Prompt types can now be set through the admin panel instead of hardcode predetermined types.
+* - Updated logging
+* 
+* New in Version 1.2:
+* - Standalone admin menu item for AI Moderation
+* - Dedicated interface accessible to Moderators and Admins
+* 
+* New in Version 1.1:
+* - Added moderator/Admin capability checking system
+* - Custom capability 'colaias_wpforo_ai_can_access_moderation' for access control
+* - Support for wpForo Moderator and Admin user groups
+* - Automatic capability assignment to WordPress admin roles
 */
 
 // Required
@@ -203,9 +259,8 @@ function colaias_wpforo_ai_handle_admin_actions() {
                 'message' => $notice_message
             ), 30);
             
-            // Redirect without action parameters but preserve paged and tab
-            $redirect_args = array('action', 'group_id', '_wpnonce');
-            wp_safe_redirect(remove_query_arg($redirect_args));
+            // Redirect without action parameters
+            wp_safe_redirect(remove_query_arg(array('action', 'group_id', '_wpnonce')));
             exit;
         }
         
@@ -247,9 +302,7 @@ function colaias_wpforo_ai_handle_admin_actions() {
                 ), 30);
             }
             
-            $redirect_url = remove_query_arg(array('action', 'user_id', '_wpnonce'));
-        
-            wp_safe_redirect($redirect_url);
+            wp_safe_redirect(remove_query_arg(array('action', 'user_id', '_wpnonce')));
             exit;
         }
     }
@@ -303,12 +356,12 @@ function llm_settings_page(){
         echo '<h3 style="margin-top: 0; color: #0073aa;">💎 Premium Features Available!</h3>';
         echo '<p>🤖 Enhance your moderation capabilities with our premium plugin which includes:</p>';
         echo '<ul style="margin: 10px 0 15px 0;">';
-        echo '<li>Improved moderator control panel plugin, page shortcode. In conjuncture with a feature WP tables plugin (TBA)</li>';
+        echo '<li>Moderator control panel page shortcode</li>';
         echo '<li>Easy prompt generation panel</li>';
         echo '<li>Advanced flood control system</li>';
-        echo '<li>Charts and graph based metrics. In conjuncture with a feature WP charts and graphs plugin (TBA)</li>';
+        echo '<li>Charts and graph based metrics</li>';
         echo '</ul>';
-        echo '<p><strong>Get it now at: <a href="https://insertmywebsitehere.com/shop" target="_blank" style="color: #0073aa; text-decoration: underline;">insertmywebsitehere.com (store coming soon)</a></strong></p>';
+        echo '<p><strong>Get it now at: <a href="https://insertmywebsitehere.com/shop" target="_blank" style="color: #0073aa; text-decoration: underline;">insertmywebsitehere.com</a></strong></p>';
         echo '<p>Features automatic new version upgrade notification in Dashboard -> Plugins</p>';
         echo '<br><p style="padding: 10px; background:rgba(170, 170, 170, 0.25);">🤖 Your active participation in development is greatly appreciated. Check out the repository on Github <a href="https://github.com/comingofflais-com/LLM-Moderator-for-wpForo" target="_blank" style="color: #0073aa; text-decoration: underline;">https://github.com/comingofflais-com/LLM-Moderator-for-wpForo</a>. Enjoy the moderation features!</p>';
         echo '</div>';
@@ -341,8 +394,6 @@ function llm_settings_page(){
                 },
                 'colaias_wpforo_ai_mute_duration' => 'absint',
                 'colaias_wpforo_ai_can_log_info' => function($value) { return filter_var($value, FILTER_VALIDATE_BOOLEAN); },
-                'colaias_wpforo_ai_send_metrics_to_openrouter' => function($value) { return filter_var($value, FILTER_VALIDATE_BOOLEAN); },
-                'colaias_wpforo_ai_custom_xtitle_for_openrouter' => 'sanitize_text_field',
             ];
             
             // Handle flag types saving
@@ -378,7 +429,6 @@ function llm_settings_page(){
                 // Handle checkbox fields - if not in POST, set to false for boolean options
                 $checkbox_keys = [
                     'colaias_wpforo_ai_can_log_info',
-                    'colaias_wpforo_ai_send_metrics_to_openrouter',
                 ];
                 
                 if (!isset($_POST[$key]) && in_array($key, $checkbox_keys)) {
@@ -491,15 +541,6 @@ function llm_settings_page(){
 // Function to display settings
 function colaias_wpforo_ai_display_settings(){
     ?>
-    <div class="notice is-dismissible">
-        <p style="font-size: small;"><strong style="color: green;">✅ Everything working?</strong> 🤖?? <strong style="color: red;">❌ No?</strong> Prehistoric AI wrote this 😅. Safety brakes should prevent crashes (hopefully! 🤞). If wpForo updates break things, check debug.log 🕵️‍♂️. Use the tested version (But even that might break mwhahaha 🦹) ⚠️ Small chance of memory leaks if not working ... Might need to deactivate (not uninstall! 🚫🗑️).
-        <br>
-        <br>For urgent fixes 🚨, fastest way to contact developer is <a href='https://t.me/wpforo_ai'>Telegram</a>. Note this down for future reference. 💬 Have your message ready! Not official wpForo devs 🚫👔 - indie plugin. <strong>Contact us for bugs 🐛 or collabs 🤝 ONLY!</strong> NOT for basic tech support questions for wpForo and WordPress 🙅‍♂️🙅‍♂️🙅‍♂️ 🤦‍♀️. Also, there isn't built in auto-bug-alert system 🚫. <strong>Community, check logs and yell! 📢</strong> Pro tip: enable information logging, find out where the problem is occuring.
-        <br>
-        <br>⚠️ Moderators → "Moderator" usergroup then give the unmute permission 😲 ℹ️ Check wpForo's guide for secondary groups and assigning usergroups
-        <br>ℹ️ Add this shortcode for notifications <code>[colaias_wpforo_ai_notices top='30px' right='30%' width='40%']</code> on the <code>[wpforo]</code> page 📖🔧
-        </p>
-    </div>
     <div style="margin: 20px 0; padding: 15px; background: #f9f9f9; border-left: 4px solid #0073aa;">
                 <h3>User Group Permissions Management</h3>
                 <p><strong>Manage which user groups can unmute members:</strong> Use this section to add or remove the unmute permission from any wpForo user group.</p>
@@ -575,6 +616,18 @@ function colaias_wpforo_ai_display_settings(){
                 <?php endif; ?>
             </div>
         
+            <div class="notice is-dismissible">
+                <p style="font-size: small;"><strong style="color: green;">✅ Is everything working fine?</strong> 🤖?? <strong style="color: red;">❌ NO? </strong> Look, some of this code was written by a human 😅... There is a braking mechanism that should prevent this plugin from functioning incorrectly and crashing the site, hopefully. There is also an in-house developer automated testing system to quickly simulate some scenarios. But when an error occurs, after wpForo updates for example, that requires an update patch, this plugin should remain active on your end, but not perform its function, and instead leave a trail of error logs in the debug.log file.
+                Moreover, ⚠️ there is a small possibility of a memory leak issue due to calling the same non-working code again and again that keeps adding data to memory or storage, despite some error handling 😵. You may have to deactivate the plugin at that time, but don't uninstall, as that will remove databases.
+                <br>
+                <br>If the bug requires an urgent fix, the fastest way to reach the Github repository developer 🧑‍💻 is through  <a href='https://t.me/wpforo_ai'>Telegram</a>. Note this down for future reference, join the group now. The developer is likely busy with other projects and has no way of knowing as there is no built in notification system that will automatically inform of the bug. This is a choice by design. <strong>We entrust the community to check the debug logs, and notify us personally of any code breaking requirements that need to be patched.</strong>
+                We are not from the official wpForo developers, and work independently. We have many other projects and can not take a look at the evolving API changes.   
+                <strong>Please contact, notify, or reach out to other developers in the community for urgent bug fixes</strong>, or if you are a developer looking to help. Have your message ready. 💬 Do NOT 🙅 🙅 🙅 ask for Wordpress or wpForo tech support 🤦. Please reserve most contact for serious requests or collaborations. Others, however, maybe willing to chat 🙂, so join!
+                <br>
+                <br>⚠️ When adding Moderators, place them in usergroup "Moderator".
+                <br>ℹ️ Follow wpForo's instructions on how to enable adding users to secondary usergroups before assigning moderators.
+                </p>
+            </div>
             
             <form method="post" action="">
             <?php wp_nonce_field('colaias_wpforo_ai_save_settings', 'colaias_wpforo_ai_nonce'); ?>
@@ -615,34 +668,11 @@ function colaias_wpforo_ai_display_settings(){
                     </td>
                 </tr>
                 <tr>
-                    <th scope="row"><label for="colaias_wpforo_ai_send_metrics_to_openrouter">Send Metrics to OpenRouter</label></th>
-                    <td>
-                        <?php 
-                        $send_metrics = get_option('colaias_wpforo_ai_send_metrics_to_openrouter', true);
-                        ?>
-                        <input type="checkbox" name="colaias_wpforo_ai_send_metrics_to_openrouter" id="colaias_wpforo_ai_send_metrics_to_openrouter" value="1" <?php checked($send_metrics, true); ?>>
-                        <label for="colaias_wpforo_ai_send_metrics_to_openrouter">Enable sending metrics to OpenRouter for site ranking</label>
-                        <p class="description">📈 Optional. When enabled, sends site URL (HTTP-Referer header) and X-Title to OpenRouter for ranking purposes.</p>
-                        <p class="description"><small><strong>Note:</strong> The HTTP-Referer header (your site URL) is for labeling under "App", and for analytics.</small></p>
-                    </td>
-                </tr>
-                <tr>
-                    <th scope="row"><label for="colaias_wpforo_ai_custom_xtitle_for_openrouter">Custom X-Title for OpenRouter</label></th>
-                    <td>
-                        <?php 
-                        $custom_xtitle = get_option('colaias_wpforo_ai_custom_xtitle_for_openrouter', '');
-                        ?>
-                        <input type="text" name="colaias_wpforo_ai_custom_xtitle_for_openrouter" id="colaias_wpforo_ai_custom_xtitle_for_openrouter" value="<?php echo esc_attr($custom_xtitle); ?>" size="50">
-                        <p class="description">🏷️ Custom title to send to OpenRouter for site ranking. Recommended leave blank to use default: "COLAIAs wpForo AI Moderation"</p>
-                        <p class="description"><small>The default title helps identify the plugin in OpenRouter's ranking system and can be used for analytics.</small></p>
-                    </td>
-                </tr>
-                <tr>
                     <th scope="row">
                         <label>Flag Types Configuration</label>
                         <br>
                         <hr>
-                        <small class="description" style="display: block; color: #6c757d;">⚠️ Note: Deactivate the plugin if you do not have any enabled flags. The plugin will query to the LLM regardless of any flags enabled. You can additionally just remove the OpenRouter API key, that will keep current muted users until they expire and automatically unmute.</small>
+                        <small class="description" style="display: block; color: #6c757d;">⚠️ Note: Deactivate the plugin if you do not have any enabled flags. The plugin will query to the LLM regardless of any flags enabled.</small>
                         <br>
                         <small class="description" style="display: block; color: #6c757d;">📈 Note: Enabled only flags can be used to append a custom message at the end of the post, and for metrics.</small>
                     </th>
@@ -754,7 +784,6 @@ function colaias_wpforo_ai_display_settings(){
                         <label for="colaias_wpforo_ai_moderation_prompt">Moderation Prompt</label>
                         <hr>
                         <small class="description" style="display: block; color: #6c757d;">❗Note: The'type' key is required in the LLM's JSON response for this plugin to function.</small>
-                        <small class="description" style="display: block; color: #6c757d;">⚠️ Note: The'reason' key is recommended. It is used in flag metrics, to display reason for muted users, and to append the LLM reason at the bottom of the user post with the {REASON} formatting tag.</small>
                         <br>
                     </th>
                     <td>
@@ -911,7 +940,6 @@ function colaias_wpforo_ai_display_muted_users() {
                                     add_query_arg(array(
                                         'page' => 'colaias-wpforo-ai-moderation',
                                         'tab' => 'muted_users',
-                                        'paged' => $current_page,
                                         'action' => 'unmute',
                                         'user_id' => $muted_user->user_id
                                     ), admin_url('admin.php')),
@@ -920,7 +948,7 @@ function colaias_wpforo_ai_display_muted_users() {
                                 ?>
                                 <a href="<?php echo esc_url($unmute_url); ?>" 
                                    class="button button-small" 
-                                   onclick="return confirm('If a moderator approved the penalized post or the topic was updated recently, the cached status might be reversed from actual. Automatic removal safely clears cache first. Unmuting now may occasionally not remove the flagged post if it was cached as approved. Are you sure you want to unmute and delete (if unapproved)?')">
+                                   onclick="return confirm('WARNING: If the penalized content was recently approved, or recently updated (user edited then got muted), it may still be cached in the wpForo RAM as the opposite status. It can either be automatically removed after the approve and unmute action, or may become residue if unapproved. Automatic removal clears cache before removing expired posts and is safer. Are you sure you want to unmute this user and delete the flagged post (if unapproved)?')">
                                     Unmute
                                 </a>
                                 <?php else: ?>
@@ -1013,7 +1041,7 @@ function colaias_wpforo_ai_display_metrics() {
         // Basic metrics queries
         $past_year_flags = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE is_muted = 0 AND hit_time >= DATE_SUB(NOW(), INTERVAL 1 YEAR)");
         $past_year_prevented_hits = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE is_muted = 1 AND hit_time >= DATE_SUB(NOW(), INTERVAL 1 YEAR)");
-        $past_year_muteable_hits = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE is_muteable = 1 AND hit_time >= DATE_SUB(NOW(), INTERVAL 1 YEAR)");
+        $past_year_mutable_hits = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE is_mutable = 1 AND hit_time >= DATE_SUB(NOW(), INTERVAL 1 YEAR)");
         
         // Get flag type counts
         $past_month_flag_types = $wpdb->get_results("
@@ -1057,7 +1085,7 @@ function colaias_wpforo_ai_display_metrics() {
                     </div>
                     <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; text-align: center;">
                         <h4 style="margin: 0 0 10px 0; color: #495057;">Past Year Mutes Given</h4>
-                        <p style="font-size: 2em; font-weight: bold; color: #28a745; margin: 0;"><?php echo number_format($past_year_muteable_hits); ?></p>
+                        <p style="font-size: 2em; font-weight: bold; color: #28a745; margin: 0;"><?php echo number_format($past_year_mutable_hits); ?></p>
                     </div>
                     <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; text-align: center;">
                         <h4 style="margin: 0 0 10px 0; color: #495057;">Past Month Total Flags Recorded And Muted Users Prevented</h4>
@@ -1154,7 +1182,7 @@ function colaias_wpforo_ai_display_metrics() {
                             box-shadow: 0 4px 15px rgba(0,123,255,0.3);
                         " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(0,123,255,0.4)';" 
                            onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(0,123,255,0.3)';">
-                            💎 Get Premium Analytics, in conjuncture with a feature WP plugin (TBA)
+                            💎 Get Premium Analytics
                         </a>
                     </div>
                     
@@ -1339,16 +1367,6 @@ class colaias_wpforo_ai_Utilities {
 
 }
 
-// Backward compatibility functions
-function colaias_wpforo_ai_log_info($message) {
-    colaias_wpforo_ai_Utilities::colaias_wpforo_ai_log_info($message);
-}
-
-
-// Check capabilities to control AI moderation features
-function colaias_wpforo_ai_is_moderator_or_admin($user_id = null) {
-    return colaias_wpforo_ai_Utilities::is_moderator_or_admin($user_id);
-}
 
 
 /**
@@ -1357,8 +1375,6 @@ function colaias_wpforo_ai_is_moderator_or_admin($user_id = null) {
  * Display front-end notices for users, used by the shortcode
  * 
  * Premium feature released in beta
- * 
- * 
  * 
  */
 function colaias_wpforo_ai_notices_display_frontend_notices($manual_output = false) {
@@ -1520,6 +1536,20 @@ add_shortcode('colaias_wpforo_ai_notices', 'colaias_wpforo_ai_notices_shortcode'
 
 
 
+
+// Backward compatibility functions
+
+function colaias_wpforo_ai_log_info($message) {
+    colaias_wpforo_ai_Utilities::colaias_wpforo_ai_log_info($message);
+}
+
+
+// Check capabilities to control AI moderation features
+function colaias_wpforo_ai_is_moderator_or_admin($user_id = null) {
+    return colaias_wpforo_ai_Utilities::is_moderator_or_admin($user_id);
+}
+
+
 /*
  * 
  *
@@ -1630,17 +1660,16 @@ add_action('colaias_wpforo_ai_job_cleanup', 'colaias_wpforo_ai_clean_expired_mut
 add_action('colaias_wpforo_ai_job_flag_metrics_cleanup', 'colaias_wpforo_ai_clean_old_flag_metrics');
 
 function colaias_wpforo_ai_schedule_cleanup() {
-    // TODO: cleanup should be twicedaily in production, not hourly.
-    // Viable options: 'hourly', 'twicedaily', 'daily', 'weekly'
+    // TODO: cleanup every 12 hours // Viable options: 'hourly', 'twicedaily', 'daily', 'weekly'
     if (!wp_next_scheduled('colaias_wpforo_ai_job_cleanup')) {
-        wp_schedule_event(time(), 'twicedaily', 'colaias_wpforo_ai_job_cleanup');
+        wp_schedule_event(time(), 'hourly', 'colaias_wpforo_ai_job_cleanup');
     }
     
-    // TODO: cleanup should be weekly in production, not hourly. Make sure to fix this before submission.
+    // TODO: cleanup should be after 5 years, not 1 day. Make sure to fix that before submission.
     // Viable options: 'hourly', 'twicedaily', 'daily', 'weekly'
     // Schedule flag metrics cleanup to run Xly (minimal frequency)
     if (!wp_next_scheduled('colaias_wpforo_ai_job_flag_metrics_cleanup')) {
-        wp_schedule_event(time(), 'weekly', 'colaias_wpforo_ai_job_flag_metrics_cleanup');
+        wp_schedule_event(time(), 'hourly', 'colaias_wpforo_ai_job_flag_metrics_cleanup');
     }
 }
 
@@ -1680,9 +1709,6 @@ function colaias_wpforo_ai_create_or_upgrade_muted_users_table() {
         // 2. If table exists, compare and add missing columns (topic_id, type, reason, is_topic)
         // 3. Update column definitions if changed
         // 4. Add missing indexes
-        // dbDella will NOT:
-        // TODO:
-        // 1. delete removed columns. You have to do that in the next update 
         $result = dbDelta($sql);
         
         // Log results for debugging
@@ -1723,29 +1749,19 @@ function colaias_wpforo_ai_create_or_upgrade_flag_metrics_table(){
             post_id BIGINT(20),
             topic_id BIGINT(20),
             hit_time DATETIME NOT NULL,
-            is_muteable TINYINT(1) DEFAULT 0,
+            is_mutable TINYINT(1) DEFAULT 0,
             is_muted TINYINT(1) DEFAULT 0 NOT NULL,
             content_type VARCHAR(50),
-            reason TEXT DEFAULT NULL,
             PRIMARY KEY (hit_id),
             KEY flag_type (flag_type),
             KEY user_id (user_id),
             KEY post_id (post_id),
             KEY topic_id (topic_id),
             KEY hit_time (hit_time),
-            KEY is_muteable (is_muteable),
+            KEY is_mutable (is_mutable),
             KEY is_muted (is_muted),
             KEY content_type (content_type)
         ) $charset_collate;";
-
-        // dbDelta will:
-        // 1. Create table if it doesn't exist
-        // 2. If table exists, compare and add missing columns (topic_id, type, reason, is_topic)
-        // 3. Update column definitions if changed
-        // 4. Add missing indexes
-        // dbDella will NOT:
-        // TODO:
-        // 1. delete removed columns. You have to do that in the next update 
 
         $result = dbDelta($sql);
         
@@ -1845,8 +1861,6 @@ function colaias_wpforo_ai_plugin_uninstall(){
     delete_option('colaias_wpforo_ai_mute_duration');
     delete_option('openrouter_api_key');
     delete_option('openrouter_model');
-    delete_option('colaias_wpforo_ai_send_metrics_to_openrouter');
-    delete_option('colaias_wpforo_ai_custom_xtitle_for_openrouter');
 
     // Drop the muted users table
     global $wpdb;
@@ -1897,7 +1911,7 @@ function colaias_wpforo_ai_should_check_type($type) {
                 }
             }
         }
-        colaias_wpforo_ai_log_info('⚠️  WPForo AI Moderation: The LLM response \'type\' ['.$type.']  is DISABLED (or a potentially wrong LLM response, double check your prompt.)' );
+        colaias_wpforo_ai_log_info('WPForo AI Moderation: ⚠️ The LLM response \'type\' ['.$type.']  is DISABLED (or a potentially wrong LLM response, double check your prompt.)' );
         return false;
     } catch (Exception $e) {
         error_log('🤖 ❌ 💀 WPForo AI Moderation: CRITICAL ERROR. Could not check whether flag type is enabled, returning false. Exception : '
@@ -1930,14 +1944,14 @@ function colaias_wpforo_ai_should_mute_for_type($flag_type) {
                 }
                 else {
                     // FLAG is enabled, but MUTE was not set due to unknown reason
-                    error_log('🤖 ⚠️  WPForo AI Moderation: ERROR. MUTE for type ' . $flag_type_lower . ' is not set. Returning false to not mute');
+                    error_log('🤖 ⚠️ WPForo AI Moderation: ERROR. MUTE for type ' . $flag_type_lower . ' is not set. Returning false to not mute');
                     return false;
                 }
             }
         }
 
         // Fallback to false if flag type not found or not enabled
-        error_log('🤖 ⚠️  WPForo AI Moderation: ERROR. UNKNOWN. Error MUTE for type ' . $flag_type_lower . ' is not found in flag types. Returning false');
+        error_log('🤖 ⚠️ WPForo AI Moderation: ERROR. UNKNOWN. Error MUTE for type ' . $flag_type_lower . ' is not found in flag types. Returning false');
         return false;
     } catch (Exception $e) {
             error_log('🤖 ❌ 💀 WPForo AI Moderation: CRITICAL ERROR. Could not get whether the flag type should be muted, returning false. Exception : '
@@ -1986,7 +2000,7 @@ function colaias_wpforo_ai_add_muted_user($user_id, $post_id = null, $post_conte
         
         // If mute duration is less than 0, don't mute the user
         if ($mute_duration < 0) {
-            error_log('🤖 ⚠️  WPForo AI Moderation: ERROR. WARNING. Unexpected. Mute duration is less than 0 for type "' . $type . '", skipping user mute.');
+            error_log('🤖 ⚠️ WPForo AI Moderation: ERROR. WARNING. Unexpected. Mute duration is less than 0 for type "' . $type . '", skipping user mute.');
             return false;
         }
 
@@ -2144,7 +2158,6 @@ function colaias_wpforo_ai_clean_old_flag_metrics() {
         
         // Cleanup records older than 5 years
         // Examples of strtotime formats:
-            // Todo: change this from -1 hours during testing to -5 years
         // '-5 years', '-1 year', '-6 months', '-30 days', '-1 week', '-24 hours', '-1 hour'
         $five_years_ago = date('Y-m-d H:i:s', strtotime('-5 years', strtotime($current_time)));
         
@@ -2392,7 +2405,7 @@ function colaias_wpforo_ai_delete_penalizing_topic_or_post_for_user($user_id){
         ));
 
         if (!$muted_user) {
-            error_log('🤖 ❌ ⚠️  WPForo AI Moderation: ERROR / WARNING. Muted user ' . $user_id . ' was not found in the Muted users database table. Not deleting penalizing topic or post. (Make sure to call this function before deleating from muted users table)');
+            error_log('🤖 ❌ ⚠️ WPForo AI Moderation: ERROR / WARNING. Muted user ' . $user_id . ' was not found in the Muted users database table. Not deleting penalizing topic or post. (Make sure to call this function before deleating from muted users table)');
             return false;
         }
 
@@ -2409,15 +2422,12 @@ function colaias_wpforo_ai_delete_penalizing_topic_or_post_for_user($user_id){
 
                 // Schedule an async check after 2 seconds to allow cache to clear
                 if ($deleted) {
-                    $can_log_info = get_option('colaias_wpforo_ai_can_log_info',false);
-                    if ($can_log_info) {
-                        colaias_wpforo_ai_log_info('⏱️ WPForo AI Moderation: Deletion process started for post ' . $muted_user->post_id . '. Schedualing ⏱️ ASYNC DELETION VERIFICATION');
-                        wp_schedule_single_event(time() + 2, 'colaias_wpforo_ai_async_post_verification', array(
-                            'post_id' => $muted_user->post_id,
-                            'user_id' => $user_id,
-                            'called_by' => __FUNCTION__
-                        ));
-                    }
+                    colaias_wpforo_ai_log_info('WPForo AI Moderation: Deletion process started for post ' . $muted_user->post_id . '. Schedualing ⏱️ ASYNC DELETION VERIFICATION');
+                    wp_schedule_single_event(time() + 2, 'colaias_wpforo_ai_async_post_verification', array(
+                        'post_id' => $muted_user->post_id,
+                        'user_id' => $user_id,
+                        'called_by' => __FUNCTION__
+                    ));
                 } else {
                     error_log('🤖 ❌ WPForo AI Moderation: ERROR. Failed to delete post ' . $muted_user->post_id . ' for user ' . $user_id);
                 }
@@ -2442,15 +2452,12 @@ function colaias_wpforo_ai_delete_penalizing_topic_or_post_for_user($user_id){
 
                 // Schedule an async check after 2 seconds to allow cache to clear
                 if ($deleted) {
-                    $can_log_info = get_option('colaias_wpforo_ai_can_log_info',false);
-                    if ($can_log_info) {
-                        colaias_wpforo_ai_log_info('⏱️ WPForo AI Moderation: First-post deletion process started for post ' . $muted_user->post_id . '. Schedualing ⏱️ ASYNC DELETION VERIFICATION.');
-                        wp_schedule_single_event(time() + 2, 'colaias_wpforo_ai_async_post_verification', array(
-                            'post_id' => $muted_user->post_id,
-                            'user_id' => $user_id,
-                            'called_by' => __FUNCTION__ . ' (first_post)'
-                        ));
-                    }
+                    colaias_wpforo_ai_log_info('WPForo AI Moderation: First-post deletion process started for post ' . $muted_user->post_id . '. Schedualing ⏱️ ASYNC DELETION VERIFICATION.');
+                    wp_schedule_single_event(time() + 2, 'colaias_wpforo_ai_async_post_verification', array(
+                        'post_id' => $muted_user->post_id,
+                        'user_id' => $user_id,
+                        'called_by' => __FUNCTION__ . ' (first_post)'
+                    ));
                 } else {
                     error_log('🤖 ❌ WPForo AI Moderation: ERROR. Failed to delete first-post ' . $muted_user->post_id . ' for user ' . $user_id);
                 }
@@ -2564,32 +2571,12 @@ function colaias_wpforo_ai_query_llm($api_key, $model, $prompt)
 
     try {
         $url = 'https://openrouter.ai/api/v1/chat/completions';
-        
-        // Start with required headers
         $headers = [
             'Authorization' => 'Bearer ' . $api_key,
             'Content-Type' => 'application/json',
+            'HTTP-Referer' => colaias_wpforo_ai_get_cached_site_url(), // Required. Site URL for rankings on openrouter.ai.
+            'X-Title'=> 'wpForo AI Moderation',
         ];
-        
-        // Check if metrics sending is enabled
-        $send_metrics = get_option('colaias_wpforo_ai_send_metrics_to_openrouter', true);
-        
-        if ($send_metrics) {
-            // Add metrics headers
-            $headers['HTTP-Referer'] = colaias_wpforo_ai_get_cached_site_url(); // Required. Site URL for rankings on openrouter.ai.
-            
-            // Get custom X-Title or use default
-            $custom_xtitle = get_option('colaias_wpforo_ai_custom_xtitle_for_openrouter', '');
-            if (!empty($custom_xtitle)) {
-                $headers['X-Title'] = $custom_xtitle;
-            } else {
-                $headers['X-Title'] = 'COLAIAs wpForo AI Moderation';
-            }
-            
-            colaias_wpforo_ai_log_info('WPForo AI Moderation: Sending metrics to OpenRouter with X-Title: ' . $headers['X-Title']);
-        } else {
-            colaias_wpforo_ai_log_info('WPForo AI Moderation: Metrics sending to OpenRouter is disabled');
-        }
         
         $json_prompt = $prompt ;
         
@@ -2758,15 +2745,13 @@ function colaias_wpforo_ai_enqueue_admin_scripts($hook) {
                         WPF()->post->set_status($first_post['postid'], 1);
 
                         // Schedule async status verification after 2 seconds to allow cache to clear
-                        $can_log_info = get_option('colaias_wpforo_ai_can_log_info',false);
-                        if ($can_log_info) {
-                            wp_schedule_single_event(time() + 2, 'colaias_wpforo_ai_async_status_verification', array(
-                                'post_id' => $first_post['postid'],
-                                'expected_status' => 1,
-                                'operation' => 'first-post status change',
-                                'called_by' => __FUNCTION__
-                            ));
-                        }
+                        wp_schedule_single_event(time() + 2, 'colaias_wpforo_ai_async_status_verification', array(
+                            'post_id' => $first_post['postid'],
+                            'expected_status' => 1,
+                            'operation' => 'first-post status change',
+                            'called_by' => __FUNCTION__
+                        ));
+                    
                     } else {
                         error_log('🤖 ❌ WPForo AI Moderation: ERROR. Could not retrieve first post with ID: ' . $topic['first_postid']);
                     }
@@ -2807,19 +2792,16 @@ function colaias_wpforo_ai_enqueue_admin_scripts($hook) {
                 colaias_wpforo_ai_log_info('WPForo AI Moderation: Setting post status to 1 and Schedualing ⏱️ ASYNC STATUS VERIFICATION');
                     // Update the post status to unapproved in the database
                 WPF()->post->set_status($post['postid'], 1);
+                // Schedule async status verification after 2 seconds to allow cache to clear
+                wp_schedule_single_event(time() + 2, 'colaias_wpforo_ai_async_status_verification', array(
+                    'post_id' => $post['postid'],
+                    'expected_status' => 1,
+                    'operation' => 'post status change',
+                    'called_by' => __FUNCTION__
+                ));
 
-                $can_log_info = get_option('colaias_wpforo_ai_can_log_info',false);
-                if ($can_log_info) {
-                    // Schedule async status verification after 2 seconds to allow cache to clear
-                    wp_schedule_single_event(time() + 2, 'colaias_wpforo_ai_async_status_verification', array(
-                        'post_id' => $post['postid'],
-                        'expected_status' => 1,
-                        'operation' => 'post status change',
-                        'called_by' => __FUNCTION__
-                    ));
-                }
             }
-        } catch (Exception $e) {
+        }  catch (Exception $e) {
             error_log('🤖 ❌ 💀 WPForo AI Moderation: CRITICAL ERROR. Could not penalize post. Exception : '
             .$e->getMessage() );
         } 
@@ -2888,7 +2870,7 @@ function colaias_wpforo_ai_record_muted_hit($user_id, $is_topic, $is_edit)  {
     }
 }
 
-function colaias_wpforo_ai_record_hit($user_id, $is_topic, $is_edit, $content_id, $flag_type, $is_muteable, $reason = null) {
+function colaias_wpforo_ai_record_hit($user_id, $is_topic, $is_edit, $content_id, $flag_type, $is_mutable) {
     global $wpdb;
     
     try {
@@ -2914,16 +2896,15 @@ function colaias_wpforo_ai_record_hit($user_id, $is_topic, $is_edit, $content_id
                 'post_id' => $post_id,
                 'topic_id' => $topic_id,
                 'hit_time' => current_time('mysql'),
-                'is_muteable' => $is_muteable ? 1 : 0,
+                'is_mutable' => $is_mutable ? 1 : 0,
                 'is_muted' => 0,
                 'content_type' => $content_type,
-                'flag_type' => $flag_type,
-                'reason' => $reason
+                'flag_type' => $flag_type
             ),
-            array('%d', '%d', '%d', '%s', '%d', '%d', '%s', '%s', '%s')
+            array('%d', '%d', '%d', '%s', '%d', '%d', '%s', '%s')
         );
         
-        colaias_wpforo_ai_log_info("📈 WPForo AI Moderation Metrics: Recorded hit for user {$user_id}, type: {$content_type}, flag: {$flag_type}, muteable: " . ($is_muteable ? 'yes' : 'no'));
+        colaias_wpforo_ai_log_info("📈 WPForo AI Moderation Metrics: Recorded hit for user {$user_id}, type: {$content_type}, flag: {$flag_type}, mutable: " . ($is_mutable ? 'yes' : 'no'));
         
     } catch (Exception $e) {
         error_log("🤖 ❌ 💀 WPForo AI Moderation: CRITICAL ERROR. Error recording metrics hit: " . $e->getMessage());
@@ -3085,7 +3066,7 @@ add_action('wpforo_after_edit_post', 'colaias_wpforo_ai_after_post_update', 100,
             colaias_wpforo_ai_clear_moderation_data('muted_topic_user_'.$user_id);
         }
         catch(Exception $e) {
-            colaias_wpforo_ai_log_info("⚠️  WPForo AI Moderation: Opps ⚠️, you should hardly need to see this, but the problem maybe occuring with the global dictionary colaias_wpforo_ai_moderation_data. There is a CRITICAL chance of memory leak with this exception due to data storing. Deactivate the plugin, make sure the error is not due to the wpForo AI Moderation plugin.\n
+            colaias_wpforo_ai_log_info("WPForo AI Moderation: Opps ⚠️, you should hardly need to see this, but the problem maybe occuring with the global dictionary colaias_wpforo_ai_moderation_data. There is a CRITICAL chance of memory leak with this exception due to data storing. Deactivate the plugin, make sure the error is not due to the wpForo AI Moderation plugin.\n
             If so contact the Github repository maintainer IMMEDIATELY. 😵'");
         } 
         return $topic;
@@ -3170,7 +3151,7 @@ function colaias_wpforo_ai_moderate_topic_before_insert($topic) {
             colaias_wpforo_ai_clear_moderation_data('muted_topic_user_'.$user_id);
         }
         catch(Exception $e) {
-            colaias_wpforo_ai_log_info("⚠️  WPForo AI Moderation: Opps ⚠️, you should hardly need to see this, but the problem maybe occuring with the global dictionary colaias_wpforo_ai_moderation_data. There is a CRITICAL chance of memory leak with this exception due to data storing. Deactivate the plugin, make sure the error is not due to the wpForo AI Moderation plugin.\n
+            colaias_wpforo_ai_log_info("WPForo AI Moderation: Opps ⚠️, you should hardly need to see this, but the problem maybe occuring with the global dictionary colaias_wpforo_ai_moderation_data. There is a CRITICAL chance of memory leak with this exception due to data storing. Deactivate the plugin, make sure the error is not due to the wpForo AI Moderation plugin.\n
             If so contact the Github repository maintainer IMMEDIATELY. 😵'");
         }  
 
@@ -3234,7 +3215,7 @@ function colaias_wpforo_ai_after_topic_insert($topic) {
                         colaias_wpforo_ai_Utilities::colaias_wpforo_ai_notices_notice($message, 'error', 120000);
 
                         // record metric
-                        colaias_wpforo_ai_record_hit($user_id, true, false, $topic['topicid'] , $type, true, $reason);
+                        colaias_wpforo_ai_record_hit($user_id, true, false, $topic['topicid'] , $type, true);
                     }
                     else {
                         colaias_wpforo_ai_Utilities::colaias_wpforo_ai_notices_notice("Your topic has been processed by our moderation system.", 'neutral', 10000);
@@ -3265,7 +3246,7 @@ function colaias_wpforo_ai_after_topic_insert($topic) {
             
         }
         catch(Exception $e) {
-            colaias_wpforo_ai_log_info("⚠️  WPForo AI Moderation: Opps ⚠️, you should hardly need to see this, but the problem maybe occuring with the global dictionary colaias_wpforo_ai_moderation_data. There is a CRITICAL chance of memory leak with this exception due to data storing. Deactivate the plugin, make sure the error is not due to the wpForo AI Moderation plugin.\n
+            colaias_wpforo_ai_log_info("WPForo AI Moderation: Opps ⚠️, you should hardly need to see this, but the problem maybe occuring with the global dictionary colaias_wpforo_ai_moderation_data. There is a CRITICAL chance of memory leak with this exception due to data storing. Deactivate the plugin, make sure the error is not due to the wpForo AI Moderation plugin.\n
             If so contact the Github repository maintainer IMMEDIATELY. 😵'");
         }  
 
@@ -3342,7 +3323,7 @@ function colaias_wpforo_ai_before_moderate_post_check_mute($post) {
             colaias_wpforo_ai_clear_moderation_data('muted_post_user_'.$user_id);
         }
         catch(Exception $e) {
-            colaias_wpforo_ai_log_info("⚠️  WPForo AI Moderation: Opps ⚠️, you should hardly need to see this, but the problem maybe occuring with the global dictionary colaias_wpforo_ai_moderation_data. There is a CRITICAL chance of memory leak with this exception due to data storing. Deactivate the plugin, make sure the error is not due to the wpForo AI Moderation plugin.\n
+            colaias_wpforo_ai_log_info("WPForo AI Moderation: Opps ⚠️, you should hardly need to see this, but the problem maybe occuring with the global dictionary colaias_wpforo_ai_moderation_data. There is a CRITICAL chance of memory leak with this exception due to data storing. Deactivate the plugin, make sure the error is not due to the wpForo AI Moderation plugin.\n
             If so contact the Github repository maintainer IMMEDIATELY. 😵'");
         }
 
@@ -3429,7 +3410,7 @@ function colaias_wpforo_ai_moderate_post_before_insert($post) {
             colaias_wpforo_ai_clear_moderation_data('post_moderation_result_'.$user_id);
         }
         catch(Exception $e) {
-            colaias_wpforo_ai_log_info("⚠️  WPForo AI Moderation: Opps ⚠️, you should hardly need to see this, but the problem maybe occuring with the global dictionary colaias_wpforo_ai_moderation_data. There is a CRITICAL chance of memory leak with this exception due to data storing. Deactivate the plugin, make sure the error is not due to the wpForo AI Moderation plugin.\n
+            colaias_wpforo_ai_log_info("WPForo AI Moderation: Opps ⚠️, you should hardly need to see this, but the problem maybe occuring with the global dictionary colaias_wpforo_ai_moderation_data. There is a CRITICAL chance of memory leak with this exception due to data storing. Deactivate the plugin, make sure the error is not due to the wpForo AI Moderation plugin.\n
             If so contact the Github repository maintainer IMMEDIATELY. 😵'");        
         }
         
@@ -3493,7 +3474,7 @@ function colaias_wpforo_ai_after_post_insert($post) {
                 
                     colaias_wpforo_ai_Utilities::colaias_wpforo_ai_notices_notice($message, 'error', 120000);
                     // record metric
-                    colaias_wpforo_ai_record_hit($user_id, false, false, $post['postid'] , $type, true, $reason);
+                    colaias_wpforo_ai_record_hit($user_id, false, false, $post['postid'] , $type, true);
                 }
                 else {
                     colaias_wpforo_ai_Utilities::colaias_wpforo_ai_notices_notice("Your post has been processed by our moderation system.", 'success', 10000);
@@ -3524,7 +3505,7 @@ function colaias_wpforo_ai_after_post_insert($post) {
             colaias_wpforo_ai_clear_moderation_data('post_moderation_result_'.$user_id); // x5
         }
         catch(Exception $e) {
-            colaias_wpforo_ai_log_info("⚠️  WPForo AI Moderation: Opps ⚠️, you should hardly need to see this, but the problem maybe occuring with the global dictionary colaias_wpforo_ai_moderation_data. There is a CRITICAL chance of memory leak with this exception due to data storing. Deactivate the plugin, make sure the error is not due to the wpForo AI Moderation plugin.\n
+            colaias_wpforo_ai_log_info("WPForo AI Moderation: Opps ⚠️, you should hardly need to see this, but the problem maybe occuring with the global dictionary colaias_wpforo_ai_moderation_data. There is a CRITICAL chance of memory leak with this exception due to data storing. Deactivate the plugin, make sure the error is not due to the wpForo AI Moderation plugin.\n
             If so contact the Github repository maintainer IMMEDIATELY. 😵'");
         }
 
@@ -3602,7 +3583,7 @@ function colaias_wpforo_ai_before_moderate_topic_edit_check_mute($topic) {
 
         }
         catch(Exception $e) {
-            colaias_wpforo_ai_log_info("⚠️  WPForo AI Moderation: Opps ⚠️, you should hardly need to see this, but the problem maybe occuring with the global dictionary colaias_wpforo_ai_moderation_data. There is a CRITICAL chance of memory leak with this exception due to data storing. Deactivate the plugin, make sure the error is not due to the wpForo AI Moderation plugin.\n
+            colaias_wpforo_ai_log_info("WPForo AI Moderation: Opps ⚠️, you should hardly need to see this, but the problem maybe occuring with the global dictionary colaias_wpforo_ai_moderation_data. There is a CRITICAL chance of memory leak with this exception due to data storing. Deactivate the plugin, make sure the error is not due to the wpForo AI Moderation plugin.\n
             If so contact the Github repository maintainer IMMEDIATELY. 😵'");
         }
 
@@ -3689,7 +3670,7 @@ function colaias_wpforo_ai_moderate_topic_before_update($topic) {
             colaias_wpforo_ai_clear_moderation_data('topic_edit_moderation_result_'.$user_id);
         }
         catch(Exception $e) {
-            colaias_wpforo_ai_log_info("⚠️  WPForo AI Moderation: Opps ⚠️, you should hardly need to see this, but the problem maybe occuring with the global dictionary colaias_wpforo_ai_moderation_data. There is a CRITICAL chance of memory leak with this exception due to data storing. Deactivate the plugin, make sure the error is not due to the wpForo AI Moderation plugin.\n
+            colaias_wpforo_ai_log_info("WPForo AI Moderation: Opps ⚠️, you should hardly need to see this, but the problem maybe occuring with the global dictionary colaias_wpforo_ai_moderation_data. There is a CRITICAL chance of memory leak with this exception due to data storing. Deactivate the plugin, make sure the error is not due to the wpForo AI Moderation plugin.\n
             If so contact the Github repository maintainer IMMEDIATELY. 😵'");
         }
 
@@ -3754,7 +3735,7 @@ function colaias_wpforo_ai_after_topic_update($topic) {
                         colaias_wpforo_ai_Utilities::colaias_wpforo_ai_notices_notice($message, 'error',120000);
 
                         // record metric
-                        colaias_wpforo_ai_record_hit($user_id, true, true, $topic['topicid'] , $type, true, $reason);
+                        colaias_wpforo_ai_record_hit($user_id, true, true, $topic['topicid'] , $type, true);
                     }
                     else {
                         colaias_wpforo_ai_Utilities::colaias_wpforo_ai_notices_notice("Your updated topic has been processed by our moderation system.", 'success', 10000);
@@ -3785,7 +3766,7 @@ function colaias_wpforo_ai_after_topic_update($topic) {
             colaias_wpforo_ai_clear_moderation_data('topic_edit_moderation_result_'.$user_id); // x5
         }
         catch(Exception $e) {
-            colaias_wpforo_ai_log_info("⚠️  WPForo AI Moderation: Opps ⚠️, you should hardly need to see this, but the problem maybe occuring with the global dictionary colaias_wpforo_ai_moderation_data. There is a CRITICAL chance of memory leak with this exception due to data storing. Deactivate the plugin, make sure the error is not due to the wpForo AI Moderation plugin.\n
+            colaias_wpforo_ai_log_info("WPForo AI Moderation: Opps ⚠️, you should hardly need to see this, but the problem maybe occuring with the global dictionary colaias_wpforo_ai_moderation_data. There is a CRITICAL chance of memory leak with this exception due to data storing. Deactivate the plugin, make sure the error is not due to the wpForo AI Moderation plugin.\n
             If so contact the Github repository maintainer IMMEDIATELY. 😵'");
         }
     
@@ -3863,7 +3844,7 @@ function colaias_wpforo_ai_before_moderate_post_edit_check_mute($post) {
             colaias_wpforo_ai_clear_moderation_data('muted_post_edit_user_'.$user_id);
         }
         catch(Exception $e) {
-            colaias_wpforo_ai_log_info("⚠️  WPForo AI Moderation: Opps ⚠️, you should hardly need to see this, but the problem maybe occuring with the global dictionary colaias_wpforo_ai_moderation_data. There is a CRITICAL chance of memory leak with this exception due to data storing. Deactivate the plugin, make sure the error is not due to the wpForo AI Moderation plugin.\n
+            colaias_wpforo_ai_log_info("WPForo AI Moderation: Opps ⚠️, you should hardly need to see this, but the problem maybe occuring with the global dictionary colaias_wpforo_ai_moderation_data. There is a CRITICAL chance of memory leak with this exception due to data storing. Deactivate the plugin, make sure the error is not due to the wpForo AI Moderation plugin.\n
             If so contact the Github repository maintainer IMMEDIATELY. 😵'");
         }
 
@@ -3952,7 +3933,7 @@ function colaias_wpforo_ai_moderate_post_before_update($post) {
             colaias_wpforo_ai_clear_moderation_data('post_edit_moderation_result_'.$user_id);
         }
         catch(Exception $e) {
-            colaias_wpforo_ai_log_info("⚠️  WPForo AI Moderation: Opps ⚠️, you should hardly need to see this, but the problem maybe occuring with the global dictionary colaias_wpforo_ai_moderation_data. There is a CRITICAL chance of memory leak with this exception due to data storing. Deactivate the plugin, make sure the error is not due to the wpForo AI Moderation plugin.\n
+            colaias_wpforo_ai_log_info("WPForo AI Moderation: Opps ⚠️, you should hardly need to see this, but the problem maybe occuring with the global dictionary colaias_wpforo_ai_moderation_data. There is a CRITICAL chance of memory leak with this exception due to data storing. Deactivate the plugin, make sure the error is not due to the wpForo AI Moderation plugin.\n
             If so contact the Github repository maintainer IMMEDIATELY. 😵'");
         }
 
@@ -4017,7 +3998,7 @@ function colaias_wpforo_ai_after_post_update($post) {
                         colaias_wpforo_ai_Utilities::colaias_wpforo_ai_notices_notice($message, 'error', 120000);
 
                         // record metric
-                        colaias_wpforo_ai_record_hit($user_id, false, true, $post['postid'] , $type, true, $reason);
+                        colaias_wpforo_ai_record_hit($user_id, false, true, $post['postid'] , $type, true);
                     }
                     else {
                         colaias_wpforo_ai_Utilities::colaias_wpforo_ai_notices_notice("Your updated post has been processed by our moderation system.", 'success', 10000);
@@ -4049,7 +4030,7 @@ function colaias_wpforo_ai_after_post_update($post) {
             colaias_wpforo_ai_clear_moderation_data('post_edit_moderation_result_'.$user_id); // x5
         }
         catch(Exception $e) {
-            colaias_wpforo_ai_log_info("⚠️  WPForo AI Moderation: Opps ⚠️, you should hardly need to see this, but the problem maybe occuring with the global dictionary colaias_wpforo_ai_moderation_data. There is a CRITICAL chance of memory leak with this exception due to data storing. Deactivate the plugin, make sure the error is not due to the wpForo AI Moderation plugin.\n
+            colaias_wpforo_ai_log_info("WPForo AI Moderation: Opps ⚠️, you should hardly need to see this, but the problem maybe occuring with the global dictionary colaias_wpforo_ai_moderation_data. There is a CRITICAL chance of memory leak with this exception due to data storing. Deactivate the plugin, make sure the error is not due to the wpForo AI Moderation plugin.\n
             If so contact the Github repository maintainer IMMEDIATELY. 😵'");
         }
     

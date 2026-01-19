@@ -39,10 +39,25 @@
             e.preventDefault();
             const $button = $(this);
             const $notice = $button.closest('.colaias-wpforo-ai-notice');
-            // const noticeId = $notice.data('notice-id');
+            const noticeId = $notice.data('notice-id');
             
             // Add dismissing class for animation
             $notice.addClass('dismissing');
+            
+            // Send AJAX request to dismiss notice
+            if (noticeId) {
+                $.ajax({
+                    url: colaias_wpforo_ai_notices.ajax_url,
+                    type: 'POST',
+                    data: {
+                        action: 'colaias_wpforo_ai_dismiss_notice',
+                        nonce: colaias_wpforo_ai_notices.nonce,
+                        notice_id: noticeId
+                    }
+                }).fail(function(jqXHR, textStatus, errorThrown) {
+                    console.error('Failed to dismiss notice:', textStatus, errorThrown);
+                });
+            }
             
             // Remove notice after animation completes
             setTimeout(function() {
