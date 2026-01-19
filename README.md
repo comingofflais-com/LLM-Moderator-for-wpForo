@@ -1,6 +1,6 @@
 # LLM Moderator for wpForo
 
-World's Premiere Anti-Troll Software
+### World's Premiere Anti-Troll Software
 
 AI-powered moderation using OpenRouter with standalone Moderator/Admin interface
 
