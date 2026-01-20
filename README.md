@@ -5,12 +5,13 @@
 AI-powered moderation using OpenRouter with standalone Moderator/Admin interface
 
 ## Description
+
 ### Important
-This plugin is in beta. 192/192 automated test scenarios passed! See tested version below. **WARNING**: The code is released for early adopters beta testing on non-production sites and reference purposes only. In any case, **back up your site first!** Use at your own risk. Bug fixes are appreciated.
+This plugin is in beta. 192/192 automated test scenarios passed! See tested versions below (current 2.4.13). **WARNING**: The code is released for early adopters beta testing on non-production sites and reference purposes only. In any case, **back up your site first!** Use at your own risk. Bug fixes are appreciated.
 
-LLM Moderator for wpForo is a WordPress plugin that integrates AI-powered content moderation with the wpForo forum plugin. It uses OpenRouter API to analyze forum posts and topics in real-time, automatically flagging inappropriate content and muting users who violate forum guidelines. Utilizing independent database tables for muted users, and flag metrics. 
+LLM Moderator for wpForo is a WordPress plugin that integrates AI-powered content moderation with the wpForo forum plugin. It uses OpenRouter API to analyze forum posts and topics in real-time, automatically flagging inappropriate content and muting users who violate forum guidelines. Utilizing independent database tables for muted users, and flag metrics.
 
-Get control over your moderation ✊ ✊ ✊. Moderate at mere pennies. During testing the average cost per request is recorded at USD $0.00005 using the default prompt, with DeekSeek-v3.1.
+Get control over your moderation ✊ ✊ ✊. Moderate at mere pennies. During testing the average cost per request is recorded at USD $0.00005 using the default prompt, with DeepSeek-v3.1.
 
 ## News
  - Jan 2026 | Looking for beta testers. Join the Telegram group!
@@ -27,12 +28,14 @@ Get control over your moderation ✊ ✊ ✊. Moderate at mere pennies. During t
 - **Scheduled Maintenance**: Daily cleanup of expired mutes and orphaned records
 - **Metrics**: Know how many posts resulted muting, how many muted users were prevented, the flag types, up to 1 year. 
 - **Notifications**: Short-code for notification to user about the moderation and mute status
+
 ## Premium (unreleased, in development)
 **Premium**: Has an automatically updating premium version available for purchase that includes:
    - **Essential "Moderator" usergroup members' control panel** short-code. Improved moderation control page with pre-existing WordPress plugins for your human moderators to manage admin page actions for AI muted users such as view muted users, un-mute muted users, view triggering post and approve, or delete it.
    - **Easy Prompt panel** to help you create llm prompts with organized structure  
    - **Forum flood control and user post limit** to stop excessive user posting resulting in excessive AI use
    - **Premium Metrics** utilizing the robust pre-existing WordPress plugins to create charts and graphs, up to 5 years since base plugin activation
+
    **Purchase the premium**: The purchase for the premium features will be available soon (after I finish development). Your purchase is greatly appreciated because it supports me and my work.
 
 ## Screenshots
@@ -65,14 +68,16 @@ Get control over your moderation ✊ ✊ ✊. Moderate at mere pennies. During t
 The plugin automatically:
 - Scans new or edited posts and topics for guideline violations
 - Flags inappropriate content using AI analysis
-- Users who violate guidelines can be muted for configured durations, the penalizing posts or topics are unapproved. Muted users will see an error notification that they are currently muted and can not post until their expiration time or the human moderators unmute them before then.
-- Allows the admin to set different mute expiration times for flag types 
+- Updates flag and user metrics 
+- Users who violate guidelines can be muted for configured durations, the penalizing posts or topics are unapproved. Muted users will see an error notification that they are currently muted and cannot post until their expiration time or the human moderators unmute them before then.
+- Allows the admin to set different mute expiration times for flag types
 - Appends custom message with formatting tags for AI type and reason to the end of the post, topic, and edits after LLM analysis
-- Can be used to just append the custom message at the end of the post body after AI analysis (without forced muting), or metrics (desired feature)
+- Can be used to just append the custom message at the end of the post body after AI analysis (without forced muting), or metrics
 - Automatically removes expired muted users on cleanup and deletes the penalizing posts and topics if not previously un-muted by the human moderator and  before the mute expiration time. This deletes any pending unapproved post or topic
 - Allows the admin to monitor the muted users' table, remove users, run cleanup, or see when next cleanup will occur (other human moderators can use the essential premium moderation page feature)
 - Allows the web admin to customize the prompt to have the LLM select the most appropriate "type" tag for the post 
-- Yes, prevents muted users without re-occurring LLM queries, saving you costs 
+- Yes, prevents muted users without re-occurring LLM queries, saving you costs
+
 ## Installation
 
 1. If the Wordpress plugin is available, download from there and activate. For the beta version you need to download the folder 'colaias_wpforo_ai-moderation', compress it into a zip file first, then in 'plugins -> add plugin', or upload the plugin file to `/wp-content/plugins/` and extract.  
@@ -89,9 +94,9 @@ The plugin automatically:
    - Configure your preferred AI model 
       Single model: deepseek/deepseek-chat-v3.1
       Model chain: deepseek/deepseek-chat-v3.1:x-ai/grok-beta:mistralai/mistral-7b-instruct
-   - Free models are available on OpenRouter, but are not recommended. AI moderation is relatively cost efficient.
+   - Free models are available on OpenRouter, but are not recommended (free will time out or not follow prompt). AI moderation is relatively cost efficient.
    - Set key usage limits as needed (recommended to set and modify key limit to avoid unwanted billing, and issues related to cyber crimes). Set up notification when usage limits are being reached.
-   - If key is at limit or your account is out of credits, the moderation will simply be skipped
+   - If key is at limit, or your account is out of credits, the moderation will simply be skipped, make sure to enable OpenRouter alerts
 
 2. **Flag Types Setup**:
    - Configure different flag types (FLAG, NSFW, SPAM, etc.)
@@ -103,8 +108,8 @@ The plugin automatically:
    - See wpForo instructions on how to enable secondary groups for human moderators
    - Add unmute permissions as needed
 
-4. **Enable moderation notifications and **
-   - add shortcode [colaias_wpforo_ai_notices top='30px' right='30%' width='40%'] on the same [wpforo] shortcode page 
+4. **Enable moderation notifications**:
+   - Add shortcode `[colaias_wpforo_ai_notices top='30px' right='30%' width='40%']` on the same page as the `[wpforo]` shortcode
 
 ### User Group Permissions
 
@@ -124,12 +129,13 @@ Administrators (and other human moderators with the premium plugin) can:
 - Run cleanup operations manually (admin only)
 
 ### API Response Format
-The AI must respond in JSON format and it must contain the "type" key. Optionally the "reason" key. The 'reason' key is used to display the LLM reason for the flag on the muted users' table, for appending a custom message with {REASON} formatting at the bottom of the post content,
- and for premium flag metrics which you can get after purchase.
- You must engineer the prompt to receive the response in valid JSON format.
- For overlapping and multiple flag occurrences in the post, the 'type' flag selection must be given priorities through the prompt.
- Tune your prompt for strictness, i.e. if the content is mostly benign but contains a small about of triggering language, tell the LLM how strict or relaxed you want it to be when selecting that type, 
- as it results in a mute for __ amount of time.
+
+The AI must respond in JSON format and it must contain the "type" key. Optionally the "reason" key. The 'reason' key is used to display the LLM reason for the flag on the muted users' table, for appending a custom message with {REASON} formatting at the bottom of the post content, and for premium flag metrics which you can get after purchase.
+
+You must engineer the prompt to receive the response in valid JSON format. For overlapping and multiple flag occurrences in the post, the 'type' flag selection must be given priorities through the prompt.
+
+Tune your prompt for strictness, i.e. if the content is mostly benign but contains a small amount of triggering language, tell the LLM how strict or relaxed you want it to be when selecting that type, as it results in a mute for __ amount of time.
+
 Example of what JSON format response looks like, that is expected from the OpenRouter LLM model:
 ```json
 {
@@ -157,7 +163,8 @@ Example of what JSON format response looks like, that is expected from the OpenR
 - Set the mute duration or leave empty for fallback duration if flag type not specified
 - Optional append a custom message at the end of the post body with AI formatting tags {TYPE} and {RESPONSE}
 - Removing all flag types will repopulate with default flag types
-**WARNING** If you do not want any moderation, deactivate the plugin. Otherwise it will query to the LLM regardless of the fact that all flags are disabled. Another option is to remove/unsave your OpenRouter key, this will disable moderation with some slight de-optimization effect on your website. Will still prevent the currently muted users from posting until their mutes expire. And also to keep showing old flag metrics.  
+
+**WARNING**: If you do not want any moderation, deactivate the plugin. Otherwise it will query to the LLM regardless of the fact that all flags are disabled. Another option is to remove/unsave your OpenRouter key, this will disable moderation with some slight de-optimization effect on your website. Will still prevent the currently muted users from posting until their mutes expire. And also to keep showing old flag metrics.
 
 ## Database
 
@@ -179,11 +186,10 @@ The plugin creates a custom table `wp_colaias_wpforo_ai_flag_metrics` to track:
 
 - Join the Telegram group first before taking on a project or making changes. Someone might already be working on it, or I may not accept it into the codebase.
 - Enable information logging to get step-by-step moderation flow. View the logs in the terminal with cmd `tail -f wp-content/debug.log`. Helpful for debugging and understanding how the plugin works. 
-- Permissions: 'colaias_wpforo_ai_can_access_moderation'
-- wpForo group_cans: 'colaias_wpforo_ai_group_can_access_moderation'
+- Permissions: `'colaias_wpforo_ai_can_access_moderation'`
+- wpForo group_cans: `'colaias_wpforo_ai_group_can_access_moderation'`
 - Primarily focus on moderation-only features
 - Keep main features into the same file, or move them to the main file once done coding. Do not add extra features. Create a separate plugin for extra features which can be uploaded here.
-- 
 
 ### File Structure
 - `wpforo-ai-moderation.php`: Main plugin file with all functionality
@@ -197,13 +203,17 @@ The plugin creates a custom table `wp_colaias_wpforo_ai_flag_metrics` to track:
 
 **HELP WANTED!** 
 
-This is an open-source project available on GitHub that is built upon several different, changing, and evolving ecosystems, most importantly wpForo. This means we need community updates to this free plugin to keep it running consistently with version updates. At the very least, I need you to join my telegram group to immediately update/notify me of changes, and provide help. I am not a primarily WordPress developer, I will likely be forever busy with other projects. However, the effort put into making the project means it must survive! **Yell at me if something breaks.**
+This is an open-source project available on GitHub that is built upon several different, changing, and evolving ecosystems, most importantly wpForo. This means we need community updates to this free plugin to keep it running consistently with version updates. At the very least, I need you to join my telegram group to immediately update/notify me of changes, and provide help.
+
+I am not a primarily WordPress developer, I will likely be forever busy with other projects. However, the effort put into making the project means it must survive! **Yell at me if something breaks.**
 
 ### Project Background
 
 I, the developer, have put a lot of effort into creating this plugin, wanting to capitalize on the lack of moderation opportunity that is essential to my website, only to find out late that the gVectors team has been working on their own moderation plugin, with development starting the same month. Had I known, I wouldn't have made this.
 
-But maybe that is a good thing for you. And not only that, there may be some considerable differences where this might be all you need. This is a super low cost, user-controlled moderation system. Moderation only. The wpForo AI suite may have more features, but this plugin still solves the critical need for AI moderation. This is effective, and free (except for the very low cost OpenRouter fees), and gives you control over your moderation needs ✊ ✊ ✊.
+But maybe that is a good thing for you. And not only that, there may be some considerable differences where this might be all you need. This is a super low cost, user-controlled moderation system. Moderation only.
+
+The wpForo AI suite may have more features, but this plugin still solves the critical need for AI moderation. This is effective, and free (except for the very low cost OpenRouter fees), and gives you control over your moderation needs ✊ ✊ ✊.
 
 ### Comparison with wpForo AI Suite
 
@@ -257,29 +267,28 @@ New in Version 1.6.3:
  - Sending metrics to OpenRouter now optional
  - minor fixes, better metric table
 
- New in Version 1.6.2:
+New in Version 1.6.2:
  - colaias_wpforo_ai_notice, better notices
 
-
-   New in Version 1.5.7:
+New in Version 1.5.7:
  - refactored wpforo_ai to colaias_wpforo_ai 
 
-   New in Version 1.5.6:
+New in Version 1.5.6:
  - Sanitized $_GET, $_POST, $_SERVER,  
  - In-house testing "Reset Defaults" populate function
- 
-   New in Version 1.5.5:
+
+New in Version 1.5.5:
  - More fixes, hard db rm again, and logging
  - An automated testing system (not included)
  - Metrics table, and basic metrics
  - Batch cleanup of expired mutes and old flag metrics for large databases
 
- New in Version 1.5.4:
-- Async logging to be notified whether post or topic was successfully manipulated
-- Error handling, prevent website from crashing if the version of wpForo is not compatible. 
-- Try-Catch exception handling for everything, with logs. Lots of helpful emojis... more emojis still needed
-- Organized code into sections, moved it together
-- Still notifications, unable to implement better solution, but will need to try GUI next time
+New in Version 1.5.4:
+ - Async logging to be notified whether post or topic was successfully manipulated
+ - Error handling, prevent website from crashing if the version of wpForo is not compatible. 
+ - Try-Catch exception handling for everything, with logs. Lots of helpful emojis... more emojis still needed
+ - Organized code into sections, moved it together
+ - Still notifications, unable to implement better solution, but will need to try GUI next time
 
 Version: 1.5.3
 Requires Plugins: wpforo
@@ -287,34 +296,34 @@ Author: comingofflais.com
 
 New in Version 1.5.3:
 Works with wpForo 2.4.13, wordpress 6.9, php 8.2.27, MySQL 8.0.35
-- Major changes:
-- WPF based post and topic deletion and status change! (Deleting and status changing of first-post apparently applied to topic)
-- But broken AI notices
+ - Major changes:
+ - WPF based post and topic deletion and status change! (Deleting and status changing of first-post apparently applied to topic)
+ - But broken AI notices
 
 New in Version 1.5.0:
-- Major re-write of how the topic, post, topic-edit, post-edit are used with hooks.
-- Added a global dictionary for pending topics, posts, and edits, to preserve data-results through the moderation chain of events/hooks
-- Fixed bug where the LLM message could not be appended to post body
+ - Major re-write of how the topic, post, topic-edit, post-edit are used with hooks.
+ - Added a global dictionary for pending topics, posts, and edits, to preserve data-results through the moderation chain of events/hooks
+ - Fixed bug where the LLM message could not be appended to post body
 
 New in Version 1.4:
-- Enable or disable informational error logging from dashboard
-- Append a custom message at the bottom of the post with AI {TYPE} and {REASON} formatting tags. 
+ - Enable or disable informational error logging from dashboard
+ - Append a custom message at the bottom of the post with AI {TYPE} and {REASON} formatting tags. 
 
 New in Version 1.34:
-- Prompt types can now be set through the admin panel instead of hardcode predetermined types.
-- Updated logging
+ - Prompt types can now be set through the admin panel instead of hardcode predetermined types.
+ - Updated logging
 
 New in Version 1.3:
-- Prompt types can now be set through the admin panel instead of hardcode predetermined types.
-- Updated logging
+ - Prompt types can now be set through the admin panel instead of hardcode predetermined types.
+ - Updated logging
 
 New in Version 1.2:
-- Standalone admin menu item for AI Moderation
-- Dedicated interface accessible to Moderators and Admins
+ - Standalone admin menu item for AI Moderation
+ - Dedicated interface accessible to Moderators and Admins
 
 New in Version 1.1:
-- Added moderator/Admin capability checking system
-- Custom capability 'colaias_wpforo_ai_can_access_moderation' for access control
-- Support for wpForo Moderator and Admin user groups
-- Automatic capability assignment to WordPress admin roles
+ - Added moderator/Admin capability checking system
+ - Custom capability 'colaias_wpforo_ai_can_access_moderation' for access control
+ - Support for wpForo Moderator and Admin user groups
+ - Automatic capability assignment to WordPress admin roles
 
