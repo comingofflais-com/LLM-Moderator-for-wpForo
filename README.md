@@ -9,6 +9,7 @@ AI-powered moderation using OpenRouter with standalone Moderator/Admin interface
 This plugin is in beta. 192/192 automated test scenarios passed! See tested version below. **WARNING**: The code is released for early adopters beta testing on non-production sites and reference purposes only. In any case, **back up your site first!** Use at your own risk. Bug fixes are appreciated.
 
 LLM Moderator for wpForo is a WordPress plugin that integrates AI-powered content moderation with the wpForo forum plugin. It uses OpenRouter API to analyze forum posts and topics in real-time, automatically flagging inappropriate content and muting users who violate forum guidelines. Utilizing independent database tables for muted users, and flag metrics. 
+
 Get control over your moderation ✊ ✊ ✊. Moderate at mere pennies. During testing the average cost per request is recorded at USD $0.00005 using the default prompt, with DeekSeek-v3.1.
 
 ## News
@@ -156,7 +157,7 @@ Example of what JSON format response looks like, that is expected from the OpenR
 - Set the mute duration or leave empty for fallback duration if flag type not specified
 - Optional append a custom message at the end of the post body with AI formatting tags {TYPE} and {RESPONSE}
 - Removing all flag types will repopulate with default flag types
-**WARNING** If you do not want any moderation, deactivate the plugin. Otherwise it will query to the LLM regardless of the fact that all flags are disabled. Or you can remove/unsave your OpenRouter key, this will disable moderation, but prevent the muted users from posting until their mutes expire. And also to keep showing and cleaning old flag metrics.  
+**WARNING** If you do not want any moderation, deactivate the plugin. Otherwise it will query to the LLM regardless of the fact that all flags are disabled. Another option is to remove/unsave your OpenRouter key, this will disable moderation with some slight de-optimization effect on your website. Will still prevent the currently muted users from posting until their mutes expire. And also to keep showing old flag metrics.  
 
 ## Database
 
