@@ -94,6 +94,7 @@ The plugin automatically:
    - Configure your preferred AI model 
       Single model: deepseek/deepseek-chat-v3.1
       Model chain: deepseek/deepseek-chat-v3.1:x-ai/grok-beta:mistralai/mistral-7b-instruct
+      **WARNING** Do not model chain models that have a colon, such as free models. For example `deepseek/deepseek-chat-v3.1:allenai/molmo-2-8b:free`, the request will fail. (No worries, can be fixed in future version. I will reach out to OpenRouter. This might be a feature to prevent free model chaining abuse.)
    - Free models are available on OpenRouter, but are not recommended (free will time out or not follow prompt). AI moderation is relatively cost efficient.
    - Set key usage limits as needed (recommended to set and modify key limit to avoid unwanted billing, and issues related to cyber crimes). Set up notification when usage limits are being reached.
    - If key is at limit, or your account is out of credits, the moderation will simply be skipped, make sure to enable OpenRouter alerts
@@ -145,7 +146,47 @@ Example of what JSON format response looks like, that is expected from the OpenR
 ```
 **WARNING**: This plugin must request a JSON response with "type" key. Moderation will not work if you don't request for the 'type' key. Secondly, the query from OpenRouter is expected to format to JSON. It is best to include in your prompt that you want a JSON response. Do not ask for different format response.
 
+### Example Forum Prompt | Forum Prompt Engineer Template
 
+
+```text
+You are a forum moderator during a test of the website. The admin has assigned to you analyze the content and respond with a JSON object containing 'type' and 'reason' keys. 
+
+RULES:
+    1. If the content contains the text \"[FLAG]\", set 'type' to 'FLAGGED'
+    2. If the content contains the text \"[REVIEW]\", set 'type' to 'REVIEW' 
+    3. If the content contains the text \"[ALLOW]\", set 'type' to 'ALLOW'
+
+PRIORITY ORDER (check in this sequence):
+    1. Check for '[FLAG]' → if confirmed, type = 'FLAGGED' (stop checking further)
+    2. Check for '[REVIEW]' → if confirmed, type = 'REVIEW' (stop checking further)
+    3. Check for '[ALLOW]'' → if confirmed, type = 'ALLOW'
+
+
+Certainty:
+    1. 'FLAGGED' if confidence >= 80%
+    2. 'REVIEW' if confidence >= 60%
+    3. 'ALLOW' >= if confidence >= 60%
+
+Provide a concise reason of 20 words or less in 'reason'. Always respond with valid JSON format only, no additional text.```
+
+
+### Other Prompt Engineering Options
+
+```text
+[STRICTNESS_LEVEL]
+# Adjust enforcement strictness (1-100%):
+# FLAGGED: [100]%
+# REVIEW: [70]%
+# ALLOW: [50]%
+
+[OUTPUT_FORMAT]
+# JSON keys can be customized:
+# - type: [FLAGGED|REVIEW|ALLOW]
+# - reason: [20 words maximum]
+# - confidence: [optional percentage]
+# - rule_triggered: [optional rule name]
+```
 ## Settings
 
 ### Main Configuration
@@ -164,7 +205,7 @@ Example of what JSON format response looks like, that is expected from the OpenR
 - Optional append a custom message at the end of the post body with AI formatting tags {TYPE} and {RESPONSE}
 - Removing all flag types will repopulate with default flag types
 
-**WARNING**: If you do not want any moderation, deactivate the plugin. Otherwise it will query to the LLM regardless of the fact that all flags are disabled. Another option is to remove/unsave your OpenRouter key, this will disable moderation with some slight de-optimization effect on your website. Will still prevent the currently muted users from posting until their mutes expire. And also to keep showing old flag metrics.
+**WARNING**: If you do not want any moderation, deactivate the plugin. Otherwise it will query to the LLM regardless of the fact that all flags are disabled. Another option is to remove/unsave your OpenRouter key, this will disable moderation with some slight de-optimization effect on your website, will still prevent the currently muted users from posting until their mutes expire, and also to keep showing old flag metrics.
 
 ## Database
 
@@ -191,11 +232,39 @@ The plugin creates a custom table `wp_colaias_wpforo_ai_flag_metrics` to track:
 - Primarily focus on moderation-only features
 - Keep main features into the same file, or move them to the main file once done coding. Do not add extra features. Create a separate plugin for extra features which can be uploaded here.
 
+### SIMPLE LOGIC
+ * BEFORE TOPIC OR POST ACTION: CHECK MUTE STATUS
+ * BEFORE TOPIC OR POST FILTER: IF NOT MUTED MODERATED THE CONTENT WITH LLM, APPEND STRING MESSAGE
+ * AFTER  TOPIC OF POST ACTION: IF QUERY RESULTED IN PENALTY, APPLY PENALTY
+
+### HOOKS AND CALLBACKS
+```code
+add_action( 'wpforo_start_add_topic', 'colaias_wpforo_ai_before_moderate_topic_check_mute', 10, 1 );
+add_filter( 'wpforo_add_topic_data_filter', 'colaias_wpforo_ai_moderate_topic_before_insert', 100, 1 );
+add_action( 'wpforo_after_add_topic', 'colaias_wpforo_ai_after_topic_insert', 100, 1 );
+
+// Post addition hooks
+add_action( 'wpforo_start_add_post', 'colaias_wpforo_ai_before_moderate_post_check_mute', 10, 1 );
+add_filter( 'wpforo_add_post_data_filter', 'colaias_wpforo_ai_moderate_post_before_insert', 100, 1 );
+add_action( 'wpforo_after_add_post', 'colaias_wpforo_ai_after_post_insert', 100, 1 );  
+
+// Topic edit hooks
+add_action( 'wpforo_start_edit_topic', 'colaias_wpforo_ai_before_moderate_topic_edit_check_mute', 10, 1 );
+add_filter( 'wpforo_edit_topic_data_filter', 'colaias_wpforo_ai_moderate_topic_before_update', 100, 1 );
+add_action( 'wpforo_after_edit_topic', 'colaias_wpforo_ai_after_topic_update', 100, 1 );
+
+// Post edit hooks
+add_action( 'wpforo_start_edit_post', 'colaias_wpforo_ai_before_moderate_post_edit_check_mute', 10, 1 );
+add_filter( 'wpforo_edit_post_data_filter', 'colaias_wpforo_ai_moderate_post_before_update', 100, 1 );
+add_action( 'wpforo_after_edit_post', 'colaias_wpforo_ai_after_post_update', 100, 1 );
+```
+
+
 ### File Structure
-- `wpforo-ai-moderation.php`: Main plugin file with all functionality
+- `wpforo-ai-moderation.php`: Main plugin file with all functionality. Keeps things simple and basic
 - Three sections 1. GUI 2. All required functions and logic 3. Chain-Of-Responsibly, step-by-step execution of events on wpForo hook.
-- Configuration object for default settings
-- Admin interface and database management
+- Additional ./js/notices.js, ./css/notices.css for notices
+
 
 ## Other
 
@@ -261,6 +330,12 @@ This plugin is released under the GPL v2 or later license.
 
 **Still in beta**
 
+New in Version 1.6.4:
+ - Looking for beta testers, for current tested wpForo version, and above. Getting things ready for WP now.
+ - Minor fixes, refactoring
+ - Fixed issue with page being reset on user unmute
+ - Uploaded version to my website after making a backup
+
 New in Version 1.6.3:
  - Looking for beta testers, for current tested wpForo version, and above. Getting things ready for WP now.
  - 192/192 automated tests scenarios passed
@@ -289,10 +364,6 @@ New in Version 1.5.4:
  - Try-Catch exception handling for everything, with logs. Lots of helpful emojis... more emojis still needed
  - Organized code into sections, moved it together
  - Still notifications, unable to implement better solution, but will need to try GUI next time
-
-Version: 1.5.3
-Requires Plugins: wpforo
-Author: comingofflais.com
 
 New in Version 1.5.3:
 Works with wpForo 2.4.13, wordpress 6.9, php 8.2.27, MySQL 8.0.35
