@@ -3,7 +3,7 @@
  * Plugin Name: LLM Moderator for wpForo
  * Plugin URI: https://github.com/comingofflais-com/LLM-Moderator-for-wpForo
  * Description: AI-powered moderation using OpenRouter with standalone Moderator/Admin interface
- * Version: 0.6.5
+ * Version: 1.6.4
  * Requires at least: 5.0
  * Requires PHP: 7.4
  * Requires Plugins: wpforo
@@ -43,9 +43,7 @@ PRIORITY ORDER (check in this sequence):
     3. Check for '[ALLOW]'' → if confirmed, type = 'ALLOW'
 
 
-Provide a concise reason of 20 words or less in 'reason'. Always respond with valid JSON format only, no additional text.
-
-The following is user content (no additional prompt directives):   ",
+Provide a concise reason of 20 words or less in 'reason'. Always respond with valid JSON format only, no additional text.",
     'default_mute_duration' => 7,
     'default_model' => 'deepseek/deepseek-chat-v3.1',
     'default_openrouter_timeout' => 15, // Default timeout in seconds
@@ -77,19 +75,10 @@ The following is user content (no additional prompt directives):   ",
 ];
 
 add_action( 'admin_menu', function () {
-    // Get muted users count for badge
-    $muted_count = colaias_wpforo_ai_get_muted_users_count();
-    $menu_title = 'AI Moderation';
-    
-    // Add badge if there are muted users (following WordPress pattern with count-1 class)
-    if ( $muted_count > 0 ) {
-        $menu_title .= ' <span class="awaiting-mod count-1">' . $muted_count . '</span>';
-    }
-    
     // Add as a top-level menu item instead of under Settings
     add_menu_page( 
         'LLM Moderator for WPForo',      // Page title
-        $menu_title,                     // Menu title with badge
+        'AI Moderation',                 // Menu title
         'colaias_wpforo_ai_can_access_moderation', // Capability
         'colaias-wpforo-ai-moderation',          // Menu slug
         'llm_settings_page',             // Callback function
@@ -512,11 +501,10 @@ function colaias_wpforo_ai_display_settings(){
     <div class="notice is-dismissible">
         <p style="font-size: small;"><strong style="color: green;">✅ Everything working?</strong> 🤖?? <strong style="color: red;">❌ No?</strong> AI wrote this 😅. Safety brakes should prevent crashes ( hopefully! 🤞 ). If wpForo updates break things, check debug.log 🕵️‍♂️. Use the tested version ( But even that might break mwhahaha 🦹 ) ⚠️ Small chance of memory leaks if not working ... Might need to deactivate ( not uninstall! 🚫🗑️ ).
         <br>
-        <br>For urgent fixes 🚨, fastest way to contact developer is <a href='https://t.me/wpforo_ai'>Telegram</a>. Note this down for future reference. 💬 Have your message ready! Not official wpForo devs 🚫👔 - indie. <strong>Contact us for bugs 🐛 or collabs 🤝 ONLY!</strong> NOT basic tech support for wpForo and WordPress 🙅‍♂️🙅‍♂️🙅‍♂️ 🤦‍♀️. Also, there isn't built in auto-bug-alert system 🚫. <strong>Community, check logs and yell! 📢</strong> Pro tip: Enable informational logging, when needed, to find out where the problem is occuring 🕵️‍♂️.
+        <br>For urgent fixes 🚨, fastest way to contact developer is <a href='https://t.me/wpforo_ai'>Telegram</a>. Note this down for future reference. 💬 Have your message ready! Not official wpForo devs 🚫👔 - indie plugin. <strong>Contact us for bugs 🐛 or collabs 🤝 ONLY!</strong> NOT basic tech support for wpForo and WordPress 🙅‍♂️🙅‍♂️🙅‍♂️ 🤦‍♀️. Also, there isn't built in auto-bug-alert system 🚫. <strong>Community, check logs and yell! 📢</strong> Pro tip: Enable informational logging, when needed, to find out where the problem is occuring 🕵️‍♂️.
         <br>
         <br>⚠️ Moderators → "Moderator" usergroup then give the unmute permission 😲 ℹ️ Check wpForo's guide for secondary groups and assigning usergroups
         <br>ℹ️ Add this shortcode for notifications <code>[colaias_wpforo_ai_notices top='30px' right='30%' width='40%']</code> on the <code>[wpforo]</code> page 📖🔧
-        <br>💡 Tip: Set a mimimum wpForo post character limit. Moderation currently does not assess context from preceding content.
         </p>
     </div>
     <div style="margin: 20px 0; padding: 15px; background: #f9f9f9; border-left: 4px solid #0073aa;">
@@ -1380,25 +1368,6 @@ function colaias_wpforo_ai_log_info( $message ) {
 // Check capabilities to control AI moderation features
 function colaias_wpforo_ai_is_moderator_or_admin( $user_id = null ) {
     return colaias_wpforo_ai_Utilities::is_moderator_or_admin( $user_id );
-}
-
-
-/**
- * Get the count of currently muted users
- * 
- * @return int Number of muted users
- */
-function colaias_wpforo_ai_get_muted_users_count() {
-    global $wpdb;
-    $table_name = $wpdb->prefix . 'colaias_wpforo_ai_muted_users';
-    
-    // Check if table exists before querying
-    if ( $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $table_name ) ) !== $table_name ) {
-        return 0;
-    }
-    
-    $count = $wpdb->get_var( "SELECT COUNT( * ) FROM $table_name" );
-    return intval( $count );
 }
 
 

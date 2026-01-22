@@ -168,7 +168,8 @@ Certainty:
     2. 'REVIEW' if confidence >= 60%
     3. 'ALLOW' >= if confidence >= 60%
 
-Provide a concise reason of 20 words or less in 'reason'. Always respond with valid JSON format only, no additional text.```
+Provide a concise reason of 20 words or less in 'reason'. Always respond with valid JSON format only, no additional text.
+```
 
 
 ### Other Prompt Engineering Options
@@ -329,70 +330,72 @@ This plugin is released under the GPL v2 or later license.
 ## Version History
 
 **Still in beta**
+New in Version 0.6.5:
+ - add-mod muted users notification
 
-New in Version 1.6.4:
+New in Version 0.6.4:
  - Looking for beta testers, for current tested wpForo version, and above. Getting things ready for WP now.
  - Minor fixes, refactoring
  - Fixed issue with page being reset on user unmute
  - Uploaded version to my website after making a backup
 
-New in Version 1.6.3:
+New in Version 0.6.3:
  - Looking for beta testers, for current tested wpForo version, and above. Getting things ready for WP now.
  - 192/192 automated tests scenarios passed
  - Sending metrics to OpenRouter now optional
  - minor fixes, better metric table
 
-New in Version 1.6.2:
+New in Version 0.6.2:
  - colaias_wpforo_ai_notice, better notices
 
-New in Version 1.5.7:
+New in Version 0.5.7:
  - refactored wpforo_ai to colaias_wpforo_ai 
 
-New in Version 1.5.6:
+New in Version 0.5.6:
  - Sanitized $_GET, $_POST, $_SERVER,  
  - In-house testing "Reset Defaults" populate function
 
-New in Version 1.5.5:
+New in Version 0.5.5:
  - More fixes, hard db rm again, and logging
  - An automated testing system (not included)
  - Metrics table, and basic metrics
  - Batch cleanup of expired mutes and old flag metrics for large databases
 
-New in Version 1.5.4:
+New in Version 0.5.4:
  - Async logging to be notified whether post or topic was successfully manipulated
  - Error handling, prevent website from crashing if the version of wpForo is not compatible. 
  - Try-Catch exception handling for everything, with logs. Lots of helpful emojis... more emojis still needed
  - Organized code into sections, moved it together
  - Still notifications, unable to implement better solution, but will need to try GUI next time
 
-New in Version 1.5.3:
+New in Version 0.5.3:
 Works with wpForo 2.4.13, wordpress 6.9, php 8.2.27, MySQL 8.0.35
  - Major changes:
  - WPF based post and topic deletion and status change! (Deleting and status changing of first-post apparently applied to topic)
  - But broken AI notices
 
-New in Version 1.5.0:
+New in Version 0.5.0:
  - Major re-write of how the topic, post, topic-edit, post-edit are used with hooks.
  - Added a global dictionary for pending topics, posts, and edits, to preserve data-results through the moderation chain of events/hooks
  - Fixed bug where the LLM message could not be appended to post body
 
-New in Version 1.4:
+New in Version 0.4:
  - Enable or disable informational error logging from dashboard
  - Append a custom message at the bottom of the post with AI {TYPE} and {REASON} formatting tags. 
 
-New in Version 1.34:
+New in Version 0.34:
  - Prompt types can now be set through the admin panel instead of hardcode predetermined types.
  - Updated logging
 
-New in Version 1.3:
+New in Version 0.3:
  - Prompt types can now be set through the admin panel instead of hardcode predetermined types.
  - Updated logging
 
-New in Version 1.2:
+New in Version 0.2:
  - Standalone admin menu item for AI Moderation
  - Dedicated interface accessible to Moderators and Admins
 
-New in Version 1.1:
+New in Version 0.1:
  - Added moderator/Admin capability checking system
  - Custom capability 'colaias_wpforo_ai_can_access_moderation' for access control
  - Support for wpForo Moderator and Admin user groups
