@@ -46,6 +46,7 @@ Get control over your moderation ✊ ✊ ✊. Moderate at mere pennies. During t
 ![Alt text](screenshots/5.png)
 ![Alt text](screenshots/6.png)
 ![Alt text](screenshots/7.png)
+![Alt text](screenshots/8.png)
 
 ## Premium Version Screenshots
 ![Alt text](screenshots/p/1.png)
