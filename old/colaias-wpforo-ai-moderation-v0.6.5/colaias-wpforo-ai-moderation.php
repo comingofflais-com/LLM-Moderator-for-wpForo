@@ -2,13 +2,13 @@
 /**
  * Plugin Name: LLM Moderator for wpForo
  * Plugin URI: https://github.com/comingofflais-com/LLM-Moderator-for-wpForo
- * Description: AI-powered moderation for wpForo using OpenRouter with standalone Moderator/Admin interface
- * Version: 0.6.6
+ * Description: AI-powered moderation using OpenRouter with standalone Moderator/Admin interface
+ * Version: 0.6.5
  * Requires at least: 5.0
  * Requires PHP: 7.4
  * Requires Plugins: wpforo
- * Author: colaiasq Ali, comingofflais.com
- * Author URI: #https://comingofflais.com
+ * Author: comingofflais.com
+ * Author URI: https://comingofflais.com
  * License: GPL v2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: colaias-wpforo-ai-moderation
@@ -92,7 +92,7 @@ add_action( 'admin_menu', function () {
         $menu_title,                     // Menu title with badge
         'colaias_wpforo_ai_can_access_moderation', // Capability
         'colaias-wpforo-ai-moderation',          // Menu slug
-        'colaias_wpforo_ai_llm_settings_page',             // Callback function
+        'llm_settings_page',             // Callback function
         'dashicons-shield',              // Icon ( using shield icon for moderation )
         30                               // Position ( after Comments at 25, before Appearance at 60 )
     );
@@ -104,7 +104,7 @@ add_action( 'admin_menu', function () {
         'Moderation Settings',           // Menu title
         'colaias_wpforo_ai_can_access_moderation', // Capability
         'colaias-wpforo-ai-moderation',          // Menu slug
-        'colaias_wpforo_ai_llm_settings_page'              // Callback function
+        'llm_settings_page'              // Callback function
     );
 } );
 
@@ -149,7 +149,6 @@ function colaias_wpforo_ai_register_capabilities() {
 
         colaias_wpforo_ai_log_info( 'WPForo AI Moderation: Custom capabilities init for unauthorized role' );
     } catch ( Exception $e ) {
-    // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
     error_log( '🤖 ❌ 💀 WPForo AI Moderation: CRITICAL ERROR. Could not assign custom capabilities. Exception : '
     .$e->getMessage() );
     }
@@ -200,15 +199,13 @@ function colaias_wpforo_ai_handle_admin_actions() {
     // Handle group permission actions
     if ( isset( $_GET['action'] ) && isset( $_GET['group_id'] ) && isset( $_GET['_wpnonce'] ) && isset( $_GET['page'] ) && $_GET['page'] === 'colaias-wpforo-ai-moderation' ) {
         $group_id = intval( $_GET['group_id'] );
-        $action = sanitize_text_field( wp_unslash( $_GET['action'] ) );
+        $action = sanitize_text_field( $_GET['action'] );
         
-        if ( $action === 'add_unmute_permission' && wp_verify_nonce( wp_unslash( $_GET['_wpnonce'] ), 'colaias_wpforo_ai_add_unmute_' . $group_id ) ) {
+        if ( $action === 'add_unmute_permission' && wp_verify_nonce( $_GET['_wpnonce'], 'colaias_wpforo_ai_add_unmute_' . $group_id ) ) {
             $success = colaias_wpforo_ai_manage_unmute_permission( $group_id, 'add' );
             $notice_type = $success ? 'success' : 'error';
             $notice_message = $success ? 
-                /* translators: %d: Group ID number */
                 sprintf( __( 'Added unmute permission to group ID %d!', 'colaias-wpforo-ai-moderation' ), $group_id ) :
-                /* translators: %d: Group ID number */
                 sprintf( __( 'Failed to add unmute permission to group ID %d!', 'colaias-wpforo-ai-moderation' ), $group_id );
             
             // Store notice in a transient for display
@@ -223,13 +220,11 @@ function colaias_wpforo_ai_handle_admin_actions() {
             exit;
         }
         
-        if ( $action === 'remove_unmute_permission' && wp_verify_nonce( wp_unslash( $_GET['_wpnonce'] ), 'colaias_wpforo_ai_remove_unmute_' . $group_id ) ) {
+        if ( $action === 'remove_unmute_permission' && wp_verify_nonce( $_GET['_wpnonce'], 'colaias_wpforo_ai_remove_unmute_' . $group_id ) ) {
             $success = colaias_wpforo_ai_manage_unmute_permission( $group_id, 'remove' );
             $notice_type = $success ? 'success' : 'error';
             $notice_message = $success ? 
-                /* translators: %d: Group ID number */
                 sprintf( __( 'Removed unmute permission from group ID %d!', 'colaias-wpforo-ai-moderation' ), $group_id ) :
-                /* translators: %d: Group ID number */
                 sprintf( __( 'Failed to remove unmute permission from group ID %d!', 'colaias-wpforo-ai-moderation' ), $group_id );
             
             set_transient( 'colaias_action_notice_' . get_current_user_id(), array( 
@@ -244,17 +239,16 @@ function colaias_wpforo_ai_handle_admin_actions() {
     
     // Handle user unmute actions
     if ( isset( $_GET['action'] ) && isset( $_GET['user_id'] ) && isset( $_GET['_wpnonce'] ) && isset( $_GET['page'] ) && $_GET['page'] === 'colaias-wpforo-ai-moderation' ) {
-        $action = sanitize_text_field( wp_unslash( $_GET['action'] ) );
+        $action = sanitize_text_field( $_GET['action'] );
         $user_id = intval( $_GET['user_id'] );
         
-        if ( $action === 'unmute' && $user_id && wp_verify_nonce( wp_unslash( $_GET['_wpnonce'] ), 'colaias_wpforo_ai_unmute_' . $user_id ) ) {
+        if ( $action === 'unmute' && $user_id && wp_verify_nonce( $_GET['_wpnonce'], 'colaias_wpforo_ai_unmute_' . $user_id ) ) {
             if ( colaias_wpforo_ai_Utilities::do_users_usergroups_have_colaias_wpforo_ai_group_can_access_moderation() ) {
                 colaias_wpforo_ai_delete_penalizing_topic_or_post_for_user( $user_id );
                 colaias_wpforo_ai_unmute_user( $user_id );
                 
                 set_transient( 'colaias_action_notice_' . get_current_user_id(), array( 
                     'type' => 'success',
-                    /* translators: %d: User ID number */
                     'message' => sprintf( __( 'User ID %d has been unmuted!', 'colaias-wpforo-ai-moderation' ), $user_id )
                 ), 30 );
             } else {
@@ -288,16 +282,14 @@ function colaias_wpforo_ai_handle_admin_actions() {
  * 
 */
 
-function colaias_wpforo_ai_llm_settings_page(){
+function llm_settings_page(){
     try{
     // Display transient notices if they exist
     $transient_key = 'colaias_action_notice_' . get_current_user_id();
     $notice = get_transient( $transient_key );
     if ( $notice && is_array( $notice ) && isset( $notice['type'] ) && isset( $notice['message'] ) ) {
         $notice_class = 'notice-' . $notice['type'];
-        ?>
-        <div class="notice <?php echo esc_attr( $notice_class ); ?> is-dismissible"><p><?php echo esc_html( $notice['message'] ); ?></p></div>
-        <?php
+        echo '<div class="notice ' . esc_attr( $notice_class ) . ' is-dismissible"><p>' . esc_html( $notice['message'] ) . '</p></div>';
         // Clean up the transient after displaying
         delete_transient( $transient_key );
     }
@@ -305,7 +297,7 @@ function colaias_wpforo_ai_llm_settings_page(){
     // Check which tab is active
     // If current user cannot manage settings, default to muted_users tab
     $default_tab = current_user_can( 'manage_options' ) ? 'settings' : 'muted_users';
-    $active_tab = isset( $_GET['tab'] ) ? sanitize_text_field( wp_unslash( $_GET['tab'] ) ) : $default_tab;
+    $active_tab = isset( $_GET['tab'] ) ? sanitize_text_field( $_GET['tab'] ) : $default_tab;
     
     // Check if premium plugin is active
     $premium_plugin_active = function_exists( 'colaias_wpforo_ai_premium_init' );
@@ -317,35 +309,33 @@ function colaias_wpforo_ai_llm_settings_page(){
     
     // Display premium notification
     if ( !$premium_plugin_active ) {
-        ?>
-        <div class="notice notice-info is-dismissible" style="border-left-color: #0073aa; background: #f0f9ff; padding: 15px; margin: 20px 0;">
-            <h3 style="margin-top: 0; color: #0073aa;">💎 Premium Features Available!</h3>
-            <p>🤖 Enhance your moderation capabilities with our premium plugin which includes:</p>
-            <ul style="margin: 10px 0 15px 0;">
-                <li>Improved moderator control panel plugin, page shortcode. In conjuncture with a feature WP tables plugin ( TBA )</li>
-                <li>Easy prompt generation panel</li>
-                <li>Advanced flood control system</li>
-                <li>Charts and graph based metrics. In conjuncture with a feature WP charts and graphs plugin ( TBA )</li>
-            </ul>
-            <p><strong>Get it now at: <a href="https://insertmywebsitehere.com/shop" target="_blank" style="color: #0073aa; text-decoration: underline;">insertmywebsitehere.com ( store coming soon )</a></strong></p>
-            <p>Features automatic new version upgrade notification in Dashboard -> Plugins</p>
-            <br><p style="padding: 10px; background:rgba( 170, 170, 170, 0.25 );">🤖 Your active participation in development is greatly appreciated. Check out the repository on Github <a href="https://github.com/comingofflais-com/LLM-Moderator-for-wpForo" target="_blank" style="color: #0073aa; text-decoration: underline;">https://github.com/comingofflais-com/LLM-Moderator-for-wpForo</a>. Enjoy the moderation features!</p>
-        </div>
-        <?php
+        
+        echo '<div class="notice notice-info is-dismissible" style="border-left-color: #0073aa; background: #f0f9ff; padding: 15px; margin: 20px 0;">';
+        echo '<h3 style="margin-top: 0; color: #0073aa;">💎 Premium Features Available!</h3>';
+        echo '<p>🤖 Enhance your moderation capabilities with our premium plugin which includes:</p>';
+        echo '<ul style="margin: 10px 0 15px 0;">';
+        echo '<li>Improved moderator control panel plugin, page shortcode. In conjuncture with a feature WP tables plugin ( TBA )</li>';
+        echo '<li>Easy prompt generation panel</li>';
+        echo '<li>Advanced flood control system</li>';
+        echo '<li>Charts and graph based metrics. In conjuncture with a feature WP charts and graphs plugin ( TBA )</li>';
+        echo '</ul>';
+        echo '<p><strong>Get it now at: <a href="https://insertmywebsitehere.com/shop" target="_blank" style="color: #0073aa; text-decoration: underline;">insertmywebsitehere.com ( store coming soon )</a></strong></p>';
+        echo '<p>Features automatic new version upgrade notification in Dashboard -> Plugins</p>';
+        echo '<br><p style="padding: 10px; background:rgba( 170, 170, 170, 0.25 );">🤖 Your active participation in development is greatly appreciated. Check out the repository on Github <a href="https://github.com/comingofflais-com/LLM-Moderator-for-wpForo" target="_blank" style="color: #0073aa; text-decoration: underline;">https://github.com/comingofflais-com/LLM-Moderator-for-wpForo</a>. Enjoy the moderation features!</p>';
+        echo '</div>';
     } else {
-        ?>
-        <div class="notice notice-success is-dismissible" style="border-left-color: #46b450; background: #f0fff0; padding: 15px; margin: 20px 0;">
-            <h3 style="margin-top: 0; color: #46b450;">🎉 Thank You for Using Premium!</h3>
-            <p style="padding: 10px; background:rgba( 170, 170, 170, 0.25 );">🤖 Your active participation in development is greatly appreciated. Check out the repository on Github <a href="https://github.com/comingofflais-com/LLM-Moderator-for-wpForo" target="_blank" style="color: #0073aa; text-decoration: underline;">https://github.com/comingofflais-com/LLM-Moderator-for-wpForo</a>. Enjoy the extra moderation features!</p>
-        </div>
-        <?php
+        
+        echo '<div class="notice notice-success is-dismissible" style="border-left-color: #46b450; background: #f0fff0; padding: 15px; margin: 20px 0;">';
+        echo '<h3 style="margin-top: 0; color: #46b450;">🎉 Thank You for Using Premium!</h3>';
+        echo '<p style="padding: 10px; background:rgba( 170, 170, 170, 0.25 );">🤖 Your active participation in development is greatly appreciated. Check out the repository on Github <a href="https://github.com/comingofflais-com/LLM-Moderator-for-wpForo" target="_blank" style="color: #0073aa; text-decoration: underline;">https://github.com/comingofflais-com/LLM-Moderator-for-wpForo</a>. Enjoy the extra moderation features!</p>';
+        echo '</div>';
     }
     
     // Note: Only admins can access settings and add group cans. NOT moderators, they can only access mute tab before other groups, but not unmute.
 
     
     // Handle form submission, set the new settings from the admin panel on submit
-    if ( isset( $_SERVER['REQUEST_METHOD'] ) && $_SERVER['REQUEST_METHOD'] === 'POST' && isset( $_POST['colaias_wpforo_ai_nonce'] ) && wp_verify_nonce( wp_unslash( $_POST['colaias_wpforo_ai_nonce'] ), 'colaias_wpforo_ai_save_settings' ) ) {
+    if ( $_SERVER['REQUEST_METHOD'] === 'POST' && isset( $_POST['colaias_wpforo_ai_nonce'] ) && wp_verify_nonce( $_POST['colaias_wpforo_ai_nonce'], 'colaias_wpforo_ai_save_settings' ) ) {
         // Only allow administrators to save settings
         if ( current_user_can( 'manage_options' ) ) {
             // Save all settings
@@ -376,7 +366,7 @@ function colaias_wpforo_ai_llm_settings_page(){
             // Handle flag types saving
             if ( isset( $_POST['colaias_wpforo_ai_flag_types'] ) ) {
                 $flag_types = [];
-                $posted_types = wp_unslash( $_POST['colaias_wpforo_ai_flag_types'] );
+                $posted_types = $_POST['colaias_wpforo_ai_flag_types'];
                 
                 foreach ( $posted_types as $index => $type_data ) {
                     if ( !empty( $type_data['type'] ) ) {
@@ -417,7 +407,7 @@ function colaias_wpforo_ai_llm_settings_page(){
                 }
                 
                 if ( isset( $_POST[$key] ) ) {
-                    $value = wp_unslash( $_POST[$key] );
+                    $value = $_POST[$key];
                     if ( is_callable( $sanitizer ) ) {
                         $value = call_user_func( $sanitizer, $value );
                     } else {
@@ -439,13 +429,9 @@ function colaias_wpforo_ai_llm_settings_page(){
                     }
                 }
             }
-            ?>
-            <div class="notice notice-success is-dismissible"><p><?php echo esc_html__( 'Settings saved successfully!', 'colaias-wpforo-ai-moderation' ); ?></p></div>
-            <?php
+            echo '<div class="notice notice-success is-dismissible"><p>' . __( 'Settings saved successfully!', 'colaias-wpforo-ai-moderation' ) . '</p></div>';
         } else {
-            ?>
-            <div class="notice notice-error is-dismissible"><p><?php echo esc_html__( 'You do not have permission to save settings.', 'colaias-wpforo-ai-moderation' ); ?></p></div>
-            <?php
+            echo '<div class="notice notice-error is-dismissible"><p>' . __( 'You do not have permission to save settings.', 'colaias-wpforo-ai-moderation' ) . '</p></div>';
         }
     }
     
@@ -456,10 +442,10 @@ function colaias_wpforo_ai_llm_settings_page(){
         <h1>🤖 WPForo AI Moderation plugin</h1>
         <h2 class="nav-tab-wrapper">
             <?php if ( current_user_can( 'manage_options' ) ): ?> 
-                <a href="<?php echo esc_url( add_query_arg( 'tab', 'settings' ) ); ?>" class="nav-tab <?php echo $active_tab === 'settings' ? 'nav-tab-active' : ''; ?>">Settings</a>
+                <a href="<?php echo add_query_arg( 'tab', 'settings' ); ?>" class="nav-tab <?php echo $active_tab === 'settings' ? 'nav-tab-active' : ''; ?>">Settings</a>
             <?php endif; ?>
-            <a href="<?php echo esc_url( add_query_arg( 'tab', 'muted_users' ) ); ?>" class="nav-tab <?php echo $active_tab === 'muted_users' ? 'nav-tab-active' : ''; ?>">Muted Users</a>
-            <a href="<?php echo esc_url( add_query_arg( 'tab', 'metrics' ) ); ?>" class="nav-tab <?php echo $active_tab === 'metrics' ? 'nav-tab-active' : ''; ?>">Metrics</a>
+            <a href="<?php echo add_query_arg( 'tab', 'muted_users' ); ?>" class="nav-tab <?php echo $active_tab === 'muted_users' ? 'nav-tab-active' : ''; ?>">Muted Users</a>
+            <a href="<?php echo add_query_arg( 'tab', 'metrics' ); ?>" class="nav-tab <?php echo $active_tab === 'metrics' ? 'nav-tab-active' : ''; ?>">Metrics</a>
         </h2>
         
         <?php if ( $active_tab === 'settings' ): ?>
@@ -474,7 +460,6 @@ function colaias_wpforo_ai_llm_settings_page(){
             $table_exists = $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $table_name ) ) === $table_name;
             
             if ( !$table_exists ) {
-                // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
                 error_log( '🤖 ❌ WPForo AI Moderation: ERROR. Muted users\' table does not exist. It should have been created on plugin activation, or plugin upgrade process. There may be further issues, and you may need to contact support if you notice any further issues. Attempting to create it ( this log is for development )...' );
                 
                 // Try to create the table
@@ -482,25 +467,20 @@ function colaias_wpforo_ai_llm_settings_page(){
                 $table_exists = $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $table_name ) ) === $table_name;
                 colaias_wpforo_ai_log_info( 'WPForo AI Moderation: Table exists, displaying muted users...' );
                 if ( $table_exists ) {
-                    ?>
-                    <div class="notice notice-success"><p><?php echo esc_html__( 'Muted users table created successfully!', 'colaias-wpforo-ai-moderation' ); ?></p></div>
-                    <?php
+                    echo '<div class="notice notice-success"><p>Muted users table created successfully!</p></div>';
                     colaias_wpforo_ai_display_muted_users();
-                    // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Warning logging required for admin debugging
                     error_log( '🤖 ⚠️ WPForo AI Moderation: WARNING. Table was now created now, this log is for developer and should not occur in production, but continue monitoring for further issues... displaying muted users...' );
                 } else {
-                    ?>
-                    <div class="notice notice-error"><p><?php echo esc_html__( 'The muted users table could not be created. ', 'colaias-wpforo-ai-moderation' );
-                    echo esc_html__( 'Please check your database permissions or deactivate and reactivate the plugin.', 'colaias-wpforo-ai-moderation' ); ?></p></div>
+                    echo '<div class="notice notice-error"><p>The muted users table could not be created. ';
+                    echo 'Please check your database permissions or deactivate and reactivate the plugin.</p></div>';
                     
-                    <div class="notice notice-info"><p>Debug info: 
-                    Table name: <?php echo esc_html( $table_name ); ?><br>
-                    Creation result: <?php echo esc_html( $creation_result ? 'Success' : 'Failed' ); ?><br>
-                    Current table exists check: <?php echo esc_html( $table_exists ? 'Yes' : 'No' ); ?>
-                    </p></div>
-                    <?php
+                    // Debug info
+                    echo '<div class="notice notice-info"><p>Debug info: ';
+                    echo 'Table name: ' . $table_name . '<br>';
+                    echo 'Creation result: ' . ( $creation_result ? 'Success' : 'Failed' ) . '<br>';
+                    echo 'Current table exists check: ' . ( $table_exists ? 'Yes' : 'No' );
+                    echo '</p></div>';
 
-                    // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
                     error_log( '🤖 ❌ WPForo AI Moderation: ERROR. Table could not be created, even on the 2nd attempt. Contact developer to resolve this issue.' );
                 }
             } else {
@@ -516,16 +496,13 @@ function colaias_wpforo_ai_llm_settings_page(){
     </div>    
     <?php
     } catch ( Exception $e ) {
-        // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
         error_log( '🤖 ❌ 💀 WPForo AI Moderation: CRITICAL ERROR. Could not create settings page. Exception : '
         .$e->getMessage() );
 
-        ?>
-        <div class="notice error"><p>CRITICAL ERROR ENCOUNTERED. Check debug.log file, notify the developer: 
-        <a href="https://t.me/wpforo_ai">Telegram</a><br>
-        Error: <?php echo esc_html( $e->getMessage() ); ?><br>
-        </p></div>
-        <?php
+        echo '<div class="notice error"><p>CRITICAL ERROR ENCOUNTERED. Check debug.log file, notify the developer: ';
+        echo '<a href="https://t.me/wpforo_ai">Telegram</a><br>';
+        echo 'Error: ' . $e->getMessage() . '<br>';
+        echo '</p></div>';
     }
 }
 
@@ -698,34 +675,34 @@ function colaias_wpforo_ai_display_settings(){
                         <div id="flag-types-container" style="margin-bottom: 20px;">
                             <?php foreach ( $flag_types as $index => $flag_type ): ?>
                             <div class="flag-type-row" style="border: 1px solid #ddd; padding: 15px; margin-bottom: 10px; background: #f9f9f9;">
-                                <input type="hidden" name="colaias_wpforo_ai_flag_types[<?php echo esc_attr( $index ); ?>][index]" value="<?php echo esc_attr( $index ); ?>">
+                                <input type="hidden" name="colaias_wpforo_ai_flag_types[<?php echo $index; ?>][index]" value="<?php echo $index; ?>">
                                 
                                 <div style="margin-bottom: 10px;">
                                     <label style="display: inline-block; width: 120px; font-weight: bold;">Flag Type:</label>
-                                    <input type="text" name="colaias_wpforo_ai_flag_types[<?php echo esc_attr( $index ); ?>][type]" value="<?php echo esc_attr( $flag_type['type'] ); ?>" placeholder="e.g., flag, nsfw, spam" style="width: 200px;" maxlength="50">
+                                    <input type="text" name="colaias_wpforo_ai_flag_types[<?php echo $index; ?>][type]" value="<?php echo esc_attr( $flag_type['type'] ); ?>" placeholder="e.g., flag, nsfw, spam" style="width: 200px;">
                                 </div>
                                 
                                 <div style="margin-bottom: 10px;">
                                     <label style="display: inline-block; width: 120px; font-weight: bold;">Enabled:</label>
-                                    <input type="checkbox" name="colaias_wpforo_ai_flag_types[<?php echo esc_attr( $index ); ?>][enabled]" value="1" <?php checked( $flag_type['enabled'], true ); ?>>
+                                    <input type="checkbox" name="colaias_wpforo_ai_flag_types[<?php echo $index; ?>][enabled]" value="1" <?php checked( $flag_type['enabled'], true ); ?>>
                                     <span class="description">Enable this flag type for moderation</span>
                                 </div>
                                 
                                 <div style="margin-bottom: 10px;">
                                     <label style="display: inline-block; width: 120px; font-weight: bold;">Should Mute:</label>
-                                    <input type="checkbox" name="colaias_wpforo_ai_flag_types[<?php echo esc_attr( $index ); ?>][shouldMute]" value="1" <?php checked( $flag_type['shouldMute'], true ); ?>>
+                                    <input type="checkbox" name="colaias_wpforo_ai_flag_types[<?php echo $index; ?>][shouldMute]" value="1" <?php checked( $flag_type['shouldMute'], true ); ?>>
                                     <span class="description">Mute users when this flag type is triggered</span>
                                 </div>
                                 
                                 <div style="margin-bottom: 10px;">
                                     <label style="display: inline-block; width: 120px; font-weight: bold;">Mute Duration ( days ):</label>
-                                    <input type="number" name="colaias_wpforo_ai_flag_types[<?php echo esc_attr( $index ); ?>][muteDuration]" value="<?php echo esc_attr( $flag_type['muteDuration'] ); ?>" min="0" max="365" style="width: 80px;">
+                                    <input type="number" name="colaias_wpforo_ai_flag_types[<?php echo $index; ?>][muteDuration]" value="<?php echo esc_attr( $flag_type['muteDuration'] ); ?>" min="0" max="365" style="width: 80px;">
                                     <span class="description">Days to mute for this specific flag type</span>
                                 </div>
                                 
                                     <div style="margin-bottom: 10px;">
                                         <label style="display: inline-block; width: 120px; font-weight: bold;">Append Message:</label>
-                                        <input type="text" name="colaias_wpforo_ai_flag_types[<?php echo esc_attr( $index ); ?>][appendString]" value="<?php echo esc_attr( $flag_type['appendString'] ); ?>" placeholder="🤖 Leave blank for no message. Use {TYPE} and {REASON} for LLM response formatting tags ( case sensitive )." style="width: 700px; font-size: 14px;">
+                                        <input type="text" name="colaias_wpforo_ai_flag_types[<?php echo $index; ?>][appendString]" value="<?php echo esc_attr( $flag_type['appendString'] ); ?>" placeholder="🤖 Leave blank for no message. Use {TYPE} and {REASON} for LLM response formatting tags ( case sensitive )." style="width: 700px; font-size: 14px;">
                                         <div class="description" style="margin-top: 5px; max-width: 400px;">
                                             Message to append at the end of flagged content. The {TYPE} and {REASON} formatting tags ( case sensitive ) will be automatically replaced with the actual values from the LLM AI moderator response.
                                         </div>
@@ -807,7 +784,7 @@ function colaias_wpforo_ai_display_settings(){
                         $default_prompt = $colaias_wpforo_ai_config['default_prompt'];
                         $value = get_option( 'colaias_wpforo_ai_moderation_prompt', '' );
                         ?>
-                        <textarea name="colaias_wpforo_ai_moderation_prompt" id="colaias_wpforo_ai_moderation_prompt" rows="5" cols="80" placeholder="<?php echo esc_attr( $default_prompt ); ?>"><?php echo esc_textarea( stripslashes( $value ) ); ?></textarea>
+                        <textarea name="colaias_wpforo_ai_moderation_prompt" id="colaias_wpforo_ai_moderation_prompt" rows="5" cols="80" placeholder="<?php echo esc_attr( $default_prompt ); ?>"><?php echo stripslashes( $value ); ?></textarea>
                         <p class="description">Customize the moderation prompt used by the LLM. Leave blank to use the default prompt.</p>
                     </td>
                 </tr>
@@ -849,7 +826,7 @@ function colaias_wpforo_ai_display_muted_users() {
     // Get total count for pagination
     $total_items = $wpdb->get_var( "SELECT COUNT( * ) FROM $table_name" );
     $items_per_page = 100;
-    $current_page = isset( $_GET['paged'] ) ? max( 1, intval( wp_unslash( $_GET['paged'] ) ) ) : 1;
+    $current_page = isset( $_GET['paged'] ) ? max( 1, intval( $_GET['paged'] ) ) : 1;
     $total_pages = ceil( $total_items / $items_per_page );
     $offset = ( $current_page - 1 ) * $items_per_page;
     
@@ -896,19 +873,17 @@ function colaias_wpforo_ai_display_muted_users() {
         
         <div class="tablenav top">
             <div class="tablenav-pages">
-                <span class="displaying-num"><?php 
-                /* translators: %d: Number of muted users */
-                echo esc_html( sprintf( _n( '%d muted user', '%d muted users', $total_items, 'colaias-wpforo-ai-moderation' ), $total_items ) ); ?></span>
+                <span class="displaying-num"><?php echo sprintf( _n( '%d muted user', '%d muted users', $total_items ), $total_items ); ?></span>
                 <?php
                 if ( $total_pages > 1 ) {
-                    echo wp_kses_post( paginate_links( array( 
+                    echo paginate_links( array( 
                         'base' => add_query_arg( 'paged', '%#%' ),
                         'format' => '',
                         'prev_text' => '&laquo;',
                         'next_text' => '&raquo;',
                         'total' => $total_pages,
                         'current' => $current_page
-                    ) ) );
+                    ) );
                 }
                 ?>
             </div>
@@ -945,9 +920,9 @@ function colaias_wpforo_ai_display_muted_users() {
                                 }
                                 ?>
                             </td>
-                            <td><?php echo $muted_user->topic_id ? esc_html( $muted_user->topic_id ) : esc_html( 'N/A' ); ?></td>
-                            <td><?php echo $muted_user->post_id ? esc_html( $muted_user->post_id ) : esc_html( 'N/A' ); ?></td>
-                            <td><?php echo $muted_user->is_topic != '' ? esc_html( $muted_user->is_topic == 1 ? 'Topic' : 'Post' ) : esc_html( 'N/A' ); ?></td>
+                            <td><?php echo $muted_user->topic_id ? esc_html( $muted_user->topic_id ) : 'N/A'; ?></td>
+                            <td><?php echo $muted_user->post_id ? esc_html( $muted_user->post_id ) : 'N/A'; ?></td>
+                            <td><?php echo $muted_user->is_topic != '' ? esc_html( $muted_user->is_topic == 1 ? 'Topic' : 'Post' ) : 'N/A'; ?></td>
                             <td>
                                 <?php 
                                 if ( $muted_user->post_content ) {
@@ -959,8 +934,8 @@ function colaias_wpforo_ai_display_muted_users() {
                             </td>
                             <td><?php echo esc_html( $muted_user->type ?: 'flag' ); ?></td>
                             <td><?php echo esc_html( $muted_user->reason ?: 'N/A' ); ?></td>
-                            <td><?php echo esc_html( gmdate( 'Y-m-d H:i', strtotime( $muted_user->mute_time ) ) ); ?></td>
-                            <td><?php echo esc_html( gmdate( 'Y-m-d H:i', strtotime( $muted_user->expiration_time ) ) ); ?></td>
+                            <td><?php echo esc_html( date( 'Y-m-d H:i', strtotime( $muted_user->mute_time ) ) ); ?></td>
+                            <td><?php echo esc_html( date( 'Y-m-d H:i', strtotime( $muted_user->expiration_time ) ) ); ?></td>
                             <td>
                                 <?php if ( colaias_wpforo_ai_Utilities::do_users_usergroups_have_colaias_wpforo_ai_group_can_access_moderation() ): ?>
                                 <?php
@@ -996,19 +971,17 @@ function colaias_wpforo_ai_display_muted_users() {
         
         <div class="tablenav bottom">
             <div class="tablenav-pages">
-                <span class="displaying-num"><?php 
-                /* translators: %d: Number of muted users */
-                echo esc_html( sprintf( _n( '%d muted user', '%d muted users', $total_items, 'colaias-wpforo-ai-moderation' ), $total_items ) ); ?></span>
+                <span class="displaying-num"><?php echo sprintf( _n( '%d muted user', '%d muted users', $total_items ), $total_items ); ?></span>
                 <?php
                 if ( $total_pages > 1 ) {
-                    echo wp_kses_post( paginate_links( array( 
+                    echo paginate_links( array( 
                         'base' => add_query_arg( 'paged', '%#%' ),
                         'format' => '',
                         'prev_text' => '&laquo;',
                         'next_text' => '&raquo;',
                         'total' => $total_pages,
                         'current' => $current_page
-                    ) ) );
+                    ) );
                 }
                 ?>
             </div>
@@ -1030,7 +1003,7 @@ function colaias_wpforo_ai_display_muted_users() {
                 type: 'POST',
                 data: {
                     action: 'colaias_wpforo_ai_manual_cleanup',
-                    _ajax_nonce: '<?php echo esc_js( wp_create_nonce( "colaias_wpforo_ai_cleanup_nonce" ) ); ?>'
+                    _ajax_nonce: '<?php echo wp_create_nonce( "colaias_wpforo_ai_cleanup_nonce" ); ?>'
                 },
                 success: function( response ) {
                     if ( response.success ) {
@@ -1056,12 +1029,9 @@ function colaias_wpforo_ai_display_muted_users() {
     <?php endif; ?>
     <?php
     } catch ( Exception $e ) {
-        // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
         error_log( '🤖 ❌ 💀 WPForo AI Moderation: CRITICAL ERROR. Could not display muted users. Exception : '
         .$e->getMessage() );
-        ?>
-        <div class="notice notice-error"><p>Error loading metrics: <?php echo esc_html( $e->getMessage() ); ?></p></div>
-        <?php
+        echo '<div class="notice notice-error"><p>Error loading metrics: ' . esc_html( $e->getMessage() ) . '</p></div>';
     } 
 }
 
@@ -1111,19 +1081,19 @@ function colaias_wpforo_ai_display_metrics() {
                 <div style="display: grid; grid-template-columns: repeat( auto-fit, minmax( 250px, 1fr ) ); gap: 20px; margin: 20px 0;">
                     <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; text-align: center;">
                         <h4 style="margin: 0 0 10px 0; color: #495057;">Past Year Total Flags Recorded</h4>
-                        <p style="font-size: 2em; font-weight: bold; color: #0073aa; margin: 0;"><?php echo esc_html( number_format( $past_year_flags ) ); ?></p>
+                        <p style="font-size: 2em; font-weight: bold; color: #0073aa; margin: 0;"><?php echo number_format( $past_year_flags ); ?></p>
                     </div>
                     <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; text-align: center;">
                         <h4 style="margin: 0 0 10px 0; color: #495057;">Past Year Muted Users Prevented</h4>
-                        <p style="font-size: 2em; font-weight: bold; color: #dc3545; margin: 0;"><?php echo esc_html( number_format( $past_year_prevented_hits ) ); ?></p>
+                        <p style="font-size: 2em; font-weight: bold; color: #dc3545; margin: 0;"><?php echo number_format( $past_year_prevented_hits ); ?></p>
                     </div>
                     <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; text-align: center;">
                         <h4 style="margin: 0 0 10px 0; color: #495057;">Past Year Mutes Given</h4>
-                        <p style="font-size: 2em; font-weight: bold; color: #28a745; margin: 0;"><?php echo esc_html( number_format( $past_year_muteable_hits ) ); ?></p>
+                        <p style="font-size: 2em; font-weight: bold; color: #28a745; margin: 0;"><?php echo number_format( $past_year_muteable_hits ); ?></p>
                     </div>
                     <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; text-align: center;">
                         <h4 style="margin: 0 0 10px 0; color: #495057;">Past Month Total Flags Recorded And Muted Users Prevented</h4>
-                        <p style="font-size: 2em; font-weight: bold; color: #6f42c1; margin: 0;"><?php echo esc_html( number_format( $past_month_records_and_prevented_activity ) ); ?></p>
+                        <p style="font-size: 2em; font-weight: bold; color: #6f42c1; margin: 0;"><?php echo number_format( $past_month_records_and_prevented_activity ); ?></p>
                     </div>
                 </div>
             </div>
@@ -1143,7 +1113,7 @@ function colaias_wpforo_ai_display_metrics() {
                                 <?php foreach ( $past_month_flag_types as $type ): ?>
                                     <tr>
                                         <td><?php echo esc_html( $type->flag_type ); ?></td>
-                                        <td><?php echo esc_html( number_format( $type->count ) ); ?></td>
+                                        <td><?php echo number_format( $type->count ); ?></td>
                                     </tr>
                                 <?php endforeach; ?>
                             </tbody>
@@ -1167,7 +1137,7 @@ function colaias_wpforo_ai_display_metrics() {
                                 <?php foreach ( $past_month_evals_content_types as $type ): ?>
                                     <tr>
                                         <td><?php echo esc_html( $type->content_type ); ?></td>
-                                        <td><?php echo esc_html( number_format( $type->count ) ); ?></td>
+                                        <td><?php echo number_format( $type->count ); ?></td>
                                     </tr>
                                 <?php endforeach; ?>
                             </tbody>
@@ -1230,11 +1200,8 @@ function colaias_wpforo_ai_display_metrics() {
         <?php
         
     } catch ( Exception $e ) {
-        // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
         error_log( '🤖 ❌ 💀 WPForo AI Moderation: CRITICAL ERROR. Could not display metrics. Exception : ' . $e->getMessage() );
-        ?>
-        <div class="notice notice-error"><p>Error loading metrics: <?php echo esc_html( $e->getMessage() ); ?></p></div>
-        <?php
+        echo '<div class="notice notice-error"><p>Error loading metrics: ' . esc_html( $e->getMessage() ) . '</p></div>';
     }
 }
 
@@ -1258,7 +1225,6 @@ class colaias_wpforo_ai_Utilities {
         global $colaias_wpforo_ai_config;
         $can_log_info = get_option( 'colaias_wpforo_ai_can_log_info', isset( $colaias_wpforo_ai_config['can_log_info_errors'] ) ? $colaias_wpforo_ai_config['can_log_info_errors'] : false );
         if ( $can_log_info ) {
-            // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Informational logging controlled by admin setting
             error_log( 'ℹ️ INFO 🤖 ' . $message );
         }
     }
@@ -1340,7 +1306,6 @@ class colaias_wpforo_ai_Utilities {
 
             return false;
         } catch ( Exception $e ) {
-            // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
             error_log( '🤖 ❌ 💀 WPForo AI Moderation: CRITICAL ERROR. Could not get whether user is Admin or Moderator, returning false. Exception : '
             .$e->getMessage() );
             return false;
@@ -1396,7 +1361,6 @@ class colaias_wpforo_ai_Utilities {
 
             return false;
         } catch ( Exception $e ) {
-            // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
             error_log( '🤖 ❌ 💀 WPForo AI Moderation: CRITICAL ERROR. Could not get whether usergroups have colaias_wpforo_ai_group_can_access_moderation. Returning false. Exception : '
             .$e->getMessage() );
             return false;
@@ -1470,14 +1434,14 @@ function colaias_wpforo_ai_notices_display_frontend_notices( $manual_output = fa
         $notice_id = esc_attr( $notice['id'] );
         $duration = isset( $notice['duration'] ) ? intval( $notice['duration'] ) : 10000;
         
-        // Use standard string concatenation instead of heredoc
-        $notice_html = '<div class="colaias-wpforo-ai-notice ' . $type_class . '" data-notice-id="' . $notice_id . '" data-duration="' . $duration . '">' .
-            '<div class="colaias-notice-content">' .
-                '<span class="colaias-notice-message">' . $message . '</span>' .
-                '<button type="button" class="colaias-notice-dismiss" aria-label="Dismiss notice">×</button>' .
-            '</div>' .
-        '</div>';
-        echo wp_kses_post( $notice_html );
+        echo <<<HTML
+<div class="colaias-wpforo-ai-notice {$type_class}" data-notice-id="{$notice_id}" data-duration="{$duration}">
+    <div class="colaias-notice-content">
+        <span class="colaias-notice-message">{$message}</span>
+        <button type="button" class="colaias-notice-dismiss" aria-label="Dismiss notice">×</button>
+    </div>
+</div>
+HTML;
     }
     
     $notices_html = ob_get_clean();
@@ -1493,7 +1457,7 @@ function colaias_wpforo_ai_notices_display_frontend_notices( $manual_output = fa
             return $output;
         }
         
-        echo wp_kses_post( $output );
+        echo $output;
     } else {
         return $manual_output ? '' : null;
     }
@@ -1779,14 +1743,12 @@ function colaias_wpforo_ai_create_or_upgrade_muted_users_table() {
         $table_exists = $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $table_name ) ) === $table_name;
         
         if ( !$table_exists ) {
-            // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
             error_log( '🤖 ❌ WPForo AI Moderation: ERROR. Table '.$table_name.' creation/upgrade failed' );
             return false;
         }
 
         return true;
     } catch ( Exception $e ) {
-        // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
         error_log( '🤖 ❌ 💀 WPForo AI Moderation: CRITICAL ERROR. Could not create of update '.$table_name.' table. Exception : '
         .$e->getMessage() );
         return false;
@@ -1839,21 +1801,18 @@ function colaias_wpforo_ai_create_or_upgrade_flag_metrics_table(){
         $result = dbDelta( $sql );
         
         // Log results for debugging
-        // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_print_r -- Debug logging required for admin debugging
         colaias_wpforo_ai_log_info( 'WPForo AI Moderation: dbDelta result: ' . print_r( $result, true ) );
         
         // Check if table exists
         $table_exists = $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $table_name ) ) === $table_name;
         
         if ( !$table_exists ) {
-            // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
             error_log( '🤖 ❌ WPForo AI Moderation: ERROR. Table '.$table_name.' creation/upgrade failed' );
             return false;
         }
 
         return true;
     } catch ( Exception $e ) {
-        // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
         error_log( '🤖 ❌ 💀 WPForo AI Moderation: CRITICAL ERROR. Could not create of update '.$table_name.' table. Exception : '
         .$e->getMessage() );
         return false;
@@ -1993,7 +1952,6 @@ function colaias_wpforo_ai_should_check_type( $type ) {
         colaias_wpforo_ai_log_info( '⚠️  WPForo AI Moderation: The LLM response \'type\' ['.$type.']  is DISABLED ( or a potentially wrong LLM response, double check your prompt. )' );
         return false;
     } catch ( Exception $e ) {
-        // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
         error_log( '🤖 ❌ 💀 WPForo AI Moderation: CRITICAL ERROR. Could not check whether flag type is enabled, returning false. Exception : '
         .$e->getMessage() );
         return false;
@@ -2024,7 +1982,6 @@ function colaias_wpforo_ai_should_mute_for_type( $flag_type ) {
                 }
                 else {
                     // FLAG is enabled, but MUTE was not set due to unknown reason
-                     // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
                     error_log( '🤖 ⚠️  WPForo AI Moderation: ERROR. MUTE for type ' . $flag_type_lower . ' is not set. Returning false to not mute' );
                     return false;
                 }
@@ -2032,11 +1989,9 @@ function colaias_wpforo_ai_should_mute_for_type( $flag_type ) {
         }
 
         // Fallback to false if flag type not found or not enabled
-         // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
         error_log( '🤖 ⚠️  WPForo AI Moderation: ERROR. UNKNOWN. Error MUTE for type ' . $flag_type_lower . ' is not found in flag types. Returning false' );
         return false;
     } catch ( Exception $e ) {
-         // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
             error_log( '🤖 ❌ 💀 WPForo AI Moderation: CRITICAL ERROR. Could not get whether the flag type should be muted, returning false. Exception : '
             .$e->getMessage() );
             return false;
@@ -2068,7 +2023,6 @@ function colaias_wpforo_ai_get_mute_duration_for_type( $flag_type ) {
         // Fallback to configured mute duration if flag type not found or not enabled
         return get_option( 'colaias_wpforo_ai_mute_duration', $colaias_wpforo_ai_config['default_mute_duration'] );
     } catch ( Exception $e ) {
-         // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
         error_log( '🤖 ❌ 💀 WPForo AI Moderation: CRITICAL ERROR. Could not get the mute duration for flag type, returning 0. Exception : '
         .$e->getMessage() );
         return 0;
@@ -2084,13 +2038,12 @@ function colaias_wpforo_ai_add_muted_user( $user_id, $post_id = null, $post_cont
         
         // If mute duration is less than 0, don't mute the user
         if ( $mute_duration < 0 ) {
-             // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
             error_log( '🤖 ⚠️  WPForo AI Moderation: ERROR. WARNING. Unexpected. Mute duration is less than 0 for type "' . $type . '", skipping user mute.' );
             return false;
         }
 
         $mute_time = current_time( 'mysql' );
-        $expiration_time = gmdate( 'Y-m-d H:i:s', strtotime( "+$mute_duration days", strtotime( $mute_time ) ) );
+        $expiration_time = date( 'Y-m-d H:i:s', strtotime( "+$mute_duration days", strtotime( $mute_time ) ) );
 
         $table_name = $wpdb->prefix . 'colaias_wpforo_ai_muted_users';
 
@@ -2146,7 +2099,6 @@ function colaias_wpforo_ai_add_muted_user( $user_id, $post_id = null, $post_cont
             );
 
             if ( $result === false ) {
-                 // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
                 error_log( '🤖 ❌ WPForo AI Moderation: ERROR. Failed to insert muted user db record for user_id: ' . $user_id . ', Error: ' . $wpdb->last_error );
             } else {
                 colaias_wpforo_ai_log_info( 'WPForo AI Moderation: Successfully inserted new muted user db record for user_id: ' . $user_id . ', \"Muted Users\'\" table Insert ID: ' . $wpdb->insert_id );
@@ -2155,7 +2107,6 @@ function colaias_wpforo_ai_add_muted_user( $user_id, $post_id = null, $post_cont
             return $wpdb->insert_id;
         }
     } catch ( Exception $e ) {
-         // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
         error_log( '🤖 ❌ 💀 WPForo AI Moderation: CRITICAL ERROR. Could not add user to muted users table, returning false. Exception : '
         .$e->getMessage() );
         return false;
@@ -2226,7 +2177,6 @@ function colaias_wpforo_ai_clean_expired_mutes() {
         }
         
     } catch ( Exception $e ) {
-         // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
         error_log( '🤖 ❌ 💀 WPForo AI Moderation: CRITICAL ERROR. Could not clean expired mutes. Exception: ' . $e->getMessage() );
     }
 }
@@ -2248,7 +2198,7 @@ function colaias_wpforo_ai_clean_old_flag_metrics() {
         // Examples of strtotime formats:
             // Todo: change this from -1 hours during testing to -5 years
         // '-5 years', '-1 year', '-6 months', '-30 days', '-1 week', '-24 hours', '-1 hour'
-        $five_years_ago = gmdate( 'Y-m-d H:i:s', strtotime( '-5 years', strtotime( $current_time ) ) );
+        $five_years_ago = date( 'Y-m-d H:i:s', strtotime( '-5 years', strtotime( $current_time ) ) );
         
         colaias_wpforo_ai_log_info( 'WPForo AI Moderation: Deleting flag metrics records older than: ' . $five_years_ago );
         
@@ -2267,7 +2217,6 @@ function colaias_wpforo_ai_clean_old_flag_metrics() {
             );
             
             if ( $rows_deleted === false ) {
-                 // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
                 error_log( '🤖 ❌ WPForo AI Moderation: Error deleting old flag metrics records.' );
                 return false;
             }
@@ -2285,7 +2234,6 @@ function colaias_wpforo_ai_clean_old_flag_metrics() {
         return $total_deleted;
         
     } catch ( Exception $e ) {
-         // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
         error_log( '🤖 ❌ 💀 WPForo AI Moderation: CRITICAL ERROR. Could not clean old flag metrics records. Exception : '
         .$e->getMessage() );
         return false;
@@ -2320,14 +2268,12 @@ function colaias_wpforo_ai_get_append_message( $flag_type, $type, $reason ) {
         }
         return '';
     } catch ( \Exception $e ) {
-         // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
         error_log( '🤖 ❌ WPForo AI Moderation: ERROR. Exception getting append message for type ' . $flag_type . ': ' . $e->getMessage() );
         return '';
     }
 }
 
 // Function to check if wpForo user group exists
-// Todo: unused function (?). Keep because previously checked if Muted usergroup exists.
 function colaias_wpforo_ai_check_wpforo_usergroup_exists( $group_name ) {
     try {
         global $wpdb;
@@ -2338,16 +2284,16 @@ function colaias_wpforo_ai_check_wpforo_usergroup_exists( $group_name ) {
             return false;
         }
 
-        // Prepare and run the query directly
-        $group_id = $wpdb->get_var( $wpdb->prepare( 
+        // Prepare and run the query
+        $query = $wpdb->prepare( 
             "SELECT groupid FROM $table_name WHERE name = %s",
             $group_name
-        ) );
+        );
+        $group_id = $wpdb->get_var( $query );
 
         // Return the group ID or false
         return $group_id ? ( int ) $group_id : false;
     } catch ( Exception $e ) {
-         // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
         error_log( '🤖 ❌ 💀 WPForo AI Moderation: CRITICAL ERROR. Could not check whether the usergroup exists. Exception : '
         .$e->getMessage() );
     } 
@@ -2365,7 +2311,6 @@ function colaias_wpforo_ai_manage_unmute_permission( $group_id, $action = 'add' 
         // Get the specified group
         $group = WPF()->usergroup->get_usergroup( $group_id );
         if ( !$group ) {
-             // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
             error_log( '🤖 ❌ WPForo AI Moderation: ERROR. Group ' . $group_id . ' not found' );
             return false;
         }
@@ -2425,12 +2370,10 @@ function colaias_wpforo_ai_manage_unmute_permission( $group_id, $action = 'add' 
 
             return true;
         } else {
-             // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
             error_log( '🤖 ❌ WPForo AI Moderation: ERROR. Failed to update wpforo db group ' . $group_id );
             return false;
         }
     } catch ( Exception $e ) {
-         // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
         error_log( '🤖 ❌ 💀 WPForo AI Moderation: CRITICAL ERROR. Could not change unmute permission. Exception : '
         .$e->getMessage() );
     }
@@ -2458,7 +2401,6 @@ function colaias_wpforo_ai_unmute_user( $user_id ) {
         colaias_wpforo_ai_log_info( 'WPForo AI Moderation: Successfully unmuted user ' . $user_id ); 
         return true;
     } catch ( \Exception $e ) {
-         // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
         error_log( "🤖 ❌ 💀 WPForo AI Moderation: CRITICAL ERROR. Exception occured when unmuting user: ".$e );
         return false;
     }
@@ -2480,7 +2422,6 @@ function colaias_wpforo_ai_unmute_all_expired_muted_users() {
             $current_time
         ) );
     } catch ( \Exception $e ) {
-         // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
         error_log( "🤖 ❌ 💀 WPForo AI Moderation: CRITICAL ERROR. Exception occured when unmuting ALL users: ".$e );
         return false;
     }
@@ -2503,7 +2444,6 @@ function colaias_wpforo_ai_delete_penalizing_topic_or_post_for_user( $user_id ){
         ) );
 
         if ( !$muted_user ) {
-             // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
             error_log( '🤖 ❌ ⚠️  WPForo AI Moderation: ERROR / WARNING. Muted user ' . $user_id . ' was not found in the Muted users database table. Not deleting penalizing topic or post. ( Make sure to call this function before deleating from muted users table )' );
             return false;
         }
@@ -2531,7 +2471,6 @@ function colaias_wpforo_ai_delete_penalizing_topic_or_post_for_user( $user_id ){
                         ) );
                     }
                 } else {
-                     // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
                     error_log( '🤖 ❌ WPForo AI Moderation: ERROR. Failed to delete post ' . $muted_user->post_id . ' for user ' . $user_id );
                 }
             } else if ( $post ) {
@@ -2565,7 +2504,6 @@ function colaias_wpforo_ai_delete_penalizing_topic_or_post_for_user( $user_id ){
                         ) );
                     }
                 } else {
-                     // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
                     error_log( '🤖 ❌ WPForo AI Moderation: ERROR. Failed to delete first-post ' . $muted_user->post_id . ' for user ' . $user_id );
                 }
             } else if ( $first_post ) {
@@ -2607,7 +2545,6 @@ function colaias_wpforo_ai_delete_penalizing_topic_or_post_for_user( $user_id ){
 
         }
     } catch ( \Exception $e ) {
-         // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
         error_log( "🤖 ❌ 💀 WPForo AI Moderation: CRITICAL ERROR. Exception occured when deleting penalizing topic or post : ".$e );
         return false;
     }
@@ -2625,14 +2562,11 @@ function colaias_wpforo_ai_async_post_verification( $post_id, $user_id, $called_
             if ( !$post_after_delete ) {
                 colaias_wpforo_ai_log_info( 'WPForo AI Moderation: ⏱️ ASYNC VERIFICATION SUCCESS - Post ' . $post_id . ' was successfully deleted for user ' . $user_id );
             } else {
-                // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Warning logging required for admin debugging
                 error_log( '🤖 ⚠️ WPForo AI Moderation: 1 ) ⏱️ ASYNC VERIFICATION ERROR / WARNING / FALSE POSITIVE - Post ' . $post_id . ' still exists after deletion attempt for user ' . $user_id );
-                // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log,WordPress.PHP.DevelopmentFunctions.error_log_print_r -- Warning logging required for admin debugging
                 error_log( '🤖 ⚠️ WPForo AI Moderation: 2 ) ⏱️ ASYNC VERIFICATION ERROR / WARNING / FALSE POSITIVE - Post data: ' . print_r( $post_after_delete, true ) );
             }
         }
     } catch ( Exception $e ) {
-         // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
         error_log( '🤖 ❌ 💀 WPForo AI Moderation: CRITICAL ERROR. Could not determine whether penalizing topic or post was deleted during ⏱️ ASYNC VERIFICATION due to exception. Exception : '
         .$e->getMessage() );
         
@@ -2653,16 +2587,13 @@ function colaias_wpforo_ai_async_status_verification( $post_id, $expected_status
                 colaias_wpforo_ai_log_info( 'WPForo AI Moderation: ⏱️ ASYNC STATUS VERIFICATION SUCCESS - Post ' . $post_id . ' status successfully set to ' . $expected_status . ' after ' . $operation );
             } else {
                 $actual_status = $updated_post ? $updated_post['status'] : 'POST_NOT_FOUND';
-                // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Warning logging required for admin debugging
                 error_log( '🤖 ⚠️ WPForo AI Moderation: 1 ) ⏱️ ASYNC STATUS VERIFICATION ERROR / WARNING / FALSE POSITIVE ( possibilites: 1. check if dlt was called 2. Cached ) - Post ' . $post_id . ' status is ' . $actual_status . ' ( expected ' . $expected_status . ' ) after ' . $operation );
                 if ( $updated_post ) {
-                    // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log,WordPress.PHP.DevelopmentFunctions.error_log_print_r -- Warning logging required for admin debugging
                     error_log( '🤖 ⚠️ WPForo AI Moderation: 2 ) ⏱️ ASYNC STATUS VERIFICATION ERROR / WARNING / FALSE POSITIVE - Post data: ' . print_r( $updated_post, true ) );
                 }
             }
         }
     } catch ( Exception $e ) {
-        // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
         error_log( '🤖 ❌ 💀 WPForo AI Moderation: CRITICAL ERROR. Could not get whether penaly status was changed on ⏱️ ASYNC VERIFICATION. Exception: '
         .$e->getMessage() );
     } 
@@ -2725,7 +2656,6 @@ function colaias_wpforo_ai_query_llm( $api_key, $model, $prompt )
         ] );
         
         if ( $body === false ) {
-             // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
             error_log( '🤖 ❌ WPForo AI Moderation: JSON encoding failed' );
             return null;
         }
@@ -2740,24 +2670,20 @@ function colaias_wpforo_ai_query_llm( $api_key, $model, $prompt )
             'timeout' => $timeout,
         ] );
         if ( is_wp_error( $response ) ) {
-             // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
             error_log( '🤖 ❌ WPForo AI Moderation API Error: ' . $response->get_error_message() );
             return null;
         }
         $response_code = wp_remote_retrieve_response_code( $response );
         if ( $response_code !== 200 ) {
-             // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
             error_log( '🤖 ❌ WPForo AI Moderation API returned status: ' . $response_code );
             return null;
         }
         $data = json_decode( wp_remote_retrieve_body( $response ), true );
         if ( json_last_error() !== JSON_ERROR_NONE ) {
-             // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
             error_log( '🤖 ❌ WPForo AI Moderation API returned invalid JSON: ' . json_last_error_msg() );
             return null;
         }
         if ( !isset( $data['choices'][0]['message']['content'] ) ) {
-             // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
             error_log( '🤖 ❌ WPForo AI Moderation API returned invalid response format' );
             return null;
         }
@@ -2767,14 +2693,12 @@ function colaias_wpforo_ai_query_llm( $api_key, $model, $prompt )
         $parsed_response = json_decode( $response_content, true );
         
         if ( !$parsed_response || !isset( $parsed_response['type'] ) ) {
-             // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
             error_log( '🤖 ❌ WPForo AI Moderation API returned invalid JSON response: ' . $response_content );
             return null;
         }
         
         return $parsed_response;
     } catch ( \Exception $e ) {
-         // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
         error_log( '🤖 ❌ 💀 WPForo AI Moderation: ERROR. Exception querying OpenRouter: ' . $e->getMessage() );
         return null;
     }
@@ -2809,7 +2733,6 @@ function colaias_wpforo_ai_handle_manual_cleanup() {
         ) );
         
         if ( $expired_count === false ) {
-             // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
             error_log( '🤖 ❌ WPForo AI Moderation: ERROR. Failed to count expired users during manual cleanup' );
             $expired_count = 0;
         }
@@ -2818,7 +2741,6 @@ function colaias_wpforo_ai_handle_manual_cleanup() {
             'message' => 'Cleanup completed successfully. ' . $expired_count . ' users currently expired.'
         ) );
     } catch ( \Exception $e ) {
-         // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
         error_log( '🤖 ❌ 💀 WPForo AI Moderation: ERROR. Exception in manual cleanup: ' . $e->getMessage() );
         wp_send_json_error( array( 
             'message' => 'Cleanup failed due to an internal error. Contact Github repository maintainer'
@@ -2902,16 +2824,13 @@ function colaias_wpforo_ai_enqueue_admin_scripts( $hook ) {
                             ) );
                         }
                     } else {
-                         // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
                         error_log( '🤖 ❌ WPForo AI Moderation: ERROR. Could not retrieve first post with ID: ' . $topic['first_postid'] );
                     }
                 } else {
-                     // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
                     error_log( '🤖 ❌ WPForo AI Moderation: ERROR. No first_postid available for topic: ' . $topic['topicid'] );
                 }
             }
         }  catch ( Exception $e ) {
-             // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
             error_log( '🤖 ❌ 💀 WPForo AI Moderation: CRITICAL ERROR. Could not penalize topic. Exception : '
             .$e->getMessage() );
         } 
@@ -2932,7 +2851,6 @@ function colaias_wpforo_ai_enqueue_admin_scripts( $hook ) {
                 $type,
                 $reason );
             } else {
-                 // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
                 error_log( '🤖 ❌ WPForo AI Moderation: ERROR. No user ID available for muting' );
             }
         }
@@ -2958,7 +2876,6 @@ function colaias_wpforo_ai_enqueue_admin_scripts( $hook ) {
                 }
             }
         } catch ( Exception $e ) {
-             // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
             error_log( '🤖 ❌ 💀 WPForo AI Moderation: CRITICAL ERROR. Could not penalize post. Exception : '
             .$e->getMessage() );
         } 
@@ -2985,7 +2902,6 @@ function colaias_wpforo_ai_is_user_muted( $user_id ) {
 
         return !empty( $muted_user );
     }  catch ( Exception $e ) {
-         // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
         error_log( '🤖 ❌ 💀 WPForo AI Moderation: CRITICAL ERROR. Could not check whether user was muted, returning false. Exception : '
         .$e->getMessage() );
         return false;
@@ -3024,7 +2940,6 @@ function colaias_wpforo_ai_record_muted_hit( $user_id, $is_topic, $is_edit )  {
         colaias_wpforo_ai_log_info( "📈 WPForo AI Moderation Metrics: Recorded muted hit for user {$user_id}, type: {$content_type}" );
         
     } catch ( Exception $e ) {
-         // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
         error_log( "🤖 ❌ 💀 WPForo AI Moderation: CRITICAL ERROR. Error recording metrics muted hit: " . $e->getMessage() );
     }
 }
@@ -3067,7 +2982,6 @@ function colaias_wpforo_ai_record_hit( $user_id, $is_topic, $is_edit, $content_i
         colaias_wpforo_ai_log_info( "📈 WPForo AI Moderation Metrics: Recorded hit for user {$user_id}, type: {$content_type}, flag: {$flag_type}, muteable: " . ( $is_muteable ? 'yes' : 'no' ) );
         
     } catch ( Exception $e ) {
-         // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
         error_log( "🤖 ❌ 💀 WPForo AI Moderation: CRITICAL ERROR. Error recording metrics hit: " . $e->getMessage() );
     }
 }
@@ -3193,7 +3107,7 @@ add_action( 'wpforo_after_edit_post', 'colaias_wpforo_ai_after_post_update', 100
 
                 if ( $mute_info ) {
                     $expiration_time = $mute_info->expiration_time;
-                    $formatted_expiration = gmdate( 'F j, Y \a\t g:i a', strtotime( $expiration_time ) );
+                    $formatted_expiration = date( 'F j, Y \a\t g:i a', strtotime( $expiration_time ) );
 
                     $message = 'You are currently muted and cannot create topics in the forum. ';
                     $message .= 'Your mute will expire on ' . $formatted_expiration . '. ';
@@ -3220,7 +3134,6 @@ add_action( 'wpforo_after_edit_post', 'colaias_wpforo_ai_after_post_update', 100
         }
         return $topic;
     } catch ( Exception $e ){
-         // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
         error_log( '🤖 ❌ 💀 WPForo AI Moderation: CRITICAL ERROR. In hook wpforo_before_add_topic. Exception in function colaias_wpforo_ai_before_moderate_topic_check_mute: '
         .$e->getMessage() );
 
@@ -3228,7 +3141,6 @@ add_action( 'wpforo_after_edit_post', 'colaias_wpforo_ai_after_post_update', 100
             colaias_wpforo_ai_clear_moderation_data( 'muted_topic_user_'.$user_id );
         }
         catch( Exception $e ) {
-             // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
             colaias_wpforo_ai_log_info( "⚠️  WPForo AI Moderation: Opps ⚠️, you should hardly need to see this, but the problem maybe occuring with the global dictionary colaias_wpforo_ai_moderation_data. There is a CRITICAL chance of memory leak with this exception due to data storing. Deactivate the plugin, make sure the error is not due to the wpForo AI Moderation plugin.\n
             If so contact the Github repository maintainer IMMEDIATELY. 😵'" );
         } 
@@ -3269,7 +3181,7 @@ function colaias_wpforo_ai_moderate_topic_before_insert( $topic ) {
             global $colaias_wpforo_ai_config;
             $model = get_option( 'openrouter_model', $colaias_wpforo_ai_config['default_model'] );
             if ( empty( $api_key ) ) {
-                colaias_wpforo_ai_log_info( '🤖 ⚠️ WPForo AI Moderation: No API key found, skipping topic moderation' );
+                error_log( '🤖 ⚠️ WPForo AI Moderation: No API key found, skipping topic moderation' );
                 return $topic;
             }
 
@@ -3306,7 +3218,6 @@ function colaias_wpforo_ai_moderate_topic_before_insert( $topic ) {
         }
         return $topic;
     } catch ( Exception $e ){
-         // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
         error_log( '🤖 ❌ 💀 WPForo AI Moderation: CRITICAL ERROR. In hook wpforo_add_topic_data_filter. Exception in function colaias_wpforo_ai_moderate_topic_before_insert: '
         .$e->getMessage() );
 
@@ -3368,8 +3279,8 @@ function colaias_wpforo_ai_after_topic_insert( $topic ) {
                         colaias_wpforo_ai_penalize_topic( $topic );
 
                         $mute_duration = colaias_wpforo_ai_get_mute_duration_for_type( $type );
-                        $expiration_time = gmdate( 'Y-m-d H:i:s', strtotime( "+$mute_duration days" ) );
-                        $formatted_expiration = gmdate( 'F j, Y \a\t g:i a', strtotime( $expiration_time ) );
+                        $expiration_time = date( 'Y-m-d H:i:s', strtotime( "+$mute_duration days" ) );
+                        $formatted_expiration = date( 'F j, Y \a\t g:i a', strtotime( $expiration_time ) );
                     
                         $message = 'Your topic was flagged by the AI moderator for violating community guidelines. ';
                         $message .= 'Your account has been muted until ' . $formatted_expiration . '. ';
@@ -3402,7 +3313,6 @@ function colaias_wpforo_ai_after_topic_insert( $topic ) {
         return $topic;
 
     } catch ( Exception $e ){
-         // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
         error_log( '🤖 ❌ 💀 WPForo AI Moderation: CRITICAL ERROR. In hook wpforo_after_add_topic. Exception in function colaias_wpforo_ai_after_topic_insert: '
         .$e->getMessage() );
         
@@ -3455,7 +3365,7 @@ function colaias_wpforo_ai_before_moderate_post_check_mute( $post ) {
 
                 if ( $mute_info ) {
                     $expiration_time = $mute_info->expiration_time;
-                    $formatted_expiration = gmdate( 'F j, Y \a\t g:i a', strtotime( $expiration_time ) );
+                    $formatted_expiration = date( 'F j, Y \a\t g:i a', strtotime( $expiration_time ) );
 
                     $message = 'You are currently muted and cannot post messages in the forum. ';
                     $message .= 'Your mute will expire on ' . $formatted_expiration . '. ';
@@ -3482,7 +3392,6 @@ function colaias_wpforo_ai_before_moderate_post_check_mute( $post ) {
         }
         return $post;
     } catch ( Exception $e ){
-         // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
         error_log( '🤖 ❌ 💀 WPForo AI Moderation: CRITICAL ERROR. In hook wpforo_before_add_post. Exception in function colaias_wpforo_ai_before_moderate_post_check_mute: '
         .$e->getMessage() );
 
@@ -3531,7 +3440,7 @@ function colaias_wpforo_ai_moderate_post_before_insert( $post ) {
             global $colaias_wpforo_ai_config;
             $model = get_option( 'openrouter_model', $colaias_wpforo_ai_config['default_model'] );
             if ( empty( $api_key ) ) {
-                colaias_wpforo_ai_log_info( '🤖 ⚠️ WPForo AI Moderation: No API key found, skipping post moderation' );
+                error_log( '🤖 ⚠️ WPForo AI Moderation: No API key found, skipping post moderation' );
                 return $post;
             }
 
@@ -3569,7 +3478,6 @@ function colaias_wpforo_ai_moderate_post_before_insert( $post ) {
         }
         return $post;
     } catch ( Exception $e ){
-         // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
         error_log( '🤖 ❌ 💀 WPForo AI Moderation: CRITICAL ERROR. In hook wpforo_add_post_data_filter. Exception in function colaias_wpforo_ai_moderate_post_before_insert: '
         .$e->getMessage() 
         );
@@ -3632,8 +3540,8 @@ function colaias_wpforo_ai_after_post_insert( $post ) {
                     colaias_wpforo_ai_penalize_post( $post );
 
                     $mute_duration = colaias_wpforo_ai_get_mute_duration_for_type( $type );
-                    $expiration_time = gmdate( 'Y-m-d H:i:s', strtotime( "+$mute_duration days" ) );
-                    $formatted_expiration = gmdate( 'F j, Y \a\t g:i a', strtotime( $expiration_time ) );
+                    $expiration_time = date( 'Y-m-d H:i:s', strtotime( "+$mute_duration days" ) );
+                    $formatted_expiration = date( 'F j, Y \a\t g:i a', strtotime( $expiration_time ) );
                 
                     $message = 'Your post was flagged by the AI moderator for violating community guidelines. ';
                     $message .= 'Your account has been muted until ' . $formatted_expiration . '. ';
@@ -3666,7 +3574,6 @@ function colaias_wpforo_ai_after_post_insert( $post ) {
     return $post;
 
     } catch ( Exception $e ){ 
-         // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
         error_log( '🤖 ❌ 💀 WPForo AI Moderation: CRITICAL ERROR. In hook wpforo_after_add_post. Exception in function colaias_wpforo_ai_after_post_insert: '
         .$e->getMessage() );
     
@@ -3719,7 +3626,7 @@ function colaias_wpforo_ai_before_moderate_topic_edit_check_mute( $topic ) {
 
                 if ( $mute_info ) {
                     $expiration_time = $mute_info->expiration_time;
-                    $formatted_expiration = gmdate( 'F j, Y \a\t g:i a', strtotime( $expiration_time ) );
+                    $formatted_expiration = date( 'F j, Y \a\t g:i a', strtotime( $expiration_time ) );
 
                     $message = 'You are currently muted and cannot update topics in the forum. ';
                     $message .= 'Your mute will expire on ' . $formatted_expiration . '. ';
@@ -3745,7 +3652,6 @@ function colaias_wpforo_ai_before_moderate_topic_edit_check_mute( $topic ) {
         }
         return $topic;
     } catch ( Exception $e ){
-         // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
         error_log( '🤖 ❌ 💀 WPForo AI Moderation: CRITICAL ERROR. In hook wpforo_start_edit_topic. Exception in function colaias_wpforo_ai_before_moderate_topic_edit_check_mute: '
         .$e->getMessage() );
 
@@ -3795,7 +3701,7 @@ function colaias_wpforo_ai_moderate_topic_before_update( $topic ) {
             global $colaias_wpforo_ai_config;
             $model = get_option( 'openrouter_model', $colaias_wpforo_ai_config['default_model'] );
             if ( empty( $api_key ) ) {
-                colaias_wpforo_ai_log_info( '🤖 ⚠️ WPForo AI Moderation: No API key found, skipping topic-edit moderation' );
+                error_log( '🤖 ⚠️ WPForo AI Moderation: No API key found, skipping topic-edit moderation' );
                 return $topic;
             }
 
@@ -3833,7 +3739,6 @@ function colaias_wpforo_ai_moderate_topic_before_update( $topic ) {
         }
         return $topic;
     } catch ( Exception $e ){
-         // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
         error_log( '🤖 ❌ 💀 WPForo AI Moderation: CRITICAL ERROR. In hook wpforo_edit_topic_data_filter. Exception in function colaias_wpforo_ai_moderate_topic_before_update: '
         .$e->getMessage() );
 
@@ -3896,8 +3801,8 @@ function colaias_wpforo_ai_after_topic_update( $topic ) {
                         colaias_wpforo_ai_penalize_topic( $topic );
 
                         $mute_duration = colaias_wpforo_ai_get_mute_duration_for_type( $type );
-                        $expiration_time = gmdate( 'Y-m-d H:i:s', strtotime( "+$mute_duration days" ) );
-                        $formatted_expiration = gmdate( 'F j, Y \a\t g:i a', strtotime( $expiration_time ) );
+                        $expiration_time = date( 'Y-m-d H:i:s', strtotime( "+$mute_duration days" ) );
+                        $formatted_expiration = date( 'F j, Y \a\t g:i a', strtotime( $expiration_time ) );
                     
                         $message = 'Your topic update was flagged by the AI moderator for violating community guidelines. ';
                         $message .= 'Your account has been muted until ' . $formatted_expiration . '. ';
@@ -3930,7 +3835,6 @@ function colaias_wpforo_ai_after_topic_update( $topic ) {
 
         return $topic;
     } catch ( Exception $e ){ 
-         // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
         error_log( '🤖 ❌ 💀 WPForo AI Moderation: CRITICAL ERROR. In hook wpforo_after_edit_topic. Exception in function colaias_wpforo_ai_after_topic_update: '
         .$e->getMessage() 
         );
@@ -3985,7 +3889,7 @@ function colaias_wpforo_ai_before_moderate_post_edit_check_mute( $post ) {
 
                 if ( $mute_info ) {
                     $expiration_time = $mute_info->expiration_time;
-                    $formatted_expiration = gmdate( 'F j, Y \a\t g:i a', strtotime( $expiration_time ) );
+                    $formatted_expiration = date( 'F j, Y \a\t g:i a', strtotime( $expiration_time ) );
 
                     $message = 'You are currently muted and cannot update posts in the forum. ';
                     $message .= 'Your mute will expire on ' . $formatted_expiration . '. ';
@@ -4011,7 +3915,6 @@ function colaias_wpforo_ai_before_moderate_post_edit_check_mute( $post ) {
         }
         return $post;
     }catch ( Exception $e ){
-         // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
         error_log( '🤖 ❌ 💀 WPForo AI Moderation: CRITICAL ERROR. In hook wpforo_start_edit_post. Exception in function colaias_wpforo_ai_before_moderate_post_edit_check_mute: '
         .$e->getMessage() );
 
@@ -4061,7 +3964,7 @@ function colaias_wpforo_ai_moderate_post_before_update( $post ) {
             global $colaias_wpforo_ai_config;
             $model = get_option( 'openrouter_model', $colaias_wpforo_ai_config['default_model'] );
             if ( empty( $api_key ) ) {
-                colaias_wpforo_ai_log_info( '🤖 ⚠️ WPForo AI Moderation: No API key found, skipping post-edit moderation' );
+                error_log( '🤖 ⚠️ WPForo AI Moderation: No API key found, skipping post-edit moderation' );
                 return $post;
             }
 
@@ -4099,7 +4002,6 @@ function colaias_wpforo_ai_moderate_post_before_update( $post ) {
         }
         return $post;
     } catch ( Exception $e ){
-         // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
         error_log( '🤖 ❌ 💀 WPForo AI Moderation: CRITICAL ERROR. In hook wpforo_edit_post_data_filter. Exception in function colaias_wpforo_ai_moderate_post_before_update: '
         .$e->getMessage() 
         );
@@ -4163,8 +4065,8 @@ function colaias_wpforo_ai_after_post_update( $post ) {
                         colaias_wpforo_ai_penalize_post( $post );
 
                         $mute_duration = colaias_wpforo_ai_get_mute_duration_for_type( $type );
-                        $expiration_time = gmdate( 'Y-m-d H:i:s', strtotime( "+$mute_duration days" ) );
-                        $formatted_expiration = gmdate( 'F j, Y \a\t g:i a', strtotime( $expiration_time ) );
+                        $expiration_time = date( 'Y-m-d H:i:s', strtotime( "+$mute_duration days" ) );
+                        $formatted_expiration = date( 'F j, Y \a\t g:i a', strtotime( $expiration_time ) );
                     
                         $message = 'Your updated post was flagged by the AI moderator for violating community guidelines. ';
                         $message .= 'Your account has been muted until ' . $formatted_expiration . '. ';
@@ -4198,7 +4100,6 @@ function colaias_wpforo_ai_after_post_update( $post ) {
 
         return $post;
     } catch ( Exception $e ){ 
-         // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
         error_log( '🤖 ❌ 💀 WPForo AI Moderation: CRITICAL ERROR. In hook wpforo_after_edit_post. Exception in function colaias_wpforo_ai_after_post_update: '
         .$e->getMessage() 
         );

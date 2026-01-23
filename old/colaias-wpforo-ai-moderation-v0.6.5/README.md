@@ -20,7 +20,7 @@ Get control over your moderation ✊ ✊ ✊. Moderate at mere pennies. During t
 
 - **AI-Powered Moderation**: Uses OpenRouter API with configurable AI models (default: deepseek/deepseek-chat-v3.1)
 - **Flexible Flagging System**: Customizable flag types (flag, nsfw, spam, etc.) with individual mute durations
-- **User Management**: Automatically moves flagged users to a "Muted" database table
+- **User Management**: Automatically moves flagged users to a "Muted" wpForo group with customizable permissions
 - **Standalone Admin Interface**: Accessible to both Administrators and Moderators with proper capability controls
 - **Real-time Processing**: Analyzes posts and topics as they're submitted
 - **Append AI Message to post**: Append a custom string with {TYPE} and {REASON} formatting tags for AI response to the original post or topic after the edit 
@@ -330,10 +330,6 @@ This plugin is released under the GPL v2 or later license.
 ## Version History
 
 **Still in beta**
-New in Version 0.6.6:
- - wp-unslash
- - phpcs fixes
-
 New in Version 0.6.5:
  - add-mod muted users notification
 
