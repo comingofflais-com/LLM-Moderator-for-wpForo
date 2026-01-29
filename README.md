@@ -14,7 +14,7 @@ LLM Moderator for wpForo is a WordPress plugin that integrates AI-powered conten
 Get control over your moderation ✊ ✊ ✊. Moderate at mere pennies. During testing the average cost per request is recorded at USD $0.00005 using the default prompt, with DeepSeek-v3.1.
 
 ## News
- - Jan 28th, 2026 | new wpForo version 2.4.14 forces permission before deleting posts, I have not tested but this likely means the plugin breaks function on version 2.4.14 when deleting posts. I am currently working on the premium graphs, moreover, I am also behind on other important projects after taking up this challenge. I will attend to this matter as soon as I get the chance.
+ - Jan 28th, 2026 | new wpForo version 2.4.14 forces permission before deleting posts, I have not tested but this likely means the plugin does not automatically remove unapproved penalized content when trying to delete unapproved posts, likely leaves error log. I am currently working on the premium graphs, moreover, I am also behind on other important projects after taking up this challenge. I will attend to this matter as soon as I get the chance.
  - Jan 2026 | Looking for beta testers. Join the Telegram group!
 
 ## Features
