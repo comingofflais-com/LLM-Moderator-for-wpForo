@@ -316,17 +316,17 @@ As noted, I created this with the intention to capitalize on a commercial opport
 
 - **User Progress Notification**: Notification system to show AI moderation progress to user. Somewhat implemented. Seems difficult to make, but done.
 
-- **Testing Framework**: Done. Test 192 difference scenarios, mostly related to posting. Doesn't cover everything.
+- **Testing Framework**: Done. Test 192 difference scenarios, mostly related to posting. Doesn't cover everything. Isn't fully automated, but let's me know what expected result didn't result.
 
 - **Context-Aware Moderation**: Provide a few preceding approved posts for LLM moderation for better context. The best way may be the "memory" feature that is currently not supported by OpenRouter, so there may be no need to build it out now, also I'm simply exhausted and want to work on some other projects. The idea would be to get the AI to request back for more context, up to a few posts if it doesn't have enough certainty. Posts will need to be sent with user ID, name, order, whether it is a reply, what posts it directly succeeds, and post content. Users will need to be kept in the loop with notices and shown LLM reasons why it wants more context. (Somewhat time-consuming and requires some LLM knowledge)
 
-- **Simple Context-Aware Moderation**: Likely the only way. Send preceding posts, the post the current user is directly replying to, for edits get replying and succeeding posts. Hide user identity from the LLM by giving fake name, alias, or random user id. 
+- **Simpler Context-Aware Moderation**: Likely the only way, but actually the better way. Just send the preceding posts, the post the current user is directly replying to, for edits get replying and succeeding posts. Hide user identity from the LLM for privacy by giving fake name, alias, or random user id. 
 
-- **Metrics and Analytics**: Done. Will need other wp plugins to show the graphs and charts. Let's hope this isn't as hard as the main project where I miscalculated how difficult it was
+- **Metrics and Analytics**: Work in progress.
 
 - **AI Topic Tags**: Optional, not essential to moderation but can be helpful. Have the LLM provide a "tags" key if it is a topic, in the JSON response, then use those to set topic tags. (Easy to implement, not exactly an essential part of realtime moderation)
 
-- **Profile Tags**: Likely a premium feature where the user can ask for tags, that will be recorded in another step of the chain-of-responsibility
+- **Profile Tags**: Likely a premium feature where the user can ask for profiling tags in the prompt. Currently the only way to profile is through the flag 'type', tagging will help the moderators get a better understanding of what type of posts the user frequently posts about. The tags should be recorded in another step of the chain-of-responsibility, likely in the metrics table.
 
 ## Support
 
