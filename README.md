@@ -14,6 +14,7 @@ LLM Moderator for wpForo is a WordPress plugin that integrates AI-powered conten
 Get control over your moderation ✊ ✊ ✊. Moderate at mere pennies. During testing the average cost per request is recorded at USD $0.00005 using the default prompt, with DeepSeek-v3.1.
 
 ## News
+ - Jan 28th, 2026 | new wpForo version 2.4.14 forces permission before deleting posts, I have not tested but this likely means the plugin breaks function on version 2.4.14. I am currently working on the premium graphs, moreover, I am also behind on other important projects after taking up this challenge. I will attend to this matter as soon as I get the chance.
  - Jan 2026 | Looking for beta testers. Join the Telegram group!
 
 ## Features
@@ -226,18 +227,22 @@ The plugin creates a custom table `wp_colaias_wpforo_ai_flag_metrics` to track:
 - Long term metrics tracking (5 years)
 
 ## Development
-
-- Join the Telegram group first before taking on a project or making changes. Someone might already be working on it, or I may not accept it into the codebase.
+- **Do not start right away, read the following first.**
+- Join the Telegram group first before taking on a project or making changes. Someone might already be working on it, or we may not be able to accept it into the codebase.
+- Some features maybe premium, and may already be coded out. You can help us improve features instead of creating them from scratch.
+- Our premium plugins rely on the functions inside this base plugin, any changes will likely effect them, so join the Telegram and address these issues first. Your changes may not be accepted if you do not consult the developer.
 - Enable information logging to get step-by-step moderation flow. View the logs in the terminal with cmd `tail -f wp-content/debug.log`. Helpful for debugging and understanding how the plugin works. 
 - Permissions: `'colaias_wpforo_ai_can_access_moderation'`
 - wpForo group_cans: `'colaias_wpforo_ai_group_can_access_moderation'`
-- Primarily focus on moderation-only features
-- Keep main features into the same file, or move them to the main file once done coding. Do not add extra features. Create a separate plugin for extra features which can be uploaded here.
+- Primarily focus on moderation-only features. Other enhancing features can likely be separate premium plugins.
+- Keep main features into the same file, or move them to the main file once done coding. Do not add extra features. Create a separate plugin for extra features which can be uploaded here. While this maybe considered bad practice, it makes it easy to find code in the IDE.
+- Stay in the loop. Keep the developer conscious of your plugin, so that updates have minimum impact on your code, or that you can be notified about what changes to make.
 
 ### SIMPLE LOGIC
  * BEFORE TOPIC OR POST ACTION: CHECK MUTE STATUS
  * BEFORE TOPIC OR POST FILTER: IF NOT MUTED MODERATED THE CONTENT WITH LLM, APPEND STRING MESSAGE
  * AFTER  TOPIC OF POST ACTION: IF QUERY RESULTED IN PENALTY, APPLY PENALTY
+ * Additional metrics, and premium features such as profile tagging also occur during these steps (we want to keep these as premium features)
 
 ### HOOKS AND CALLBACKS
 ```code
@@ -293,7 +298,7 @@ I was told by the gVectors team that their system is an "Enterprise" level AI su
 
 However, this plugin can potentially be expanded to do some stuff beyond just moderation. It follows a "chain-of-responsibility" pattern, making it easy for developers to understand and expand upon. For example, it can be used to add topic tags upon topic creation, or to track posting metrics.
 
-In short, this plugin can be expanded to do just about anything because of how post data is passed between the "chain-points", which makes it rather easy to develop with for moderation purposes.
+In short, this plugin can be expanded to do a lot more because of how post data is passed between the "chain-points", which makes it rather easy to develop with for moderation purposes. While that base plugin will only support moderation, feel free to contact the developer if you want enhanced AI features (or extra features) in another forum plugin.
 
 ### Premium Features & Community Development
 
@@ -315,10 +320,13 @@ As noted, I created this with the intention to capitalize on a commercial opport
 
 - **Context-Aware Moderation**: Provide a few preceding approved posts for LLM moderation for better context. The best way may be the "memory" feature that is currently not supported by OpenRouter, so there may be no need to build it out now, also I'm simply exhausted and want to work on some other projects. The idea would be to get the AI to request back for more context, up to a few posts if it doesn't have enough certainty. Posts will need to be sent with user ID, name, order, whether it is a reply, what posts it directly succeeds, and post content. Users will need to be kept in the loop with notices and shown LLM reasons why it wants more context. (Somewhat time-consuming and requires some LLM knowledge)
 
+- **Simple Context-Aware Moderation**: Likely the only way. Send preceding posts, the post the current user is directly replying to, for edits get replying and succeeding posts. Hide user identity from the LLM by giving fake name, alias, or random user id. 
+
 - **Metrics and Analytics**: Done. Will need other wp plugins to show the graphs and charts. Let's hope this isn't as hard as the main project where I miscalculated how difficult it was
 
 - **AI Topic Tags**: Optional, not essential to moderation but can be helpful. Have the LLM provide a "tags" key if it is a topic, in the JSON response, then use those to set topic tags. (Easy to implement, not exactly an essential part of realtime moderation)
 
+- **Profile Tags**: Likely a premium feature where the user can ask for tags, that will be recorded in another step of the chain-of-responsibility
 
 ## Support
 
@@ -331,6 +339,10 @@ This plugin is released under the GPL v2 or later license.
 ## Version History
 
 **Still in beta**
+
+New in Version 0.6.7:
+ - Renamed text domain and plugin from colaias-wpforo-ai-moderation to llm-moderator-for-wpforo
+
 New in Version 0.6.6:
  - wp-unslash
  - phpcs fixes
