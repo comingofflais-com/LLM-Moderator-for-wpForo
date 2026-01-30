@@ -510,16 +510,7 @@ function colaias_wpforo_ai_llm_settings_page(){
         <?php endif; ?>
         
         <?php if ( $active_tab === 'metrics' ): ?>
-            <?php 
-            // Check if premium plugin is active
-            $premium_plugin_active = function_exists( 'colaias_wpforo_ai_premium_init' );
-            
-            if ( $premium_plugin_active && function_exists( 'colaias_wpforo_ai_premium_display_metrics' ) ) {
-                colaias_wpforo_ai_premium_display_metrics();
-            } else {
-                colaias_wpforo_ai_display_metrics();
-            }
-            ?>
+            <?php colaias_wpforo_ai_display_metrics(); ?>
         <?php endif; ?>
         
     </div>    
@@ -851,12 +842,6 @@ function colaias_wpforo_ai_display_settings(){
 // Function to display muted users with pagination
 function colaias_wpforo_ai_display_muted_users() {
     try {
-    
-    if (function_exists('colaias_wpforo_ai_premium_display_muted_users')) {
-        colaias_wpforo_ai_premium_display_muted_users();
-        return;
-    }    
-
     global $wpdb;
     
     $table_name = $wpdb->prefix . 'colaias_wpforo_ai_muted_users';
@@ -1087,43 +1072,35 @@ function colaias_wpforo_ai_display_metrics() {
         $premium_plugin_active = function_exists( 'colaias_wpforo_ai_premium_init' );
         $table_name = $wpdb->prefix . 'colaias_wpforo_ai_flag_metrics';
         
-        // Basic metrics queries using new hit_type column
-        $past_year_muted_hits = $wpdb->get_var( "SELECT COUNT( * ) FROM $table_name WHERE hit_type = 'muted_prevented' AND hit_time >= DATE_SUB( NOW(), INTERVAL 1 YEAR )" );
-        $past_year_muteable_hits = $wpdb->get_var( "SELECT COUNT( * ) FROM $table_name WHERE hit_type = 'muteable' AND hit_time >= DATE_SUB( NOW(), INTERVAL 1 YEAR )" );
-        $past_year_non_muteable_hits = $wpdb->get_var( "SELECT COUNT( * ) FROM $table_name WHERE hit_type = 'non_muteable' AND hit_time >= DATE_SUB( NOW(), INTERVAL 1 YEAR )" );
-        $past_year_no_flag_hits = $wpdb->get_var( "SELECT COUNT( * ) FROM $table_name WHERE hit_type = 'no_flag' AND hit_time >= DATE_SUB( NOW(), INTERVAL 1 YEAR )" );
+        // Basic metrics queries
+        $past_year_flags = $wpdb->get_var( "SELECT COUNT( * ) FROM $table_name WHERE is_muted = 0 AND hit_time >= DATE_SUB( NOW(), INTERVAL 1 YEAR )" );
+        $past_year_prevented_hits = $wpdb->get_var( "SELECT COUNT( * ) FROM $table_name WHERE is_muted = 1 AND hit_time >= DATE_SUB( NOW(), INTERVAL 1 YEAR )" );
+        $past_year_muteable_hits = $wpdb->get_var( "SELECT COUNT( * ) FROM $table_name WHERE is_muteable = 1 AND hit_time >= DATE_SUB( NOW(), INTERVAL 1 YEAR )" );
         
-        // Get flag type counts (only for flagged content)
+        // Get flag type counts
         $past_month_flag_types = $wpdb->get_results( "
             SELECT flag_type, COUNT( * ) as count 
             FROM $table_name 
-            WHERE flag_type IS NOT NULL AND flag_type != '' 
-            AND hit_type IN ( 'muteable', 'non_muteable' )
-            AND hit_time >= DATE_SUB( NOW(), INTERVAL 30 DAY )
+            WHERE flag_type IS NOT NULL AND flag_type != '' AND is_muted = 0 AND hit_time >= DATE_SUB( NOW(), INTERVAL 30 DAY )
             GROUP BY flag_type 
             ORDER BY count DESC
         " );
         
-        // Get content type counts (muteable, nonmuteable, no_flag)
-        $past_month_content_types = $wpdb->get_results( "
+        // Get content type counts
+        $past_month_evals_content_types = $wpdb->get_results( "
             SELECT content_type, COUNT( * ) as count 
             FROM $table_name 
-            WHERE content_type IS NOT NULL AND content_type != ''
-            AND hit_type IN ( 'muteable', 'non_muteable', 'no_flag' )
-            AND hit_time >= DATE_SUB( NOW(), INTERVAL 30 DAY )
+            WHERE content_type IS NOT NULL AND content_type != '' AND is_muted = 0
             GROUP BY content_type 
             ORDER BY count DESC
         " );
         
-        // Get recent activity ( last 30 days ) - all hits
+        // Get recent activity ( last 30 days )
         $past_month_records_and_prevented_activity = $wpdb->get_var( "
             SELECT COUNT( * ) 
             FROM $table_name 
             WHERE hit_time >= DATE_SUB( NOW(), INTERVAL 30 DAY )
         " );
-        
-        // Calculate total flagged hits (muteable + non_muteable)
-        $past_year_total_flagged = $past_year_muteable_hits + $past_year_non_muteable_hits;
         
         ?>
         <div class="wrap">
@@ -1133,41 +1110,27 @@ function colaias_wpforo_ai_display_metrics() {
                 <h3 style="color: #0073aa; margin-top: 0;">✨ Basic Metrics | 1 Year Maximum</h3>
                 <div style="display: grid; grid-template-columns: repeat( auto-fit, minmax( 250px, 1fr ) ); gap: 20px; margin: 20px 0;">
                     <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; text-align: center;">
+                        <h4 style="margin: 0 0 10px 0; color: #495057;">Past Year Total Flags Recorded</h4>
+                        <p style="font-size: 2em; font-weight: bold; color: #0073aa; margin: 0;"><?php echo esc_html( number_format( $past_year_flags ) ); ?></p>
+                    </div>
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; text-align: center;">
                         <h4 style="margin: 0 0 10px 0; color: #495057;">Past Year Muted Users Prevented</h4>
-                        <p style="font-size: 2em; font-weight: bold; color: #dc3545; margin: 0;"><?php echo esc_html( number_format( $past_year_muted_hits ) ); ?></p>
-                        <p style="font-size: 0.9em; color: #6c757d; margin: 5px 0 0 0;">Muted users' attempts to post hits</p>
+                        <p style="font-size: 2em; font-weight: bold; color: #dc3545; margin: 0;"><?php echo esc_html( number_format( $past_year_prevented_hits ) ); ?></p>
                     </div>
                     <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; text-align: center;">
-                        <h4 style="margin: 0 0 10px 0; color: #495057;">Past Year Muted</h4>
-                        <p style="font-size: 2em; font-weight: bold; color: #fd7e14; margin: 0;"><?php echo esc_html( number_format( $past_year_muteable_hits ) ); ?></p>
-                        <p style="font-size: 0.9em; color: #6c757d; margin: 5px 0 0 0;">Unapproved content and mute given</p>
+                        <h4 style="margin: 0 0 10px 0; color: #495057;">Past Year Mutes Given</h4>
+                        <p style="font-size: 2em; font-weight: bold; color: #28a745; margin: 0;"><?php echo esc_html( number_format( $past_year_muteable_hits ) ); ?></p>
                     </div>
                     <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; text-align: center;">
-                        <h4 style="margin: 0 0 10px 0; color: #495057;">Past Year Non-Muteable Flag hit</h4>
-                        <p style="font-size: 2em; font-weight: bold; color: #6f42c1; margin: 0;"><?php echo esc_html( number_format( $past_year_non_muteable_hits ) ); ?></p>
-                        <p style="font-size: 0.9em; color: #6c757d; margin: 5px 0 0 0;">Enabled but not muteable</p>
-                    </div>
-                    <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; text-align: center;">
-                        <h4 style="margin: 0 0 10px 0; color: #495057;">Past Year No-Flag Hits</h4>
-                        <p style="font-size: 2em; font-weight: bold; color: #28a745; margin: 0;"><?php echo esc_html( number_format( $past_year_no_flag_hits ) ); ?></p>
-                        <p style="font-size: 0.9em; color: #6c757d; margin: 5px 0 0 0;">Evaluated, no flag raised</p>
-                    </div>
-                    <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; text-align: center; grid-column: span 2;">
-                        <h4 style="margin: 0 0 10px 0; color: #495057;">Past Year Total Flagged Hits</h4>
-                        <p style="font-size: 2em; font-weight: bold; color: #0073aa; margin: 0;"><?php echo esc_html( number_format( $past_year_total_flagged ) ); ?></p>
-                        <p style="font-size: 0.9em; color: #6c757d; margin: 5px 0 0 0;">Muteable + Non-Muteable</p>
-                    </div>
-                    <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; text-align: center; grid-column: span 2;">
-                        <h4 style="margin: 0 0 10px 0; color: #495057;">Past Month Total Activity</h4>
-                        <p style="font-size: 2em; font-weight: bold; color: #20c997; margin: 0;"><?php echo esc_html( number_format( $past_month_records_and_prevented_activity ) ); ?></p>
-                        <p style="font-size: 0.9em; color: #6c757d; margin: 5px 0 0 0;">Total hits (recorded, flagged, prevented) in last 30 days</p>
+                        <h4 style="margin: 0 0 10px 0; color: #495057;">Past Month Total Flags Recorded And Muted Users Prevented</h4>
+                        <p style="font-size: 2em; font-weight: bold; color: #6f42c1; margin: 0;"><?php echo esc_html( number_format( $past_month_records_and_prevented_activity ) ); ?></p>
                     </div>
                 </div>
             </div>
             
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0;">
                 <div style="background: #fff; padding: 20px; border-radius: 5px; border-left: 4px solid #fd7e14;">
-                    <h3 style="color: #fd7e14; margin-top: 0;">📊 Past Month Flag Types</h3>
+                    <h3 style="color: #fd7e14; margin-top: 0;">📊 Past Month Flags</h3>
                     <?php if ( !empty( $past_month_flag_types ) ): ?>
                         <table class="wp-list-table widefat fixed striped">
                             <thead>
@@ -1191,8 +1154,8 @@ function colaias_wpforo_ai_display_metrics() {
                 </div>
                 
                 <div style="background: #fff; padding: 20px; border-radius: 5px; border-left: 4px solid #20c997;">
-                    <h3 style="color: #20c997; margin-top: 0;">📝 Past Month Content Evaluations</h3>
-                    <?php if ( !empty( $past_month_content_types ) ): ?>
+                    <h3 style="color: #20c997; margin-top: 0;">📝 Past Month Content Recorded</h3>
+                    <?php if ( !empty( $past_month_evals_content_types ) ): ?>
                         <table class="wp-list-table widefat fixed striped">
                             <thead>
                                 <tr>
@@ -1201,7 +1164,7 @@ function colaias_wpforo_ai_display_metrics() {
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php foreach ( $past_month_content_types as $type ): ?>
+                                <?php foreach ( $past_month_evals_content_types as $type ): ?>
                                     <tr>
                                         <td><?php echo esc_html( $type->content_type ); ?></td>
                                         <td><?php echo esc_html( number_format( $type->count ) ); ?></td>
@@ -1231,7 +1194,7 @@ function colaias_wpforo_ai_display_metrics() {
                     ?>
                     
                     <p style="font-size: 16px; line-height: 1.6; color: #495057; max-width: 800px; margin: 0 auto 20px;">
-                        Yes, we have metrics! But these are just basic metrics. Get comprehensive analytics tables, charts and graphs, with our premium plugin
+                        These are just basic metrics. Get comprehensive analytics with our premium plugin
                     </p>
                     
                     <!-- <div style="display: grid; grid-template-columns: repeat( auto-fit, minmax( 250px, 1fr ) ); gap: 15px; margin: 25px 0;">
@@ -1849,7 +1812,8 @@ function colaias_wpforo_ai_create_or_upgrade_flag_metrics_table(){
             post_id BIGINT( 20 ),
             topic_id BIGINT( 20 ),
             hit_time DATETIME NOT NULL,
-            hit_type ENUM( 'muted_prevented', 'muteable', 'non_muteable', 'no_flag' ) DEFAULT 'no_flag',
+            is_muteable TINYINT( 1 ) DEFAULT 0,
+            is_muted TINYINT( 1 ) DEFAULT 0 NOT NULL,
             content_type VARCHAR( 50 ),
             reason TEXT DEFAULT NULL,
             PRIMARY KEY ( hit_id ),
@@ -1858,7 +1822,8 @@ function colaias_wpforo_ai_create_or_upgrade_flag_metrics_table(){
             KEY post_id ( post_id ),
             KEY topic_id ( topic_id ),
             KEY hit_time ( hit_time ),
-            KEY hit_type ( hit_type ),
+            KEY is_muteable ( is_muteable ),
+            KEY is_muted ( is_muted ),
             KEY content_type ( content_type )
         ) $charset_collate;";
 
@@ -1876,53 +1841,6 @@ function colaias_wpforo_ai_create_or_upgrade_flag_metrics_table(){
         // Log results for debugging
         // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_print_r -- Debug logging required for admin debugging
         colaias_wpforo_ai_log_info( 'WPForo AI Moderation: dbDelta result: ' . print_r( $result, true ) );
-        
-        // Check if old columns exist and migrate data
-        $old_columns_exist = false;
-        $columns = $wpdb->get_results( "SHOW COLUMNS FROM $table_name" );
-        foreach ( $columns as $column ) {
-            if ( $column->Field === 'is_muteable' || $column->Field === 'is_muted' ) {
-                $old_columns_exist = true;
-                break;
-            }
-        }
-        
-        // If old columns exist, migrate data to new hit_type column
-        if ( $old_columns_exist ) {
-            colaias_wpforo_ai_log_info( 'WPForo AI Moderation: Migrating old metrics data to new hit_type system...' );
-            
-            // Update hit_type based on old columns
-            $wpdb->query( "
-                UPDATE $table_name 
-                SET hit_type = 'muted_prevented' 
-                WHERE is_muted = 1
-            " );
-            
-            $wpdb->query( "
-                UPDATE $table_name 
-                SET hit_type = 'muteable' 
-                WHERE is_muted = 0 AND is_muteable = 1
-            " );
-            
-            $wpdb->query( "
-                UPDATE $table_name 
-                SET hit_type = 'non_muteable' 
-                WHERE is_muted = 0 AND is_muteable = 0
-            " );
-            
-            // Set any remaining null hit_type to 'no_flag'
-            $wpdb->query( "
-                UPDATE $table_name 
-                SET hit_type = 'no_flag' 
-                WHERE hit_type IS NULL
-            " );
-            
-            // Drop old columns
-            $wpdb->query( "ALTER TABLE $table_name DROP COLUMN is_muteable" );
-            $wpdb->query( "ALTER TABLE $table_name DROP COLUMN is_muted" );
-            
-            colaias_wpforo_ai_log_info( 'WPForo AI Moderation: Migration completed successfully!' );
-        }
         
         // Check if table exists
         $table_exists = $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $table_name ) ) === $table_name;
@@ -2006,7 +1924,7 @@ register_uninstall_hook( __FILE__, 'colaias_wpforo_ai_plugin_uninstall' );
 
 // del options, capabilities / permissions ( ? ), tables, transients ( none )
 function colaias_wpforo_ai_plugin_uninstall(){
-    // Todo: Clean up our custom capabilities
+    // Clean up our custom capabilities
     
     // no, this option maybe used in premium plugins that don't need the main plugin installed to function
     // colaias_wpforo_ai_cleanup_capabilities(); // ( ? ) If implimented ⚠️ this method does not remove from all groups ( moderator ) or colaias_wpforo_ai_group_can_access_moderation permission. Will require a rewrite. 
@@ -3096,14 +3014,14 @@ function colaias_wpforo_ai_record_muted_hit( $user_id, $is_topic, $is_edit )  {
             array( 
                 'user_id' => $user_id,
                 'hit_time' => current_time( 'mysql' ),
-                'hit_type' => 'muted_prevented',
+                'is_muted' => 1,
                 'content_type' => $content_type,
                 'flag_type' => 'MUTED_PREVENTED'
             ),
-            array( '%d', '%s', '%s', '%s', '%s' )
+            array( '%d', '%s', '%d', '%s', '%s' )
         );
         
-        colaias_wpforo_ai_log_info( "📈 WPForo AI Moderation Metrics: Recorded muted hit for user {$user_id}, type: {$content_type}, hit_type: muted" );
+        colaias_wpforo_ai_log_info( "📈 WPForo AI Moderation Metrics: Recorded muted hit for user {$user_id}, type: {$content_type}" );
         
     } catch ( Exception $e ) {
          // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
@@ -3111,7 +3029,7 @@ function colaias_wpforo_ai_record_muted_hit( $user_id, $is_topic, $is_edit )  {
     }
 }
 
-function colaias_wpforo_ai_record_hit( $user_id, $is_topic, $is_edit, $content_id, $flag_type, $is_muteable, $reason = null, $other_id = null ) {
+function colaias_wpforo_ai_record_hit( $user_id, $is_topic, $is_edit, $content_id, $flag_type, $is_muteable, $reason = null ) {
     global $wpdb;
     
     try {
@@ -3123,20 +3041,11 @@ function colaias_wpforo_ai_record_hit( $user_id, $is_topic, $is_edit, $content_i
         $topic_id = null;
         
         if ( $is_topic ) {
-            $content_type = $is_edit ? 'topic-edit' : 'topic';
+            $content_type = $is_edit ? 'topic_edit' : 'topic';
             $topic_id = $content_id;
-            // If content type is topic, the post id should be first postid
-            $post_id = $other_id; // other_id should contain first_postid for topics
         } else {
-            $content_type = $is_edit ? 'post-edit' : 'post';
+            $content_type = $is_edit ? 'post_edit' : 'post';
             $post_id = $content_id;
-            $topic_id = $other_id; // other_id should contain topicid for posts
-        }
-        
-        // Determine hit_type based on parameters
-        $hit_type = 'non_muteable'; // Default for flagged but not muteable
-        if ( $is_muteable ) {
-            $hit_type = 'muteable'; // Flagged and muteable but not muted yet
         }
         
         $wpdb->insert( 
@@ -3146,65 +3055,20 @@ function colaias_wpforo_ai_record_hit( $user_id, $is_topic, $is_edit, $content_i
                 'post_id' => $post_id,
                 'topic_id' => $topic_id,
                 'hit_time' => current_time( 'mysql' ),
-                'hit_type' => $hit_type,
+                'is_muteable' => $is_muteable ? 1 : 0,
+                'is_muted' => 0,
                 'content_type' => $content_type,
                 'flag_type' => $flag_type,
                 'reason' => $reason
             ),
-            array( '%d', '%d', '%d', '%s', '%s', '%s', '%s', '%s' )
+            array( '%d', '%d', '%d', '%s', '%d', '%d', '%s', '%s', '%s' )
         );
         
-        colaias_wpforo_ai_log_info( "📈 WPForo AI Moderation Metrics: Recorded hit for user {$user_id}, type: {$content_type}, flag: {$flag_type}, hit_type: {$hit_type}" );
+        colaias_wpforo_ai_log_info( "📈 WPForo AI Moderation Metrics: Recorded hit for user {$user_id}, type: {$content_type}, flag: {$flag_type}, muteable: " . ( $is_muteable ? 'yes' : 'no' ) );
         
     } catch ( Exception $e ) {
          // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
         error_log( "🤖 ❌ 💀 WPForo AI Moderation: CRITICAL ERROR. Error recording metrics hit: " . $e->getMessage() );
-    }
-}
-
-/**
- * Record a "no flag" hit when content is evaluated but no flag is raised
- */
-function colaias_wpforo_ai_record_no_flag_hit( $user_id, $is_topic, $is_edit, $content_id, $other_id = null ) {
-    global $wpdb;
-    
-    try {
-        $table_name = $wpdb->prefix . 'colaias_wpforo_ai_flag_metrics';
-        
-        $content_type = 'post';
-        $post_id = null;
-        $topic_id = null;
-        
-        if ( $is_topic ) {
-            $content_type = $is_edit ? 'topic-edit' : 'topic';
-            $topic_id = $content_id;
-            // If content type is topic, the post id should be first postid
-            $post_id = $other_id; // other_id should contain first_postid for topics
-        } else {
-            $content_type = $is_edit ? 'post-edit' : 'post';
-            $post_id = $content_id;
-            $topic_id = $other_id; // other_id should contain topicid for posts
-        }
-        
-        $wpdb->insert( 
-            $table_name,
-            array( 
-                'user_id' => $user_id,
-                'post_id' => $post_id,
-                'topic_id' => $topic_id,
-                'hit_time' => current_time( 'mysql' ),
-                'hit_type' => 'no_flag',
-                'content_type' => $content_type,
-                'flag_type' => null
-            ),
-            array( '%d', '%d', '%d', '%s', '%s', '%s', '%s' )
-        );
-        
-        colaias_wpforo_ai_log_info( "📈 WPForo AI Moderation Metrics: Recorded no-flag hit for user {$user_id}, type: {$content_type}" );
-        
-    } catch ( Exception $e ) {
-         // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
-        error_log( "🤖 ❌ 💀 WPForo AI Moderation: CRITICAL ERROR. Error recording no-flag metrics hit: " . $e->getMessage() );
     }
 }
 
@@ -3516,17 +3380,16 @@ function colaias_wpforo_ai_after_topic_insert( $topic ) {
                         colaias_wpforo_ai_Utilities::colaias_wpforo_ai_notices_notice( $message, 'error', 120000 );
 
                         // record metric
-                        colaias_wpforo_ai_record_hit( $user_id, true, false, $topic['topicid'] , $type, true, $reason, isset( $topic['first_postid'] ) ? $topic['first_postid'] : null );
+                        colaias_wpforo_ai_record_hit( $user_id, true, false, $topic['topicid'] , $type, true, $reason );
                     }
                     else {
                         colaias_wpforo_ai_Utilities::colaias_wpforo_ai_notices_notice( "Your topic has been processed by our moderation system.", 'neutral', 10000 );
                         // record metric
-                        colaias_wpforo_ai_record_hit( $user_id, true, false, $topic['topicid'] , $type, false, $reason, isset( $topic['first_postid'] ) ? $topic['first_postid'] : null );
+                        colaias_wpforo_ai_record_hit( $user_id, true, false, $topic['topicid'] , $type, false, $reason );
                     }
                 } 
             } else {
-                // Record no flag hit
-                colaias_wpforo_ai_record_no_flag_hit( $user_id, true, false, $topic['topicid'], isset( $topic['first_postid'] ) ? $topic['first_postid'] : null );
+                // TODO: record no flag hit
             }
         }
 
@@ -3780,18 +3643,17 @@ function colaias_wpforo_ai_after_post_insert( $post ) {
                 
                     colaias_wpforo_ai_Utilities::colaias_wpforo_ai_notices_notice( $message, 'error', 120000 );
                     // record metric
-                    colaias_wpforo_ai_record_hit( $user_id, false, false, $post['postid'] , $type, true, $reason, isset( $post['topicid'] ) ? $post['topicid'] : null );
+                    colaias_wpforo_ai_record_hit( $user_id, false, false, $post['postid'] , $type, true, $reason );
                 }
                 else {
                     colaias_wpforo_ai_Utilities::colaias_wpforo_ai_notices_notice( "Your post has been processed by our moderation system.", 'success', 10000 );
 
                     // record metric
-                    colaias_wpforo_ai_record_hit( $user_id, false, false, $post['postid'] , $type, false, $reason, isset( $post['topicid'] ) ? $post['topicid'] : null );
+                    colaias_wpforo_ai_record_hit( $user_id, false, false, $post['postid'] , $type, false, $reason );
                 }
             } 
         } else {
-            // Record no flag hit
-            colaias_wpforo_ai_record_no_flag_hit( $user_id, false, false, $post['postid'], isset( $post['topicid'] ) ? $post['topicid'] : null );
+            // TODO: record no flag hit
         }
     }
     
@@ -4046,17 +3908,16 @@ function colaias_wpforo_ai_after_topic_update( $topic ) {
                         colaias_wpforo_ai_Utilities::colaias_wpforo_ai_notices_notice( $message, 'error',120000 );
 
                         // record metric
-                        colaias_wpforo_ai_record_hit( $user_id, true, true, $topic['topicid'] , $type, true, $reason, isset( $topic['first_postid'] ) ? $topic['first_postid'] : null );
+                        colaias_wpforo_ai_record_hit( $user_id, true, true, $topic['topicid'] , $type, true, $reason );
                     }
                     else {
                         colaias_wpforo_ai_Utilities::colaias_wpforo_ai_notices_notice( "Your updated topic has been processed by our moderation system.", 'success', 10000 );
                         // record metric
-                        colaias_wpforo_ai_record_hit( $user_id, true, true, $topic['topicid'] , $type, false, $reason, isset( $topic['first_postid'] ) ? $topic['first_postid'] : null );
+                        colaias_wpforo_ai_record_hit( $user_id, true, true, $topic['topicid'] , $type, false, $reason );
                     }
                 }
             } else {
-                // Record no flag hit
-                colaias_wpforo_ai_record_no_flag_hit( $user_id, true, true, $topic['topicid'], isset( $topic['first_postid'] ) ? $topic['first_postid'] : null );
+                // TODO: record no flag hit
             }
         }
 
@@ -4314,18 +4175,17 @@ function colaias_wpforo_ai_after_post_update( $post ) {
                         colaias_wpforo_ai_Utilities::colaias_wpforo_ai_notices_notice( $message, 'error', 120000 );
 
                         // record metric
-                        colaias_wpforo_ai_record_hit( $user_id, false, true, $post['postid'] , $type, true, $reason, isset( $post['topicid'] ) ? $post['topicid'] : null );
+                        colaias_wpforo_ai_record_hit( $user_id, false, true, $post['postid'] , $type, true, $reason );
                     }
                     else {
                         colaias_wpforo_ai_Utilities::colaias_wpforo_ai_notices_notice( "Your updated post has been processed by our moderation system.", 'success', 10000 );
 
                         // record metric
-                        colaias_wpforo_ai_record_hit( $user_id, false, true, $post['postid'] , $type, false, $reason, isset( $post['topicid'] ) ? $post['topicid'] : null );
+                        colaias_wpforo_ai_record_hit( $user_id, false, true, $post['postid'] , $type, false, $reason );
                     }
                 }
             } else {
-                // Record no flag hit
-                colaias_wpforo_ai_record_no_flag_hit( $user_id, false, true, $post['postid'], isset( $post['topicid'] ) ? $post['topicid'] : null );
+                // TODO: record no flag hit
             }
         }
 
