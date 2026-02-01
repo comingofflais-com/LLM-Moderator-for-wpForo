@@ -313,11 +313,11 @@ As noted, I created this with the intention to capitalize on a commercial opport
 
 - **User Progress Notification**: Notification system to show AI moderation progress to user. Somewhat implemented. Seems difficult to make, but done.
 
-- **Testing Framework**: Somewhat done. Tests 192 difference scenarios, mostly related to posting. Doesn't cover everything. Isn't fully automated, but let's me know what expected result didn't result. Only checks ~half of the actual different scenarios that can occur.
+- **Testing Framework**: Somewhat done, doesn't test properly. Tests 192 difference scenarios, mostly related to posting. Doesn't cover everything. Isn't fully automated, but let's me know what expected result didn't result. Only checks ~half of the actual different scenarios that can occur.
 
 - **Context-Aware Moderation**: Provide a few preceding approved posts for LLM moderation for better context. The best way may be the "memory" feature that is currently not supported by OpenRouter, so there may be no need to build it out now, also I'm simply exhausted and want to work on some other projects. The idea would be to get the AI to request back for more context, up to a few posts if it doesn't have enough certainty. Posts will need to be sent with user ID, name, order, whether it is a reply, what posts it directly succeeds, and post content. Users will need to be kept in the loop with notices and shown LLM reasons why it wants more context. (Somewhat time-consuming and requires some LLM knowledge)
 
-- **Simpler Context-Aware Moderation**: Likely the only way with LLMs, but actually the better way. Just send the preceding posts, the post the current user is directly replying to, for edits get replying and succeeding posts. Hide user identity from the LLM for privacy by giving fake name, alias, or random user id. 
+- **Simpler Context-Aware Moderation**: Likely the only way with LLMs, but actually the better way. Just send the preceding posts, the post the current user is directly replying to, for edits get replying and succeeding posts. Hide user identity from the LLM for privacy by giving fake name, alias, or random user id. (This is top priority, provides adequate moderation. Current is unreliable.)
 
 - **Metrics and Analytics**: Work in progress.
 
@@ -325,7 +325,7 @@ As noted, I created this with the intention to capitalize on a commercial opport
 
 - **Profile Tags**: Likely a premium feature where the user can ask for profiling tags in the prompt. Currently the only way to profile is through the flag 'type', tagging will help the moderators get a better understanding of what type of posts the user frequently posts about. The tags should be recorded in another step of the chain-of-responsibility, likely in the metrics table. (Doesn't rely on wpForo)
 
-- **Custom Prompt per Forum**: Likely a premium feature. Set the prompt based on the forum id from the post. Adds feature bloat and global prompt is likely to be enough for most use cases. Should be done separately in a premium plugin where the prompt is set along the chain-of-responsibility, with a small change to the main base plugin file. (Adds maintenance complexity)
+- **Custom Prompt per Forum**: Likely a premium feature. Set the prompt based on the forum id from the post. Adds feature bloat. The global prompt is likely to be enough for most use cases. Should be done separately in a premium plugin where the prompt is set along the chain-of-responsibility, with a small change to the main base plugin file. (Adds maintenance complexity)
 ## Support
 
 For support and bug reports, please create an issue, or create a pull request, or best contact @colaiasq or "Imre" on the official telegram group https://t.me/wpforo_ai.
