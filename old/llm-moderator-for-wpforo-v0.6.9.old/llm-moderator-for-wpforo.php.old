@@ -3,7 +3,7 @@
  * Plugin Name: LLM Moderator for wpForo
  * Plugin URI: https://github.com/comingofflais-com/LLM-Moderator-for-wpForo
  * Description: AI-powered moderation for wpForo using OpenRouter with standalone Moderator/Admin interface
- * Version: 0.6.10
+ * Version: 0.6.9
  * Requires at least: 5.0
  * Requires PHP: 7.4
  * Requires Plugins: wpforo
@@ -23,6 +23,22 @@
 *
 *
 *
+* Developer notes: (it seems like...)
+* Access -> edit / new. aka forum_cans
+* Each wpForo -> Forums -> edit, assigns access permissions / forum_cans independently for usergroups based on the pre-created accesses
+* wpForo checks forum cans with forum id
+* Usergroups also have default access permissions / forum_cans, for if unassigned (?) (this is what is customized per forum access, for the usergroup. The default cans is what confused me at first, they are not absolute).
+* wpForo -> Usergroups, also have additional group_cans that are edited there. 
+* The moderation needs wpForo forum_can access permissions to do Muting. Muting ONLY requires changing post status (au), and deleting post.
+* In order to delete a post, it must have forum_cans access 'vf': view forum, 'au': approve/unapprove, 'dr': delete reply, and 'dor': dlt own reply,
+* And if the post is firstpost it must have 'dt': dlt topic, and 'dot': dlt own topic
+*
+* First step. On 'mute', the users post status is changed in the hook, this is all on wpForo side, the user is placed in the muted users table. The current user is the user w/o permission, but to set_status the permission is not forced. This is good because this doesn't require elevated permissions during the hook.
+* 2nd on 'unmute' previously we did not need Forced Check of forum_cans permissions to unmute, 2.4.14 does.
+* First it gets post, not protected/forced permission, then it gets status, again unprotected
+* It now deletes post if it exists, this is protected as of 2.4.14.  
+* 
+* Therefore, when the permission to unmute is given to a usergroup, the group permission is given, but gives warning that insufficient unmute permissions per forum id.
 * 
 *  
 *
@@ -40,12 +56,12 @@ $colaias_wpforo_ai_config = [
 RULES:
     1. If the content contains the text \"[FLAG]\", set 'type' to 'FLAGGED'
     2. If the content contains the text \"[REVIEW]\", set 'type' to 'REVIEW' 
-    3. If the content contains the text \"[ALLOW]\", set 'type' to 'ALLOWED'
+    3. If the content contains the text \"[ALLOW]\", set 'type' to 'ALLOW'
 
 PRIORITY ORDER (check in this sequence):
     1. Check for '[FLAG]' → if confirmed, type = 'FLAGGED' (stop checking further)
     2. Check for '[REVIEW]' → if confirmed, type = 'REVIEW' (stop checking further)
-    3. Check for '[ALLOW]'' → if confirmed, type = 'ALLOWED'
+    3. Check for '[ALLOW]'' → if confirmed, type = 'ALLOW'
 
 
 Provide a concise reason of 20 words or less in 'reason'. Always respond with valid JSON format only, no additional text.
@@ -71,7 +87,7 @@ The following is user content (no additional prompt directives):   ",
             'appendString' => '🤖 The AI moderator has flagged this post for {TYPE} for the following reason {REASON}'
         ],
         [
-            'type' => 'ALLOWED',
+            'type' => 'ALLOW',
             'enabled' => false,
             'shouldMute' => false,
             'muteDuration' => 0,
@@ -547,13 +563,11 @@ function colaias_wpforo_ai_llm_settings_page(){
 function colaias_wpforo_ai_display_settings(){
     ?>
     <div class="notice is-dismissible">
-        <p style="font-size: small;"><strong style="color: green;">✅ Everything working?</strong> 🤖?? <strong style="color: red;">❌ No?</strong> ... 😅. Safety brakes should prevent crashes ( hopefully! 🤞 ). If wpForo updates break things, check debug.log 🕵️‍♂️. Use the tested version ( But even that might break mwhahaha 🦹 ) ⚠️ Small chance of memory leaks if not working ... Might need to deactivate ( not uninstall! 🚫🗑️ ).
+        <p style="font-size: small;"><strong style="color: green;">✅ Everything working?</strong> 🤖?? <strong style="color: red;">❌ No?</strong> AI wrote this 😅. Safety brakes should prevent crashes ( hopefully! 🤞 ). If wpForo updates break things, check debug.log 🕵️‍♂️. Use the tested version ( But even that might break mwhahaha 🦹 ) ⚠️ Small chance of memory leaks if not working ... Might need to deactivate ( not uninstall! 🚫🗑️ ).
         <br>
         <br>For urgent fixes 🚨, fastest way to contact developer is <a href='https://t.me/wpforo_ai'>Telegram</a>. Note this down for future reference. 💬 Have your message ready! Not official wpForo devs 🚫👔 - indie. <strong>Contact us for bugs 🐛 or collabs 🤝 ONLY!</strong> NOT basic tech support for wpForo and WordPress 🙅‍♂️🙅‍♂️🙅‍♂️ 🤦‍♀️. Also, there isn't built in auto-bug-alert system 🚫. <strong>Community, check logs and yell! 📢</strong> Pro tip: Enable informational logging, when needed, to find out where the problem is occuring 🕵️‍♂️.
         <br>
-        <br>⚠️ Moderators → "Moderator" usergroup then give the unmute permission 😲. ℹ️ Check wpForo's guide for assigning usergroups.
-        <br>⚠️ Give moderators the required forum Access permissions. wpForo → Forums → edit, assign required Access permissions 😲 ℹ️ Click "Show forum details" in the settings below.
-        <br>⚠️ ❗ The "Admin" usergroup is used by the automatic cleanup cron job to delete unapproved posts of muted users, allow atleast 1 user in the "Admin" usergroup, make sure the "Admin" usergroup has all required Access permissions. If not, the user will be unmuted, but their unapproved post will not be automaticaly deleted. 
+        <br>⚠️ Moderators → "Moderator" usergroup then give the unmute permission 😲 ℹ️ Check wpForo's guide for secondary groups and assigning usergroups
         <br>ℹ️ Add this shortcode for notifications <code>[colaias_wpforo_ai_notices top='30px' right='30%' width='40%']</code> on the <code>[wpforo]</code> page 📖🔧
         <br>💡 Tip: Set a mimimum wpForo post character limit. Moderation currently does not assess context from preceding content.
         </p>
@@ -1626,54 +1640,32 @@ class colaias_wpforo_ai_Utilities {
      */
     public static function get_user_with_moderation_cap() {
         try {
-            global $wpdb;
             
-            // First, try to get the 'admin' group ID from wpForo
-            $admin_group_id = colaias_wpforo_ai_check_wpforo_usergroup_exists('admin');
+            // If no users with custom capability, try administrators
+            $admin_users = get_users( [
+                'role' => 'administrator',
+                'number' => 1,
+                'fields' => 'ID'
+            ] );
             
-            if ( !$admin_group_id ) {
-                // If admin group doesn't exist, try to find any user with manage_options capability
-                $admin_users = get_users( array(
-                    'role' => 'administrator',
-                    'number' => 10,
-                    'fields' => 'ID'
-                ) );
-                
-                if ( !empty( $admin_users ) ) {
-                    return (int) $admin_users[0];
-                }
-                
-                return false;
+            if ( !empty( $admin_users ) ) {
+                return (int) $admin_users[0];
             }
             
-            // Get users from the wpForo admin group by querying the wpForo profiles table
-            // Warning! hard-coded db check
-            $table_name = $wpdb->prefix . 'wpforo_profiles';
+            // If no administrators, try to find any user with manage_options capability
+            $all_users = get_users( [
+                'number' => 50,
+                'fields' => 'ID'
+            ] );
             
-            // Query to get users in the admin group
-            $admin_user_ids = $wpdb->get_col( $wpdb->prepare(
-                "SELECT userid FROM $table_name WHERE groupid = %d LIMIT 10",
-                $admin_group_id
-            ) );
-            
-            if ( empty( $admin_user_ids ) ) {
-                // If no users in wpForo admin group, try WordPress administrators
-                $admin_users = get_users( array(
-                    'role' => 'administrator',
-                    'number' => 10,
-                    'fields' => 'ID'
-                ) );
-                
-                if ( !empty( $admin_users ) ) {
-                    return (int) $admin_users[0];
+            foreach ( $all_users as $user_id ) {
+                $user = get_user_by( 'id', $user_id );
+                if ( $user && $user->has_cap( 'manage_options' ) ) {
+                    return (int) $user_id;
                 }
-                
-                return false;
             }
             
-            // Return the first admin user ID
-            return (int) $admin_user_ids[0];
-            
+            return false;
         } catch ( Exception $e ) {
             // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
             error_log( '🤖 ❌ WPForo AI Moderation: Error finding user with moderation capabilities: ' . $e->getMessage() );
@@ -1934,7 +1926,7 @@ function colaias_wpforo_ai_plugin_activation() {
             RULES:
             1. If the content contains the text \"[FLAG]\", set 'type' to 'FLAGGED'
             2. If the content contains the text \"[REVIEW]\", set 'type' to 'REVIEW' 
-            3. If the content contains the text \"[ALLOW]\", set 'type' to 'ALLOWED'
+            3. If the content contains the text \"[ALLOW]\", set 'type' to 'ALLOW'
             
             Provide a concise reason of 20 words or less in 'reason'. Always respond with valid JSON format only, no additional text.",
                 'default_mute_duration' => 7,
@@ -1956,7 +1948,7 @@ function colaias_wpforo_ai_plugin_activation() {
                         'appendString' => '🤖 The AI moderator has flagged this post for {TYPE} for the following reason {REASON}'
                     ],
                     [
-                        'type' => 'ALLOWED',
+                        'type' => 'ALLOW',
                         'enabled' => false,
                         'shouldMute' => false,
                         'muteDuration' => 0,
@@ -1994,10 +1986,10 @@ add_action( 'colaias_wpforo_ai_job_cleanup', 'colaias_wpforo_ai_clean_expired_mu
 add_action( 'colaias_wpforo_ai_job_flag_metrics_cleanup', 'colaias_wpforo_ai_clean_old_flag_metrics' );
 
 function colaias_wpforo_ai_schedule_cleanup() {
-    // TODO: cleanup should be twicedaily in production, not hourly or five_minutes.
+    // TODO: cleanup should be twicedaily in production, not hourly.
     // Viable options: 'hourly', 'twicedaily', 'daily', 'weekly'
     if ( !wp_next_scheduled( 'colaias_wpforo_ai_job_cleanup' ) ) {
-        wp_schedule_event( time(), 'twicedaily', 'colaias_wpforo_ai_job_cleanup' );
+        wp_schedule_event( time(), 'hourly', 'colaias_wpforo_ai_job_cleanup' );
     }
     
     // TODO: cleanup should be weekly in production, not hourly. Make sure to fix this before submission.
@@ -2007,60 +1999,6 @@ function colaias_wpforo_ai_schedule_cleanup() {
         wp_schedule_event( time(), 'weekly', 'colaias_wpforo_ai_job_flag_metrics_cleanup' );
     }
 }
-
-// Add custom intervals
-add_filter('cron_schedules', 'colaias_add_custom_cron_intervals');
-function colaias_add_custom_cron_intervals($schedules) {
-    // Ensure $schedules is an array
-    if (!is_array($schedules)) {
-        $schedules = array();
-    }
-    
-    // Quarter-hourly (15 minutes) - Your existing interval
-    $schedules['quarter_hourly'] = array(
-        'interval' => 900, // 15 minutes * 60 seconds
-        'display'  => 'Every 15 Minutes'
-    );
-    
-    // Half-hourly (30 minutes)
-    $schedules['half_hourly'] = array(
-        'interval' => 1800, // 30 minutes * 60 seconds
-        'display'  => 'Every 30 Minutes'
-    );
-    
-    // Every 10 minutes
-    $schedules['ten_minutes'] = array(
-        'interval' => 600, // 10 minutes * 60 seconds
-        'display'  => 'Every 10 Minutes'
-    );
-    
-    // Every 5 minutes
-    $schedules['five_minutes'] = array(
-        'interval' => 300, // 5 minutes * 60 seconds
-        'display'  => 'Every 5 Minutes'
-    );
-    
-    // Twice daily (12 hours apart)
-    $schedules['twicedaily'] = array(
-        'interval' => 43200, // 12 hours * 3600 seconds
-        'display'  => 'Twice Daily'
-    );
-    
-    // Every 3 hours
-    $schedules['three_hours'] = array(
-        'interval' => 10800, // 3 hours * 3600 seconds
-        'display'  => 'Every 3 Hours'
-    );
-    
-    // Every 6 hours
-    $schedules['six_hours'] = array(
-        'interval' => 21600, // 6 hours * 3600 seconds
-        'display'  => 'Every 6 Hours'
-    );
-    
-    return $schedules;
-}
-
 
 
 function colaias_wpforo_ai_create_or_upgrade_muted_users_table() {
@@ -2556,99 +2494,7 @@ function colaias_wpforo_ai_clean_expired_mutes() {
 
         // Clear cache 
         WPF()->ram_cache->reset();
-
-
-
-        /*
-         * Developer notes: (it seems like...)
-         * Access -> edit / new. aka forum_cans
-         * Each wpForo -> Forums -> edit, assigns access permissions / forum_cans independently for usergroups based on the pre-created accesses
-         * wpForo checks forum cans with forum id
-         * Usergroups also have default access permissions / forum_cans, for if unassigned (?) (this is what is customized per forum access, for the usergroup. The default cans is what confused me at first, they are not absolute).
-         * wpForo -> Usergroups, also have additional group_cans that are edited there. 
-         * The moderation needs wpForo forum_can access permissions to do Muting. Muting ONLY requires changing post status (au), and deleting post. Additional plugin requirements access to manipulate usergroup data, userdata, and ram. 
-         * In order to delete a post, it must have forum_cans access 'vf': view forum, 'au': approve/unapprove, 'dr': delete reply, and 'dor': dlt own reply,
-         * And if the post is firstpost it must have 'dt': dlt topic, and 'dot': dlt own topic
-         *
-         * First step. On 'mute', the users post status is changed in the hook, this is all on wpForo side, the user is placed in the muted users table. The current user is the user w/o permission, but to set_status the permission is not forced. This is good because this doesn't require elevated permissions during the hook.
-         * 2nd on 'unmute' previously we did not need Forced Check of forum_cans permissions to unmute, 2.4.14 does.
-         * First it gets post, not protected/forced permission, then it gets status, again unprotected
-         * It deletes post if it exists, this is protected as of 2.4.14. So this requires the cron job ran as "admin" user, and wpforo cache cleared.
-         * 
-         * Therefore, when the permission to unmute is given to a usergroup, the group permission is given, but gives warning that insufficient unmute permissions per forum id.
-        */
-
-
-        /*
-         * 
-         * 
-         * Permissions
-         * 
-         * 
-         */
-
-        // Delete penalties for all users in batch
-        // For cron jobs, we need to handle permissions differently
-        $original_user_id = get_current_user_id();
-        $is_cron = wp_doing_cron();
         
-        if ( $is_cron && $original_user_id === 0 ) {
-            colaias_wpforo_ai_log_info( "WPForo AI Moderation: Batch cron job detected original user ID 0, attempting to switch to moderator user" );
-            
-            // Try to find a user with moderation capabilities
-            $moderator_user_id = colaias_wpforo_ai_Utilities::get_user_with_moderation_cap();
-            
-            if ( $moderator_user_id ) {
-                colaias_wpforo_ai_log_info( "WPForo AI Moderation: Batch cron job found moderator user ID {$moderator_user_id}, attempting to switch" );
-                
-                // Set the current user
-                wp_set_current_user( $moderator_user_id );
-                
-                // Force initialization of WordPress user object
-                $current_user = wp_get_current_user();
-                $new_user_id = get_current_user_id();
-                
-                colaias_wpforo_ai_log_info( "WPForo AI Moderation: Batch cron job after wp_set_current_user, get_current_user_id() returns {$new_user_id}, wp_get_current_user()->ID returns " . $current_user->ID );
-                
-                // Force wpForo to reinitialize its current user data
-            
-                // Initialize wpForo if needed
-                if ( ! WPF()->member ) {
-                    WPF()->init();
-                }
-                
-                if ( method_exists( WPF()->member, 'init_current_user' ) ) {
-                    WPF()->member->init_current_user();
-                    
-                    // Clear cached permissions to force fresh lookup
-                    if ( property_exists( WPF(), 'current_user_accesses' ) ) {
-                        WPF()->current_user_accesses = null;
-                        colaias_wpforo_ai_log_info( "WPForo AI Moderation: Batch cron job cleared WPF()->current_user_accesses cache" );
-                    }
-                    
-                    colaias_wpforo_ai_log_info( "WPForo AI Moderation: Batch cron job with original ID {$original_user_id} is set to run as user ID {$moderator_user_id} for permissions and wpForo user data reinitialized" );
-                } else {
-                    colaias_wpforo_ai_log_info( "WPForo AI Moderation: ❌ ERROR. Batch cron job with original ID {$original_user_id} is set to run as user ID {$moderator_user_id} for permissions (wpForo init_current_user method not available)" );
-                }
-               
-            } else {
-                colaias_wpforo_ai_log_info( "WPForo AI Moderation: Batch cron job could not find any user with moderation capabilities" );
-                // Log error but continue - let individual deletion functions handle permission errors
-                error_log( '🤖 ❌ WPForo AI Moderation: Cron job could not find a user with moderation capabilities. Deletions may fail due to permission checks.' );
-            }
-        } else if ( $is_cron ) {
-            colaias_wpforo_ai_log_info( "WPForo AI Moderation: Batch cron job already running with user ID {$original_user_id}" );
-        }
-
-        /*
-         * 
-         * 
-         * permission granted 
-         * 
-         * 
-         */
-        
-
         do {
             // Get a batch of expired users
             $expired_users = $wpdb->get_results( $wpdb->prepare( 
@@ -2664,7 +2510,16 @@ function colaias_wpforo_ai_clean_expired_mutes() {
             colaias_wpforo_ai_log_info( 'WPForo AI Moderation: Processing batch of ' . count( $expired_users ) . ' expired muted users' );
             
 
-            
+            /**
+             * 
+             * Permissions
+             * 
+             */
+
+            // Delete penalties for all users in batch
+            // For cron jobs, we need to handle permissions differently
+            $original_user_id = get_current_user_id();
+            $is_cron = wp_doing_cron();
             
             if ( $is_cron && $original_user_id === 0 ) {
                 // Try to find a user with moderation capabilities
@@ -2683,7 +2538,16 @@ function colaias_wpforo_ai_clean_expired_mutes() {
                 colaias_wpforo_ai_delete_penalizing_topic_or_post_for_user( $user->user_id );
             }
 
-           
+            /*
+             * 
+             * End permissions 
+             * 
+             */
+
+            // Only reset if we changed the user during cron
+            if ( $is_cron && get_current_user_id() !== $original_user_id ) {
+                wp_set_current_user( $original_user_id );
+            }
             
             // Delete all users in batch from muted users table
             $user_ids = array_column( $expired_users, 'user_id' );
@@ -2703,17 +2567,6 @@ function colaias_wpforo_ai_clean_expired_mutes() {
             usleep( 50000 ); // 50ms delay between batches
             
         } while ( !empty( $expired_users ) );
-
-         /*
-             * 
-             * End permissions 
-             * 
-             */
-
-            // Only reset if we changed the user during cron
-            if ( $is_cron && get_current_user_id() !== $original_user_id ) {
-                wp_set_current_user( $original_user_id );
-            }
         
         if ( $total_processed > 0 ) {
             colaias_wpforo_ai_log_info( 'WPForo AI Moderation: Cleanup completed. Total removed: ' . $total_processed . ' expired muted users' );
@@ -2822,10 +2675,8 @@ function colaias_wpforo_ai_get_append_message( $flag_type, $type, $reason ) {
     }
 }
 
-/** Function to check if wpForo user group exists.
- * 
- * Previously checked if Muted usergroup exists. Now used by cron job.
- */
+// Function to check if wpForo user group exists
+// Todo: unused function (?). Keep because previously checked if Muted usergroup exists.
 function colaias_wpforo_ai_check_wpforo_usergroup_exists( $group_name ) {
     try {
         global $wpdb;

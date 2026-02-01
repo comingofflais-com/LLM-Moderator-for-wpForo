@@ -338,9 +338,11 @@ This plugin is released under the GPL v2 or later license.
 
 **Still in beta**
 
+New in Version 0.6.10:
+ - Automatic cleanup with permission for wpForo version 2.4.14
+
 New in Version 0.6.9:
  - Clearer permissions
- - Automatic cleanup with permission for wpForo version 2.4.14
 
 New in Version 0.6.7:
  - Renamed text domain and plugin from colaias-wpforo-ai-moderation to llm-moderator-for-wpforo
