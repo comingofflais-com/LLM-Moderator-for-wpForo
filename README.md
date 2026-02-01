@@ -7,14 +7,14 @@ AI-powered moderation using OpenRouter with standalone Moderator/Admin interface
 ## Description
 
 ### Important
-This plugin is in beta. 192/192 automated test scenarios passed! See tested versions below (current 2.4.13). **WARNING**: The code is released for early adopters beta testing on non-production sites and reference purposes only. In any case, **back up your site first!** Use at your own risk. Bug fixes are appreciated.
+This plugin is in beta. 192/192 automated test scenarios passed! See tested versions below (current 2.4.14). **WARNING**: The code is released for early adopters beta testing on non-production sites and reference purposes only. In any case, **back up your site first!** Use at your own risk. Bug fixes are appreciated.
 
 LLM Moderator for wpForo is a WordPress plugin that integrates AI-powered content moderation with the wpForo forum plugin. It uses OpenRouter API to analyze forum posts and topics in real-time, automatically flagging inappropriate content and muting users who violate forum guidelines. Utilizing independent database tables for muted users, and flag metrics.
 
 Get control over your moderation ✊ ✊ ✊. Moderate at mere pennies. During testing the average cost per request is recorded at USD $0.00005 using the default prompt, with DeepSeek-v3.1.
 
 ## News
- - Jan 28th, 2026 | new wpForo version 2.4.14 forces permission before deleting posts, I have not tested but this likely means the plugin does not automatically remove unapproved penalized content when trying to delete unapproved posts, likely leaves error log. I am currently working on the premium graphs, moreover, I am also behind on other important projects after taking up this challenge. I will attend to this matter as soon as I get the chance.
+ - Jan 31th, 2025 | new wpForo version 2.4.14 forces permission before deleting posts, I have implemented this change
  - Jan 2026 | Looking for beta testers. Join the Telegram group!
 
 ## Features
