@@ -7,7 +7,7 @@ AI-powered moderation using OpenRouter with standalone Moderator/Admin interface
 ## Description
 
 ### Important
-This plugin is in beta. 192/192 automated test scenarios passed! See tested versions below (current 2.4.14). **WARNING**: The code is released for early adopters beta testing on non-production sites and reference purposes only. In any case, **back up your site first!** Use at your own risk. Bug fixes are appreciated.
+This plugin is in beta. See tested versions below (current 2.4.14). **WARNING**: The code is released for early adopters beta testing on non-production sites and reference purposes only. In any case, **back up your site first!** Use at your own risk. Bug fixes are appreciated.
 
 LLM Moderator for wpForo is a WordPress plugin that integrates AI-powered content moderation with the wpForo forum plugin. It uses OpenRouter API to analyze forum posts and topics in real-time, automatically flagging inappropriate content and muting users who violate forum guidelines. Utilizing independent database tables for muted users, and flag metrics.
 
@@ -60,7 +60,7 @@ Get control over your moderation ✊ ✊ ✊. Moderate at mere pennies. During t
 ## Requirements
 
 - WordPress 6.0+ - Tested 6.9
-- wpForo plugin (active) - Tested through versions 2.4.8 - 2.4.13
+- wpForo plugin (active) - Tested through versions 2.4.8 - 2.4.14
 - PHP 8.0+ - Tested 8.2
 - MySQL 8.0+ - Tested 8.0
 - OpenRouter API key 
