@@ -3,7 +3,7 @@
  * Plugin Name: LLM Moderator for wpForo
  * Plugin URI: https://github.com/comingofflais-com/LLM-Moderator-for-wpForo
  * Description: AI-powered moderation for wpForo using OpenRouter with standalone Moderator/Admin interface
- * Version: 0.6.9
+ * Version: 0.6.7
  * Requires at least: 5.0
  * Requires PHP: 7.4
  * Requires Plugins: wpforo
@@ -20,27 +20,6 @@
  * - error logs include emojis 🤖 ❌ ❗ ⚠️ 💀 😵 ⏱️ 📈 🤷‍♀️ 😅
 * 
 * Read the README on Github for information
-*
-*
-*
-* Developer notes: (it seems like...)
-* Access -> edit / new. aka forum_cans
-* Each wpForo -> Forums -> edit, assigns access permissions / forum_cans independently for usergroups based on the pre-created accesses
-* wpForo checks forum cans with forum id
-* Usergroups also have default access permissions / forum_cans, for if unassigned (?) (this is what is customized per forum access, for the usergroup. The default cans is what confused me at first, they are not absolute).
-* wpForo -> Usergroups, also have additional group_cans that are edited there. 
-* The moderation needs wpForo forum_can access permissions to do Muting. Muting ONLY requires changing post status (au), and deleting post.
-* In order to delete a post, it must have forum_cans access 'vf': view forum, 'au': approve/unapprove, 'dr': delete reply, and 'dor': dlt own reply,
-* And if the post is firstpost it must have 'dt': dlt topic, and 'dot': dlt own topic
-*
-* First step. On 'mute', the users post status is changed in the hook, this is all on wpForo side, the user is placed in the muted users table. The current user is the user w/o permission, but to set_status the permission is not forced. This is good because this doesn't require elevated permissions during the hook.
-* 2nd on 'unmute' previously we did not need Forced Check of forum_cans permissions to unmute, 2.4.14 does.
-* First it gets post, not protected/forced permission, then it gets status, again unprotected
-* It now deletes post if it exists, this is protected as of 2.4.14.  
-* 
-* Therefore, when the permission to unmute is given to a usergroup, the group permission is given, but gives warning that insufficient unmute permissions per forum id.
-* 
-*  
 *
 */
 
@@ -586,12 +565,7 @@ function colaias_wpforo_ai_display_settings(){
                             <tr>
                                 <th>Group ID</th>
                                 <th>Group Name</th>
-                                <th>Has View Admin Menu & Click Unmute Permission</th>
-                                <th>Has Required wpForo Access Permissions per Forum <br>(Set through wpForo -> Forums then edit)<br>
-                                    <small style="font-weight: normal; color: #666;">
-                                        Checks: vf (view), au (approve), dr (delete reply), dor (delete own reply), dt (delete topic), dot (delete own topic)
-                                    </small>
-                                </th>
+                                <th>Current Permission</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -613,66 +587,6 @@ function colaias_wpforo_ai_display_settings(){
                                         <span style="color: green; font-weight: bold;">✅ Has Permission</span>
                                     <?php else: ?>
                                         <span style="color: #666;">❌ No Permission</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td>
-                                    <?php
-                                    // Get forum permission status for this group
-                                    $forum_permissions = colaias_wpforo_ai_Utilities::get_group_forum_permission_status( $group['groupid'] );
-                                    
-                                    if ( empty( $forum_permissions ) ): ?>
-                                        <span style="color: #666;">No forums found or wpForo not loaded</span>
-                                    <?php else: 
-                                        $has_all_forums_permission = true;
-                                        $forum_count = 0;
-                                        $permission_count = 0;
-                                        
-                                        foreach ( $forum_permissions as $forum_id => $permission_info ):
-                                            $forum_count++;
-                                            if ( $permission_info['has_permission'] ) {
-                                                $permission_count++;
-                                            } else {
-                                                $has_all_forums_permission = false;
-                                            }
-                                        endforeach;
-                                        
-                                        if ( $has_all_forums_permission ): ?>
-                                            <span style="color: green; font-weight: bold;">✅ All forums (<?php echo esc_html( $forum_count ); ?>) have required permissions</span>
-                                        <?php else: ?>
-                                            <span style="color: #cc0000; font-weight: bold;">
-                                                ⚠️ <?php echo esc_html( $permission_count ); ?> of <?php echo esc_html( $forum_count ); ?> forums have permissions
-                                            </span>
-                                            <br>
-                                            <small style="color: #666;">
-                                                Missing permissions in <?php echo esc_html( $forum_count - $permission_count ); ?> forum(s)
-                                            </small>
-                                            <br>
-                                            <details style="margin-top: 5px; font-size: 12px;">
-                                                <summary style="cursor: pointer; color: #666;">Show forum details</summary>
-                                                <div style="margin-top: 5px; max-height: 200px; overflow-y: auto; border: 1px solid #ddd; padding: 5px; background: #f9f9f9;">
-                                                    <?php foreach ( $forum_permissions as $forum_id => $permission_info ): 
-                                                        $forum_title = 'Forum ' . esc_html( $forum_id );
-                                                        if ( function_exists( 'WPF' ) && method_exists( WPF()->forum, 'get_forum' ) ) {
-                                                            $forum = WPF()->forum->get_forum( $forum_id );
-                                                            if ( $forum && isset( $forum['title'] ) ) {
-                                                                $forum_title = esc_html( $forum['title'] );
-                                                            }
-                                                        }
-                                                    ?>
-                                                        <div style="margin-bottom: 3px;">
-                                                            <?php if ( $permission_info['has_permission'] ): ?>
-                                                                ✅ <?php echo $forum_title; ?> (ID: <?php echo esc_html( $forum_id ); ?>)
-                                                            <?php else: ?>
-                                                                ❌ <?php echo $forum_title; ?> (ID: <?php echo esc_html( $forum_id ); ?>)
-                                                                <small style="color: #cc0000; margin-left: 10px;">
-                                                                    Missing: <?php echo esc_html( implode( ', ', $permission_info['missing_permissions'] ) ); ?>
-                                                                </small>
-                                                            <?php endif; ?>
-                                                        </div>
-                                                    <?php endforeach; ?>
-                                                </div>
-                                            </details>
-                                        <?php endif; ?>
                                     <?php endif; ?>
                                 </td>
                                 <td>
@@ -1471,9 +1385,6 @@ class colaias_wpforo_ai_Utilities {
     }
 
     /**
-     * 
-     * Checks unmute Permissions
-     * 
      * Checks whether the group_can 'colaias_wpforo_ai_group_can_access_moderation' is in a usergroup for the user. Returns true if the group_can was added in the admin settings dashboard.
      * 
      * Useful to use in conjucture with method is_moderator_or_admin, by which way, allows to display the moderators the page, but prevent actions if they are not added to the group. 
@@ -1529,149 +1440,6 @@ class colaias_wpforo_ai_Utilities {
         }
     }
 
-    /**
-     * Get all forum IDs from wpForo
-     * 
-     * This is required for Permissions
-     * 
-     * @return array Array of forum IDs
-     */
-    public static function get_all_forum_ids() {
-        try {
-            if ( !function_exists( 'WPF' ) ) {
-                return [];
-            }
-            
-            $forums = WPF()->forum->get_forums();
-            $forum_ids = [];
-            
-            if ( is_array( $forums ) ) {
-                foreach ( $forums as $forum ) {
-                    if ( isset( $forum['forumid'] ) ) {
-                        $forum_ids[] = intval( $forum['forumid'] );
-                    }
-                }
-            }
-            
-            return $forum_ids;
-        } catch ( Exception $e ) {
-            // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
-            error_log( '🤖 ❌ 💀 WPForo AI Moderation: CRITICAL ERROR. Could not get forum IDs. Exception : ' . $e->getMessage() );
-            return [];
-        }
-    }
-
-    /**
-     * Check if a usergroup has required forum_
-     * Required for Permissions
-     * 
-     * @param int $group_id The usergroup ID to check
-     * @param int $forum_id The forum ID to check permissions for
-     * @return array Array with status and missing permissions
-     */
-    public static function check_group_forum_permissions( $group_id, $forum_id ) {
-        try {
-            if ( !function_exists( 'WPF' ) ) {
-                return [
-                    'has_permission' => false,
-                    'missing_permissions' => ['vf', 'au', 'dr', 'dor', 'dt', 'dot'],
-                    'message' => 'wpForo not loaded'
-                ];
-            }
-            
-            // Required permissions for unmute operations
-            $required_permissions = ['vf', 'au', 'dr', 'dor', 'dt', 'dot'];
-            $missing_permissions = [];
-            
-            // Check each required permission
-            foreach ( $required_permissions as $permission ) {
-                if ( !WPF()->perm->forum_can( $permission, $forum_id, [$group_id] ) ) {
-                    $missing_permissions[] = $permission;
-                }
-            }
-            
-            $has_permission = empty( $missing_permissions );
-            
-            return [
-                'has_permission' => $has_permission,
-                'missing_permissions' => $missing_permissions,
-                'message' => $has_permission ? 'All permissions granted' : 'Missing permissions: ' . implode( ', ', $missing_permissions )
-            ];
-        } catch ( Exception $e ) {
-            // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
-            error_log( '🤖 ❌ 💀 WPForo AI Moderation: CRITICAL ERROR. Could not check group forum permissions. Exception : ' . $e->getMessage() );
-            return [
-                'has_permission' => false,
-                'missing_permissions' => ['vf', 'au', 'dr', 'dor', 'dt', 'dot'],
-                'message' => 'Error checking permissions'
-            ];
-        }
-    }
-
-    /**
-     * Get forum permission status for all forums for a specific group
-     * 
-     * @param int $group_id The usergroup ID to check
-     * @return array Array of forum permission statuses
-     */
-    public static function get_group_forum_permission_status( $group_id ) {
-        try {
-            $forum_ids = self::get_all_forum_ids();
-            $permission_status = [];
-            
-            foreach ( $forum_ids as $forum_id ) {
-                $permission_status[$forum_id] = self::check_group_forum_permissions( $group_id, $forum_id );
-            }
-            
-            return $permission_status;
-        } catch ( Exception $e ) {
-            // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
-            error_log( '🤖 ❌ 💀 WPForo AI Moderation: CRITICAL ERROR. Could not get group forum permission status. Exception : ' . $e->getMessage() );
-            return [];
-        }
-    }
-
-    /**
-     * Get a user ID with moderation capabilities for cron jobs
-     * 
-     * Used for cron Permission 
-     *
-     * @return int|false User ID if found, false otherwise
-     */
-    public static function get_user_with_moderation_cap() {
-        try {
-            
-            // If no users with custom capability, try administrators
-            $admin_users = get_users( [
-                'role' => 'administrator',
-                'number' => 1,
-                'fields' => 'ID'
-            ] );
-            
-            if ( !empty( $admin_users ) ) {
-                return (int) $admin_users[0];
-            }
-            
-            // If no administrators, try to find any user with manage_options capability
-            $all_users = get_users( [
-                'number' => 50,
-                'fields' => 'ID'
-            ] );
-            
-            foreach ( $all_users as $user_id ) {
-                $user = get_user_by( 'id', $user_id );
-                if ( $user && $user->has_cap( 'manage_options' ) ) {
-                    return (int) $user_id;
-                }
-            }
-            
-            return false;
-        } catch ( Exception $e ) {
-            // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
-            error_log( '🤖 ❌ WPForo AI Moderation: Error finding user with moderation capabilities: ' . $e->getMessage() );
-            return false;
-        }
-    }
 
 
 }
@@ -1989,7 +1757,7 @@ function colaias_wpforo_ai_schedule_cleanup() {
     // TODO: cleanup should be twicedaily in production, not hourly.
     // Viable options: 'hourly', 'twicedaily', 'daily', 'weekly'
     if ( !wp_next_scheduled( 'colaias_wpforo_ai_job_cleanup' ) ) {
-        wp_schedule_event( time(), 'hourly', 'colaias_wpforo_ai_job_cleanup' );
+        wp_schedule_event( time(), 'twicedaily', 'colaias_wpforo_ai_job_cleanup' );
     }
     
     // TODO: cleanup should be weekly in production, not hourly. Make sure to fix this before submission.
@@ -2509,44 +2277,9 @@ function colaias_wpforo_ai_clean_expired_mutes() {
 
             colaias_wpforo_ai_log_info( 'WPForo AI Moderation: Processing batch of ' . count( $expired_users ) . ' expired muted users' );
             
-
-            /**
-             * 
-             * Permissions
-             * 
-             */
-
             // Delete penalties for all users in batch
-            // For cron jobs, we need to handle permissions differently
-            $original_user_id = get_current_user_id();
-            $is_cron = wp_doing_cron();
-            
-            if ( $is_cron && $original_user_id === 0 ) {
-                // Try to find a user with moderation capabilities
-                $moderator_user_id = colaias_wpforo_ai_Utilities::get_user_with_moderation_cap();
-                
-                if ( $moderator_user_id ) {
-                    wp_set_current_user( $moderator_user_id );
-                    colaias_wpforo_ai_log_info( "WPForo AI Moderation: Cron job with original ID {$original_user_id} is set to run as user ID {$moderator_user_id} for permissions" );
-                } else {
-                    // Log error but continue - let individual deletion functions handle permission errors
-                    error_log( '🤖 ❌ WPForo AI Moderation: Cron job could not find a user with moderation capabilities. Deletions may fail due to permission checks.' );
-                }
-            }
-
             foreach ( $expired_users as $user ) {            
                 colaias_wpforo_ai_delete_penalizing_topic_or_post_for_user( $user->user_id );
-            }
-
-            /*
-             * 
-             * End permissions 
-             * 
-             */
-
-            // Only reset if we changed the user during cron
-            if ( $is_cron && get_current_user_id() !== $original_user_id ) {
-                wp_set_current_user( $original_user_id );
             }
             
             // Delete all users in batch from muted users table
@@ -2704,14 +2437,7 @@ function colaias_wpforo_ai_check_wpforo_usergroup_exists( $group_name ) {
 
 
 
-/** 
- * 
- * 
- *  Function to manage unmute permission for any usergroup
- *  Add or Remove Permissions
- * 
- * 
- * */
+// Function to manage unmute permission for any usergroup
 function colaias_wpforo_ai_manage_unmute_permission( $group_id, $action = 'add' ) {
     try {
         if ( !function_exists( 'WPF' ) ) {
@@ -2864,14 +2590,6 @@ function colaias_wpforo_ai_delete_penalizing_topic_or_post_for_user( $user_id ){
             return false;
         }
 
-        // Check if we're running as cron and log permission status
-        $is_cron = wp_doing_cron();
-        $current_user_id = get_current_user_id();
-        
-        if ( $is_cron ) {
-            colaias_wpforo_ai_log_info( "WPForo AI Moderation: Cron job deleting penalizing content for user {$user_id} (current user ID: {$current_user_id})" );
-        }
-
         // Delete the post only if it still exists and is still unapproved
         if ( $muted_user->is_topic == 0 && $muted_user->post_id && function_exists( 'WPF' ) ) {
             colaias_wpforo_ai_log_info( 'WPForo AI Moderation: User was muted for post. Initiating cleanup for post ' . $muted_user->post_id . ' for user ' . $muted_user->user_id );
@@ -2881,12 +2599,6 @@ function colaias_wpforo_ai_delete_penalizing_topic_or_post_for_user( $user_id ){
             if ( $post && $post['status'] == 1 ) {
                 // Post exists and is still unapproved, delete it using wpForo API
                 $empty = [];
-                
-                // Check if current user has permission to delete posts
-                if ( $is_cron && $current_user_id === 0 ) {
-                    error_log( '🤖 ❌ WPForo AI Moderation: ERROR Cron job attempting deletion with user ID 0 - No valid admins users found - permission check will fail' );
-                }
-                
                 $deleted = WPF()->post->delete( $muted_user->post_id, true, true,$empty, false );
 
                 // Schedule an async check after 2 seconds to allow cache to clear
@@ -2921,11 +2633,6 @@ function colaias_wpforo_ai_delete_penalizing_topic_or_post_for_user( $user_id ){
             if ( $first_post && $first_post['status'] == 1 ) {
                 // Post exists and is still unapproved, delete it using wpForo API
                 $empty = [];
-                
-                if ( $is_cron && $current_user_id === 0 ) {
-                    error_log( '🤖 ❌ WPForo AI Moderation: ERROR Cron job attempting deletion with user ID 0 - No valid admins users found - permission check will fail' );
-                }
-                
                 $deleted = WPF()->post->delete( $muted_user->post_id, true, true,$empty, false );
 
                 // Schedule an async check after 2 seconds to allow cache to clear
@@ -3002,6 +2709,8 @@ function colaias_wpforo_ai_async_post_verification( $post_id, $user_id, $called_
             } else {
                 // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Warning logging required for admin debugging
                 error_log( '🤖 ⚠️ WPForo AI Moderation: 1 ) ⏱️ ASYNC VERIFICATION ERROR / WARNING / FALSE POSITIVE - Post ' . $post_id . ' still exists after deletion attempt for user ' . $user_id );
+                // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log,WordPress.PHP.DevelopmentFunctions.error_log_print_r -- Warning logging required for admin debugging
+                error_log( '🤖 ⚠️ WPForo AI Moderation: 2 ) ⏱️ ASYNC VERIFICATION ERROR / WARNING / FALSE POSITIVE - Post data: ' . print_r( $post_after_delete, true ) );
             }
         }
     } catch ( Exception $e ) {

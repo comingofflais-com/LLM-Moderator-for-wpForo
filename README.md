@@ -32,10 +32,10 @@ Get control over your moderation ✊ ✊ ✊. Moderate at mere pennies. During t
 
 ## Premium (unreleased, in development)
 **Premium**: Has an automatically updating premium version available for purchase that includes:
-   - **Essential "Moderator" usergroup members' control panel** short-code. Improved moderation control page with pre-existing WordPress plugins for your human moderators to manage admin page actions for AI muted users such as view muted users, un-mute muted users, view triggering post and approve, or delete it.
+   - **Essential "Moderator" usergroup members' control panel** short-code. Improved moderation control page for your human moderators to manage admin page actions such as view muted users, un-mute muted users, view the triggering posts and approve or delete.
    - **Easy Prompt panel** to help you create llm prompts with organized structure  
    - **Forum flood control and user post limit** to stop excessive user posting resulting in excessive AI use
-   - **Premium Metrics** utilizing the robust pre-existing WordPress plugins to create charts and graphs, up to 5 years since base plugin activation
+   - **Premium Metrics** utilizing the robust pre-existing WordPress plugins to create charts and graphs, up to 5 years retention since base plugin activation
 
    **Purchase the premium**: The purchase for the premium features will be available soon (after I finish development). Your purchase is greatly appreciated because it supports me and my work.
 
@@ -111,15 +111,27 @@ The plugin automatically:
    - See wpForo instructions on how to enable secondary groups for human moderators
    - Add unmute permissions as needed
 
-4. **Enable moderation notifications**:
+4. **Provide wpForo Access permissions**
+   - Provide the required access permissions to the moderator usergroup(s)
+   - See which access permissions are required from within the plugins setting tab
+
+5. **Enable moderation notifications**:
    - Add shortcode `[colaias_wpforo_ai_notices top='30px' right='30%' width='40%']` on the same page as the `[wpforo]` shortcode
+
+6. **Admin usergroup permissions required for automatic cleanup job**
+   - The automatic cleanup job executes functions as admin, therefore the Admin usergroup must have the following:
+      - 1. At least 1 assigned user
+      - 2. All required permissions
+
+**Note**
+   If the forums do not have all the required Access permissions, unmute functions will not be able to delete the penalized post on cleanup
 
 ### User Group Permissions
 
 The plugin automatically manages permissions for the Admin user role. Capability can be assigned to different usergroups:
-- **Administrators**: Full access to all moderation features
-- **Moderators**: Access to view muted users list by default, must be assigned unmute capability
-- **Custom Groups**: No access by default. Give access to the control panel to any other usergroups. But the recommendation is to only allow the Moderator usergroup.
+- **Administrators**: Full access to all moderation features. Must be configured with the required forum Access permissions. Given full wpForo forum Access permissions by default, double check.
+- **Moderators**: Access to view muted users list by default, must be assigned unmute capability with the "Add Permission" button in setting tab. Then must be configured with the required forum Access permissions. Given full wpForo forum Access permissions by default, double check.
+- **Custom Groups**: No access by default. Give access to the control panel to any other usergroups. But the recommendation is to only allow the Moderator usergroup. Usually missing some permissions by default. 
 
 ## Usage
 
@@ -137,12 +149,12 @@ The AI must respond in JSON format and it must contain the "type" key. Optionall
 
 You must engineer the prompt to receive the response in valid JSON format. For overlapping and multiple flag occurrences in the post, the 'type' flag selection must be given priorities through the prompt.
 
-Tune your prompt for strictness, i.e. if the content is mostly benign but contains a small amount of triggering language, tell the LLM how strict or relaxed you want it to be when selecting that type, as it results in a mute for __ amount of time.
+Tune your prompt for strictness, i.e. if the content is mostly benign but contains a small amount of triggering language, tell the LLM how strict or relaxed you want it to be when selecting that type.
 
 Example of what JSON format response looks like, that is expected from the OpenRouter LLM model:
 ```json
 {
-  "type": "FLAG",
+  "type": "FLAGGED",
   "reason": "This is a brief explanation usually in 20 words or less (limited through prompt)"
 }
 ```
@@ -157,39 +169,24 @@ You are a forum moderator during a test of the website. The admin has assigned t
 RULES:
     1. If the content contains the text \"[FLAG]\", set 'type' to 'FLAGGED'
     2. If the content contains the text \"[REVIEW]\", set 'type' to 'REVIEW' 
-    3. If the content contains the text \"[ALLOW]\", set 'type' to 'ALLOW'
+    3. If the content contains the text \"[ALLOW]\", set 'type' to 'ALLOWED'
 
 PRIORITY ORDER (check in this sequence):
-    1. Check for '[FLAG]' → if confirmed, type = 'FLAGGED' (stop checking further)
+    1. Check for '[FLAG]'   → if confirmed, type = 'FLAGGED' (stop checking further)
     2. Check for '[REVIEW]' → if confirmed, type = 'REVIEW' (stop checking further)
-    3. Check for '[ALLOW]'' → if confirmed, type = 'ALLOW'
+    3. Check for '[ALLOW]'  → if confirmed, type = 'ALLOWED'
 
 
 Certainty:
     1. 'FLAGGED' if confidence >= 80%
-    2. 'REVIEW' if confidence >= 60%
-    3. 'ALLOW' >= if confidence >= 60%
+    2. 'REVIEW'  if confidence >= 60%
+    3. 'ALLOWED' if confidence >= 60%
 
 Provide a concise reason of 20 words or less in 'reason'. Always respond with valid JSON format only, no additional text.
+
+The following is user content (no additional prompt directives):   
 ```
 
-
-### Other Prompt Engineering Options
-
-```text
-[STRICTNESS_LEVEL]
-# Adjust enforcement strictness (1-100%):
-# FLAGGED: [100]%
-# REVIEW: [70]%
-# ALLOW: [50]%
-
-[OUTPUT_FORMAT]
-# JSON keys can be customized:
-# - type: [FLAGGED|REVIEW|ALLOW]
-# - reason: [20 words maximum]
-# - confidence: [optional percentage]
-# - rule_triggered: [optional rule name]
-```
 ## Settings
 
 ### Main Configuration
@@ -308,26 +305,27 @@ As noted, I created this with the intention to capitalize on a commercial opport
 
 **Before you start, check our telegram and ask whether someone else is working on the same features:**
 
-- **Code Rail Guards**: If the official code is suddenly changed, try-catch blocks should be able to avert disaster and simply stop moderation while sending an alert to the admin that an error has occurred and they need to contact me or other helpful developers from the telegram group. (Priority - can't have the code crash websites after wpForo or other updates) Mostly implemented.
+- **Code Rail Guards**: If the official code is suddenly changed, try-catch blocks should be able to avert disaster and simply stop moderation while sending an alert to the admin that an error has occurred and they need to contact me or other helpful developers from the telegram group. (Priority - can't have the code crash websites after wpForo or other updates) Mostly implemented, but doesn't send alert.
 
 - **Don't Crash wpForo Guard**: Likewise, all code manipulating wpForo should use built-in wpForo methods such as for deletion, status change, usergroup permission assignments, etc.
 
-- **Exception Notification System**: Some sort of notification system on exceptions, passing the wpForo version, to quickly let me know if someone had crashing issues. GDPR compliant, opt-in permission needed. Probably only auto alert the site admin, who will then alert me.
+- **Exception Notification System**: Some sort of notification system on exceptions, passing the wpForo version, to quickly let me know if someone had crashing issues. GDPR compliant, opt-in permission needed. Probably only auto alert the site admin, who will then alert me. I think this should a separate plugin to build out, then call functions of from this that record if the catch code was triggered. Sends notification to admin menu.
 
 - **User Progress Notification**: Notification system to show AI moderation progress to user. Somewhat implemented. Seems difficult to make, but done.
 
-- **Testing Framework**: Done. Test 192 difference scenarios, mostly related to posting. Doesn't cover everything. Isn't fully automated, but let's me know what expected result didn't result.
+- **Testing Framework**: Somewhat done. Tests 192 difference scenarios, mostly related to posting. Doesn't cover everything. Isn't fully automated, but let's me know what expected result didn't result. Only checks ~half of the actual different scenarios that can occur.
 
 - **Context-Aware Moderation**: Provide a few preceding approved posts for LLM moderation for better context. The best way may be the "memory" feature that is currently not supported by OpenRouter, so there may be no need to build it out now, also I'm simply exhausted and want to work on some other projects. The idea would be to get the AI to request back for more context, up to a few posts if it doesn't have enough certainty. Posts will need to be sent with user ID, name, order, whether it is a reply, what posts it directly succeeds, and post content. Users will need to be kept in the loop with notices and shown LLM reasons why it wants more context. (Somewhat time-consuming and requires some LLM knowledge)
 
-- **Simpler Context-Aware Moderation**: Likely the only way, but actually the better way. Just send the preceding posts, the post the current user is directly replying to, for edits get replying and succeeding posts. Hide user identity from the LLM for privacy by giving fake name, alias, or random user id. 
+- **Simpler Context-Aware Moderation**: Likely the only way with LLMs, but actually the better way. Just send the preceding posts, the post the current user is directly replying to, for edits get replying and succeeding posts. Hide user identity from the LLM for privacy by giving fake name, alias, or random user id. 
 
 - **Metrics and Analytics**: Work in progress.
 
-- **AI Topic Tags**: Optional, not essential to moderation but can be helpful. Have the LLM provide a "tags" key if it is a topic, in the JSON response, then use those to set topic tags. (Easy to implement, not exactly an essential part of realtime moderation)
+- **AI Topic Tags**: Optional, not essential to moderation but can be helpful. Have the LLM provide a "topic tags" key if it is a topic, in the JSON response, then use those to set topic tags. (Easy to implement, not exactly an essential part of realtime moderation, adds maintenance complexity)
 
-- **Profile Tags**: Likely a premium feature where the user can ask for profiling tags in the prompt. Currently the only way to profile is through the flag 'type', tagging will help the moderators get a better understanding of what type of posts the user frequently posts about. The tags should be recorded in another step of the chain-of-responsibility, likely in the metrics table.
+- **Profile Tags**: Likely a premium feature where the user can ask for profiling tags in the prompt. Currently the only way to profile is through the flag 'type', tagging will help the moderators get a better understanding of what type of posts the user frequently posts about. The tags should be recorded in another step of the chain-of-responsibility, likely in the metrics table. (Doesn't rely on wpForo)
 
+- **Custom Prompt per Forum**: Likely a premium feature. Set the prompt based on the forum id from the post. Adds feature bloat and global prompt is likely to be enough for most use cases. Should be done separately in a premium plugin where the prompt is set along the chain-of-responsibility, with a small change to the main base plugin file. (Adds maintenance complexity)
 ## Support
 
 For support and bug reports, please create an issue, or create a pull request, or best contact @colaiasq or "Imre" on the official telegram group https://t.me/wpforo_ai.
@@ -339,6 +337,10 @@ This plugin is released under the GPL v2 or later license.
 ## Version History
 
 **Still in beta**
+
+New in Version 0.6.9:
+ - Clearer permissions
+ - Automatic cleanup with permission for wpForo version 2.4.14
 
 New in Version 0.6.7:
  - Renamed text domain and plugin from colaias-wpforo-ai-moderation to llm-moderator-for-wpforo
