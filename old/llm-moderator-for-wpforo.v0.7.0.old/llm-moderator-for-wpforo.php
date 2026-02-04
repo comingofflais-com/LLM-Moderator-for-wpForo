@@ -3,7 +3,7 @@
  * Plugin Name: LLM Moderator for wpForo
  * Plugin URI: https://github.com/comingofflais-com/LLM-Moderator-for-wpForo
  * Description: AI-powered moderation for wpForo using OpenRouter with standalone Moderator/Admin interface
- * Version: 0.7.1
+ * Version: 0.7.0
  * Requires at least: 5.0
  * Requires PHP: 7.4
  * Requires Plugins: wpforo
@@ -556,9 +556,9 @@ function colaias_wpforo_ai_display_settings(){
         <br>
         <br>For urgent fixes 🚨, fastest way to contact developer is <a href='https://t.me/wpforo_ai'>Telegram</a>. Note this down for future reference. 💬 Have your message ready! Not official wpForo devs 🚫👔 - indie. <strong>Contact us for bugs 🐛 or collabs 🤝 ONLY!</strong> NOT basic tech support for wpForo and WordPress 🙅‍♂️🙅‍♂️🙅‍♂️ 🤦‍♀️. Also, there isn't built in auto-bug-alert system 🚫. <strong>Community, check logs and yell! 📢</strong> Pro tip: Enable informational logging, when needed, to find out where the problem is occuring 🕵️‍♂️.
         <br>
-        <br>❗ The "Admin" usergroup is needed by the automatic cleanup cron job to delete unapproved posts of muted users. Allow atleast 1 user in the "Admin" usergroup with all required Access permissions. Failure to do so will result in automatic cleanup not deleting unapproved posts. ℹ️ Click "Show forum details" in the settings below to see which permissions are needed.
         <br>⚠️ Moderators → "Moderator" usergroup then give the unmute permission 😲. ℹ️ Check wpForo's guide for assigning usergroups.
-        <br>⚠️ Give moderators the required forum Access permissions. wpForo → Forums → edit, assign required Access permissions 😲 
+        <br>⚠️ Give moderators the required forum Access permissions. wpForo → Forums → edit, assign required Access permissions 😲 ℹ️ Click "Show forum details" in the settings below.
+        <br>⚠️ ❗ The "Admin" usergroup is used by the automatic cleanup cron job to delete unapproved posts of muted users, allow atleast 1 user in the "Admin" usergroup, make sure the "Admin" usergroup has all required Access permissions. If not, the user will be unmuted, but their unapproved post will not be automaticaly deleted. 
         <br>ℹ️ Add this shortcode for notifications <code>[colaias_wpforo_ai_notices top='30px' right='30%' width='40%']</code> on the <code>[wpforo]</code> page 📖🔧
         <br>💡 Tip: Set a mimimum wpForo post character limit. Moderation currently does not assess context from preceding content.
         </p>
@@ -824,6 +824,58 @@ function colaias_wpforo_ai_display_settings(){
                         
                         <button type="button" id="add-flag-type" class="button button-secondary">Add New Flag Type</button>
                         
+                        <script>
+                        jQuery( function( $ ) {
+                            $( '#add-flag-type' ).on( 'click', function() {
+                                var index = $( '.flag-type-row' ).length;
+                                var html = '<div class="flag-type-row" style="border: 1px solid #ddd; padding: 15px; margin-bottom: 10px; background: #f9f9f9;">' +
+                                    '<input type="hidden" name="colaias_wpforo_ai_flag_types[' + index + '][index]" value="' + index + '">' +
+                                    '<div style="margin-bottom: 10px;">' +
+                                        '<label style="display: inline-block; width: 120px; font-weight: bold;">Flag Type:</label>' +
+                                        '<input type="text" name="colaias_wpforo_ai_flag_types[' + index + '][type]" value="" placeholder="e.g., flag, nsfw, spam" style="width: 200px;">' +
+                                    '</div>' +
+                                    '<div style="margin-bottom: 10px;">' +
+                                        '<label style="display: inline-block; width: 120px; font-weight: bold;">Enabled:</label>' +
+                                        '<input type="checkbox" name="colaias_wpforo_ai_flag_types[' + index + '][enabled]" value="1" checked>' +
+                                        '<span class="description">Enable this flag type for moderation</span>' +
+                                    '</div>' +
+                                    '<div style="margin-bottom: 10px;">' +
+                                        '<label style="display: inline-block; width: 120px; font-weight: bold;">Should Mute:</label>' +
+                                        '<input type="checkbox" name="colaias_wpforo_ai_flag_types[' + index + '][shouldMute]" value="1" checked>' +
+                                        '<span class="description">Mute users when this flag type is triggered</span>' +
+                                    '</div>' +
+                                    '<div style="margin-bottom: 10px;">' +
+                                        '<label style="display: inline-block; width: 120px; font-weight: bold;">Mute Duration ( days ):</label>' +
+                                        '<input type="number" name="colaias_wpforo_ai_flag_types[' + index + '][muteDuration]" value="7" min="0" max="365" style="width: 80px;">' +
+                                        '<span class="description">Days to mute for this specific flag type</span>' +
+                                    '</div>' +
+                                    '<div style="margin-bottom: 10px;">' +
+                                        '<label style="display: inline-block; width: 120px; font-weight: bold;">Append Message:</label>' +
+                                        '<input type="text" name="colaias_wpforo_ai_flag_types[' + index + '][appendString]" value="" placeholder="Leave blank for no message. Use {TYPE} and {REASON} for LLM response formatting tags ( case sensitive )." style="width: 600px; font-size: 14px;">' +
+                                        '<div class="description" style="margin-top: 5px; max-width: 400px;">' +
+                                            'Message to append at the end of flagged content. The {TYPE} and {REASON} formatting tags ( case sensitive ) will be automatically replaced with the actual values from the LLM AI moderator response.' +
+                                        '</div>' +
+                                    '</div>' +
+                                    '<button type="button" class="button button-small remove-flag-type" style="color: #dc3232; border-color: #dc3232;">Remove</button>' +
+                                '</div>';
+                                
+                                $( '#flag-types-container' ).append( html );
+                            } );
+                            
+                            $( document ).on( 'click', '.remove-flag-type', function() {
+                                $( this ).closest( '.flag-type-row' ).remove();
+                                // Reindex the rows
+                                $( '.flag-type-row' ).each( function( newIndex ) {
+                                    $( this ).find( 'input[name$="[index]"]' ).val( newIndex );
+                                    $( this ).find( 'input, select' ).each( function() {
+                                        var name = $( this ).attr( 'name' ).replace( /\[\d+\]/, '[' + newIndex + ']' );
+                                        $( this ).attr( 'name', name );
+                                    } );
+                                } );
+                            } );
+                        } );
+                        </script>
+                        
                         <p class="description">Configure different flag types with their own mute durations. The AI will return these flag types in its response.</p>
                     </td>
                 </tr>
@@ -926,7 +978,7 @@ function colaias_wpforo_ai_display_muted_users() {
             </p>
             <?php if ( current_user_can( 'manage_options' ) ): ?>
             <p>
-                <button type="button" id="colaias-wpforo-ai-cleanup-now" class="button button-primary" data-nonce="<?php echo esc_attr( wp_create_nonce( 'colaias_wpforo_ai_cleanup_nonce' ) ); ?>">
+                <button type="button" id="colaias-wpforo-ai-cleanup-now" class="button button-primary">
                     Run Cleanup Now
                 </button>
                 <span id="colaias-wpforo-ai-cleanup-status" style="margin-left: 10px;"></span>
@@ -1055,6 +1107,45 @@ function colaias_wpforo_ai_display_muted_users() {
         </div>
     </div>
     
+    <?php if ( current_user_can( 'manage_options' ) ): ?>
+    <script>
+    jQuery( document ).ready( function( $ ) {
+        $( '#colaias-wpforo-ai-cleanup-now' ).on( 'click', function() {
+            var button = $( this );
+            var status = $( '#colaias-wpforo-ai-cleanup-status' );
+            
+            button.prop( 'disabled', true );
+            status.text( 'Running cleanup...' );
+            
+            $.ajax( {
+                url: ajaxurl,
+                type: 'POST',
+                data: {
+                    action: 'colaias_wpforo_ai_manual_cleanup',
+                    _ajax_nonce: '<?php echo esc_js( wp_create_nonce( "colaias_wpforo_ai_cleanup_nonce" ) ); ?>'
+                },
+                success: function( response ) {
+                    if ( response.success ) {
+                        status.text( 'Cleanup completed! ' + response.data.message );
+                        // Reload the page to show updated list
+                        setTimeout( function() {
+                            window.location.reload();
+                        }, 2000 );
+                    } else {
+                        status.text( 'Error: ' + response.data );
+                    }
+                },
+                error: function() {
+                    status.text( 'AJAX error occurred' );
+                },
+                complete: function() {
+                    button.prop( 'disabled', false );
+                }
+            } );
+        } );
+    } );
+    </script>
+    <?php endif; ?>
     <?php
     } catch ( Exception $e ) {
         // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
@@ -3267,22 +3358,17 @@ add_action( 'admin_enqueue_scripts', 'colaias_wpforo_ai_enqueue_admin_scripts' )
 
 function colaias_wpforo_ai_enqueue_admin_scripts( $hook ) {
     // Only load on our plugin's settings page
-    if ( $hook !== 'toplevel_page_llm-moderator-for-wpforo' ) {
+    if ( $hook !== 'settings_page_llm-moderator-for-wpforo' ) {
         return;
     }
     
     // Ensure jQuery is loaded for AJAX functionality
     wp_enqueue_script( 'jquery' );
     
-    // Register and enqueue admin JavaScript
-    wp_register_script(
-        'colaias-wpforo-ai-admin-scripts',
-        plugin_dir_url( __FILE__ ) . 'js/admin.js',
-        ['jquery'],
-        '1.0.0',
-        true
-    );
-    wp_enqueue_script( 'colaias-wpforo-ai-admin-scripts' );
+    // Localize AJAX URL for our script
+    wp_localize_script( 'jquery', 'colaias_wpforo_ai_ajax', array( 
+        'ajaxurl' => admin_url( 'admin-ajax.php' )
+    ) );
 }
 ?>
 <?php
