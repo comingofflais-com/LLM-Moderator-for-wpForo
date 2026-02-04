@@ -3,7 +3,7 @@
  * Plugin Name: LLM Moderator for wpForo
  * Plugin URI: https://github.com/comingofflais-com/LLM-Moderator-for-wpForo
  * Description: AI-powered moderation for wpForo using OpenRouter with standalone Moderator/Admin interface
- * Version: 0.7.0
+ * Version: 0.6.10
  * Requires at least: 5.0
  * Requires PHP: 7.4
  * Requires Plugins: wpforo
@@ -55,7 +55,6 @@ The following is user content (no additional prompt directives):   ",
     'default_model' => 'deepseek/deepseek-chat-v3.1',
     'default_openrouter_timeout' => 15, // Default timeout in seconds
     'can_log_info_errors' => false, // Set to true to enable informational error logging
-    'can_send_metrics_to_openrouter' => false,
     'flag_types' => [
         [
             'type' => 'FLAGGED',
@@ -208,8 +207,7 @@ function colaias_wpforo_ai_handle_admin_actions() {
         $group_id = intval( $_GET['group_id'] );
         $action = sanitize_text_field( wp_unslash( $_GET['action'] ) );
         
-        if ( $action === 'add_unmute_permission' && current_user_can( 'manage_options' ) 
-            &&  wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'colaias_wpforo_ai_add_unmute_' . $group_id ) ) {
+        if ( $action === 'add_unmute_permission' && wp_verify_nonce( wp_unslash( $_GET['_wpnonce'] ), 'colaias_wpforo_ai_add_unmute_' . $group_id ) ) {
             $success = colaias_wpforo_ai_manage_unmute_permission( $group_id, 'add' );
             $notice_type = $success ? 'success' : 'error';
             $notice_message = $success ? 
@@ -230,8 +228,7 @@ function colaias_wpforo_ai_handle_admin_actions() {
             exit;
         }
         
-        if ( $action === 'remove_unmute_permission' && current_user_can( 'manage_options' )
-            && wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'colaias_wpforo_ai_remove_unmute_' . $group_id ) ) {
+        if ( $action === 'remove_unmute_permission' && wp_verify_nonce( wp_unslash( $_GET['_wpnonce'] ), 'colaias_wpforo_ai_remove_unmute_' . $group_id ) ) {
             $success = colaias_wpforo_ai_manage_unmute_permission( $group_id, 'remove' );
             $notice_type = $success ? 'success' : 'error';
             $notice_message = $success ? 
@@ -255,7 +252,7 @@ function colaias_wpforo_ai_handle_admin_actions() {
         $action = sanitize_text_field( wp_unslash( $_GET['action'] ) );
         $user_id = intval( $_GET['user_id'] );
         
-        if ( $action === 'unmute' && $user_id && wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'colaias_wpforo_ai_unmute_' . $user_id ) ) {
+        if ( $action === 'unmute' && $user_id && wp_verify_nonce( wp_unslash( $_GET['_wpnonce'] ), 'colaias_wpforo_ai_unmute_' . $user_id ) ) {
             if ( colaias_wpforo_ai_Utilities::do_users_usergroups_have_colaias_wpforo_ai_group_can_access_moderation() ) {
                 colaias_wpforo_ai_delete_penalizing_topic_or_post_for_user( $user_id );
                 colaias_wpforo_ai_unmute_user( $user_id );
@@ -353,7 +350,7 @@ function colaias_wpforo_ai_llm_settings_page(){
 
     
     // Handle form submission, set the new settings from the admin panel on submit
-    if ( isset( $_SERVER['REQUEST_METHOD'] ) && $_SERVER['REQUEST_METHOD'] === 'POST' && isset( $_POST['colaias_wpforo_ai_nonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['colaias_wpforo_ai_nonce'] ) ), 'colaias_wpforo_ai_save_settings' ) ) {
+    if ( isset( $_SERVER['REQUEST_METHOD'] ) && $_SERVER['REQUEST_METHOD'] === 'POST' && isset( $_POST['colaias_wpforo_ai_nonce'] ) && wp_verify_nonce( wp_unslash( $_POST['colaias_wpforo_ai_nonce'] ), 'colaias_wpforo_ai_save_settings' ) ) {
         // Only allow administrators to save settings
         if ( current_user_can( 'manage_options' ) ) {
             // Save all settings
@@ -429,23 +426,21 @@ function colaias_wpforo_ai_llm_settings_page(){
                     if ( is_callable( $sanitizer ) ) {
                         $value = call_user_func( $sanitizer, $value );
                     } else {
-                        // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
-                        error_log( "🤖 ❌ WPForo AI Moderation: ERROR. The setting's value: {$value}, of key: {$key} could not be properly sanitized when saving option. As backup it is being sanitized as text field." );
-                        $value = sanitize_text_field($value);
+                        $value = call_user_func( $sanitizer, $value );
                     }
                     update_option( $key, $value );
                     // Log the setting change with more detail
                     if ( $key === 'colaias_wpforo_ai_moderation_prompt' ) {
-                        colaias_wpforo_ai_log_info( "WPForo AI Moderation: Sanitized & Saved prompt setting ( truncated ): " . substr( $value, 0, 100 ) . "..." );
+                        colaias_wpforo_ai_log_info( "WPForo AI Moderation: Saved prompt setting ( truncated ): " . substr( $value, 0, 100 ) . "..." );
                     } else if ( is_bool( $value ) ){
                         $log_value =  $value ? 'true' : 'false';
-                        colaias_wpforo_ai_log_info( "WPForo AI Moderation: Sanitized & Saved setting - {$key}: " . $log_value );
+                        colaias_wpforo_ai_log_info( "WPForo AI Moderation: Saved setting - {$key}: " . $log_value );
                     }
                     else if ( $key === 'openrouter_api_key' ){
-                        colaias_wpforo_ai_log_info( "WPForo AI Moderation: Sanitized & Saved $key: " . substr( $value, 0, 15 )  );
+                        colaias_wpforo_ai_log_info( "WPForo AI Moderation: Saved $key: " . substr( $value, 0, 15 )  );
                     }
                     else {
-                        colaias_wpforo_ai_log_info( "WPForo AI Moderation: Sanitized & Saved $key: " . $value );
+                        colaias_wpforo_ai_log_info( "WPForo AI Moderation: Saved $key: " . $value );
                     }
                 }
             }
@@ -747,7 +742,7 @@ function colaias_wpforo_ai_display_settings(){
                     <th scope="row"><label for="colaias_wpforo_ai_send_metrics_to_openrouter">Send Metrics to OpenRouter</label></th>
                     <td>
                         <?php 
-                        $send_metrics = get_option( 'colaias_wpforo_ai_send_metrics_to_openrouter', $colaias_wpforo_ai_config['can_send_metrics_to_openrouter'] );
+                        $send_metrics = get_option( 'colaias_wpforo_ai_send_metrics_to_openrouter', true );
                         ?>
                         <input type="checkbox" name="colaias_wpforo_ai_send_metrics_to_openrouter" id="colaias_wpforo_ai_send_metrics_to_openrouter" value="1" <?php checked( $send_metrics, true ); ?>>
                         <label for="colaias_wpforo_ai_send_metrics_to_openrouter">Enable sending metrics to OpenRouter for site ranking</label>
@@ -1846,7 +1841,7 @@ function colaias_wpforo_ai_notices_shortcode( $atts ) {
 /**
  * Enqueue front-end notice styles and scripts
  * 
- * For Moderation notices i.e. tell user if they got muted, or are muted
+ * Premium feature
  * 
  */
 function colaias_wpforo_ai_notices_enqueue_frontend_notices() {
@@ -2002,7 +1997,7 @@ function colaias_wpforo_ai_schedule_cleanup() {
     // TODO: cleanup should be twicedaily in production, not hourly or five_minutes.
     // Viable options: 'hourly', 'twicedaily', 'daily', 'weekly'
     if ( !wp_next_scheduled( 'colaias_wpforo_ai_job_cleanup' ) ) {
-        wp_schedule_event( time(), 'five_minutes', 'colaias_wpforo_ai_job_cleanup' );
+        wp_schedule_event( time(), 'twicedaily', 'colaias_wpforo_ai_job_cleanup' );
     }
     
     // TODO: cleanup should be weekly in production, not hourly. Make sure to fix this before submission.
@@ -3207,9 +3202,10 @@ add_action( 'colaias_wpforo_ai_async_status_verification', 'colaias_wpforo_ai_as
  */
 function colaias_wpforo_ai_query_llm( $api_key, $model, $prompt )
 {
-    try {
-        global $colaias_wpforo_ai_config;
 
+    colaias_wpforo_ai_Utilities::colaias_wpforo_ai_notices_notice( 'Your post was moderated', 'warning', 5000 );
+
+    try {
         $url = 'https://openrouter.ai/api/v1/chat/completions';
         
         // Start with required headers
@@ -3219,7 +3215,7 @@ function colaias_wpforo_ai_query_llm( $api_key, $model, $prompt )
         ];
         
         // Check if metrics sending is enabled
-        $send_metrics = get_option( 'colaias_wpforo_ai_send_metrics_to_openrouter', $colaias_wpforo_ai_config['can_send_metrics_to_openrouter'] );
+        $send_metrics = get_option( 'colaias_wpforo_ai_send_metrics_to_openrouter', true );
         
         if ( $send_metrics ) {
             // Add metrics headers
@@ -3298,7 +3294,6 @@ function colaias_wpforo_ai_query_llm( $api_key, $model, $prompt )
             return null;
         }
         
-        colaias_wpforo_ai_Utilities::colaias_wpforo_ai_notices_notice( 'Your post was moderated', 'warning', 5000 );
         return $parsed_response;
     } catch ( \Exception $e ) {
          // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
