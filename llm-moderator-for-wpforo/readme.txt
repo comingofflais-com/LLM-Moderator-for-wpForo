@@ -81,7 +81,7 @@ Add this shortcode to the `[wpforo]` page or any page where you want users to se
 == Frequently Asked Questions ==
 
 = What is this plugin for? =
-This is a moderation only plugin that mutes users who violate your custom rules and guidelines. Prevent trolls, spammers, and keep your forum clean. It can also just be used to track enabled only flags; it tracks flag and mute metrics of users.
+This is a moderation only plugin that mutes users who violate your custom rules and guidelines of your wpForo forum. Prevent trolls, spammers, and keep your forum clean. It can also just be used to track enabled only flags; it tracks flag and mute metrics of users.
 
 While it can, however, be custom coded for a some features beyond moderation, this plugin will not support extra features beyond moderation. If you are interested in more AI features, contact the developer.
 
@@ -101,21 +101,21 @@ While it can, however, be custom coded for a some features beyond moderation, th
 = What's Included In Premium? =
 **Premium Version Planned! (In Development)**
 Upgrade to the premium version for advanced features including:
-* Enhanced Moderator control panel with shortcode
+* Enhanced Moderator control panel with bulk select management
 * Easy Prompt engineering interface
 * Forum flood control and user post limits
 * Comprehensive Premium metrics with 5-year data retention
-* Enhanced charts and graphs for metrics
+* Enhanced table, charts and graphs for metrics
 * Lifetime single purchase
 
 Support independent development – your purchase helps keep this plugin free and actively maintained!
 
 
 = What is OpenRouter and do I need an account? =
-OpenRouter is an AI API service that provides access to various AI models. Yes, you need an OpenRouter account and API key to use this plugin. Sign up at [https://openrouter.ai/](https://openrouter.ai/).
+OpenRouter is a service that routes access to various AI models. Yes, you need an OpenRouter account and API key to use this plugin. Sign up at [https://openrouter.ai/](https://openrouter.ai/).
 
 = How much does it cost to use this plugin? =
-The plugin itself is free. However, you need to pay for OpenRouter API usage. During testing, the average cost per request is about USD $0.00005 using DeepSeek-v3.1 model.
+The plugin itself is free. However, you need to pay for OpenRouter API usage. During testing, the average cost per request is about USD $0.00005 using DeepSeek-v3.1 model (DeepSeek-v3.2 is even cheaper).
 
 = Can I use free AI models? =
 Yes, free models are available on OpenRouter, but you can not use a free model with model-chaining. Moreover, AI moderation with OpenRouter is relatively cost effective and efficient with paid models that can be chained.
@@ -130,14 +130,80 @@ After an account is muted, their posts will not query to OpenRouter until they a
 If you don't want any moderation, deactivate the plugin. Alternatively, you can remove/unsave your OpenRouter API key in the settings, doing so will retain the currently muted users.
 
 = What versions of wpForo are supported? =
-Tested through wpForo versions 2.4.8 – 2.4.13. The plugin should work with newer versions but may require updates.
+Tested through wpForo versions 2.4.8 – 2.4.14. The plugin should work with newer versions but may require updates. The latest version can also be broken on the older versions of wpForo. 
 
 = Will this be supported with future wpForo versions? =
 The goal is to support it as long as possible. The base plugin is feature complete and shouldn't require more features that can break it. (If the community wants other AI features, they are easier to build out separately.)
 wpForo seldomly makes core updates, and even promotes the source code in their "Interested in development?" section of the plugin, strongly suggesting they want the community to build with them.
-The main developer is, however, very very busy with other web and android projects, but will take a look if the community reaches out directly on Telegram https://t.me/wpforo_ai (and YELLS haha, remember this) as that is the quickest way to get in touch.
+The main developer is, however, very busy with other web and android projects, but will take a look if the community reaches out directly on Telegram https://t.me/wpforo_ai (and YELLS haha, remember this) as that is the quickest way to get in touch.
 You can also directly participate in keeping the plugin up-to-date over on Github https://github.com/comingofflais-com/LLM-Moderator-for-wpForo
 For additional support and bug reports please see the Github page.
+
+== External Services ==
+
+This plugin integrates with the OpenRouter API (https://openrouter.ai/) to provide AI-powered content moderation for wpForo forums. When configured with a valid OpenRouter API key, the plugin sends moderation requests to analyze forum posts in real-time.
+
+### Data Transmission and Privacy
+
+**What Data Is Sent:**
+- Only the user's post content is transmitted to OpenRouter
+- A moderation prompt configured by the administrator precedes the post content
+- No personally identifiable information (name, username, or user ID) is included in the post content
+- Each post from non-muted users triggers exactly one API request
+
+**Future Development:**
+Future versions may include additional context (such as preceding and succeeding posts) to improve moderation accuracy. If implemented, usernames may be replaced with aliases to maintain user privacy. All planned features are subject to change based on development priorities.
+
+### About OpenRouter
+
+OpenRouter is an AI routing service that provides access to multiple LLM models from various providers. When using this plugin, your data passes through OpenRouter to the selected AI model provider.
+
+**Important Links:**
+- OpenRouter Privacy Policy: https://openrouter.ai/privacy
+- OpenRouter Terms of Service: https://openrouter.ai/terms  
+- OpenRouter Data Collection Policy: https://openrouter.ai/docs/guides/privacy/data-collection
+
+**AI Provider Policies:**
+Each LLM provider (such as OpenAI, Anthropic, DeepSeek, etc.) has its own data handling policies. For information on how different providers process data, see OpenRouter's provider logging documentation: https://openrouter.ai/docs/guides/privacy/logging
+
+### Optional Data Sharing
+
+You may optionally send:
+- Your site's URL (via HTTP-Referer header)
+- Application title (via X-Title header)
+
+These optional fields help OpenRouter rank applications and improve service quality.
+
+### Technical Implementation
+
+**API Request Structure:**
+The plugin sends POST requests to OpenRouter with the following JSON payload structure:
+
+```php
+$body = json_encode( [
+    'model' => $model,
+    'messages' => [
+        ['role' => 'user', 'content' => $json_prompt],
+    ],
+    'max_tokens' => 1000, // Maximum tokens in response (50-80 is typically sufficient)
+    'temperature' => 0.1,
+    'response_format' => ['type' => 'json_object'],
+] );
+```
+
+**Response Expectation:**
+The plugin expects OpenRouter to return a JSON object containing moderation results with 'type' and 'reason' keys as specified in your moderation prompt.
+
+**Configuration Options:**
+- The plugin uses default provider selection parameters. For advanced routing configuration, see: https://openrouter.ai/docs/guides/routing/provider-selection
+- You can customize request processing through the OpenRouter dashboard, including model selection and privacy policies on a per-key basis: https://openrouter.ai/settings/privacy
+- You can configure your key, and set limits and alerts as needed
+- With this plugin, you can also set a timeout for the OpenRouter query from 10-300 seconds 
+
+### Requirements
+- A valid OpenRouter API key must be configured in the plugin settings
+- Your OpenRouter account must have sufficient credits for API usage
+
 
 == Screenshots ==
 

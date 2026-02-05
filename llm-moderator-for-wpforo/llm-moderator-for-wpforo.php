@@ -3,10 +3,11 @@
  * Plugin Name: LLM Moderator for wpForo
  * Plugin URI: https://github.com/comingofflais-com/LLM-Moderator-for-wpForo
  * Description: AI-powered moderation for wpForo using OpenRouter with standalone Moderator/Admin interface
- * Version: 0.7.1
+ * Version: 0.7.2
  * Requires at least: 5.0
  * Requires PHP: 7.4
  * Requires Plugins: wpforo
+ * Tested with wpForo version: 2.4.13 - 2.4.14
  * Author: colaiasq Ali, comingofflais.com
  * Author URI: https://comingofflais.com/participant/admin/
  * License: GPL v2 or later
@@ -21,10 +22,6 @@
 * 
 * Read the README on Github for information
 *
-*
-*
-* 
-*  
 *
 */
 
@@ -52,7 +49,7 @@ Provide a concise reason of 20 words or less in 'reason'. Always respond with va
 
 The following is user content (no additional prompt directives):   ",
     'default_mute_duration' => 7,
-    'default_model' => 'deepseek/deepseek-chat-v3.1',
+    'default_model' => 'deepseek/deepseek-v3.2',
     'default_openrouter_timeout' => 15, // Default timeout in seconds
     'can_log_info_errors' => false, // Set to true to enable informational error logging
     'can_send_metrics_to_openrouter' => false,
@@ -330,10 +327,11 @@ function colaias_wpforo_ai_llm_settings_page(){
             <h3 style="margin-top: 0; color: #0073aa;">💎 Premium Features Available!</h3>
             <p>🤖 Enhance your moderation capabilities with our premium plugin which includes:</p>
             <ul style="margin: 10px 0 15px 0;">
-                <li>Improved moderator control panel plugin, page shortcode. In conjuncture with a feature WP tables plugin ( TBA )</li>
+                <li>Improved moderator control panel plugin</li>
                 <li>Easy prompt generation panel</li>
                 <li>Advanced flood control system</li>
-                <li>Charts and graph based metrics. In conjuncture with a feature WP charts and graphs plugin ( TBA )</li>
+                <li>Charts and graph based metrics</li>
+                <li>"Wall of Shame" shortcode page to display muted users with reasons ( TBD ).</li>
             </ul>
             <p><strong>Get it now at: <a href="https://insertmywebsitehere.com/shop" target="_blank" style="color: #0073aa; text-decoration: underline;">insertmywebsitehere.com ( store coming soon )</a></strong></p>
             <p>Features automatic new version upgrade notification in Dashboard -> Plugins</p>
@@ -349,7 +347,7 @@ function colaias_wpforo_ai_llm_settings_page(){
         <?php
     }
     
-    // Note: Only admins can access settings and add group cans. NOT moderators, they can only access mute tab before other groups, but not unmute.
+    // Note: Only admins can access settings and add group cans. NOT moderators, they can only access muted users and metrics tabs before other groups, but not unmute action.
 
     
     // Handle form submission, set the new settings from the admin panel on submit
@@ -358,8 +356,8 @@ function colaias_wpforo_ai_llm_settings_page(){
         if ( current_user_can( 'manage_options' ) ) {
             // Save all settings
             $settings = [
-                'openrouter_api_key' => 'sanitize_text_field',
-                'openrouter_model' => 'sanitize_text_field',
+                'colaias_wpforo_ai_openrouter_api_key' => 'sanitize_text_field',
+                'colaias_wpforo_ai_openrouter_model' => 'sanitize_text_field',
                 'colaias_wpforo_ai_moderation_prompt' => function( $value ) { 
                     // Simple sanitization that removes any existing slashes and preserves content
                     if ( function_exists( 'wp_kses_post' ) ) {
@@ -441,7 +439,7 @@ function colaias_wpforo_ai_llm_settings_page(){
                         $log_value =  $value ? 'true' : 'false';
                         colaias_wpforo_ai_log_info( "WPForo AI Moderation: Sanitized & Saved setting - {$key}: " . $log_value );
                     }
-                    else if ( $key === 'openrouter_api_key' ){
+                    else if ( $key === 'colaias_wpforo_ai_openrouter_api_key' ){
                         colaias_wpforo_ai_log_info( "WPForo AI Moderation: Sanitized & Saved $key: " . substr( $value, 0, 15 )  );
                     }
                     else {
@@ -554,13 +552,13 @@ function colaias_wpforo_ai_display_settings(){
     <div class="notice is-dismissible">
         <p style="font-size: small;"><strong style="color: green;">✅ Everything working?</strong> 🤖?? <strong style="color: red;">❌ No?</strong> ... 😅. Safety brakes should prevent crashes ( hopefully! 🤞 ). If wpForo updates break things, check debug.log 🕵️‍♂️. Use the tested version ( But even that might break mwhahaha 🦹 ) ⚠️ Small chance of memory leaks if not working ... Might need to deactivate ( not uninstall! 🚫🗑️ ).
         <br>
-        <br>For urgent fixes 🚨, fastest way to contact developer is <a href='https://t.me/wpforo_ai'>Telegram</a>. Note this down for future reference. 💬 Have your message ready! Not official wpForo devs 🚫👔 - indie. <strong>Contact us for bugs 🐛 or collabs 🤝 ONLY!</strong> NOT basic tech support for wpForo and WordPress 🙅‍♂️🙅‍♂️🙅‍♂️ 🤦‍♀️. Also, there isn't built in auto-bug-alert system 🚫. <strong>Community, check logs and yell! 📢</strong> Pro tip: Enable informational logging, when needed, to find out where the problem is occuring 🕵️‍♂️.
+        <br>For urgent fixes 🚨, fastest way to contact developer is <a href='https://t.me/wpforo_ai'>Telegram</a>. Note this down for future reference. 💬 Have your message ready! Not official wpForo devs 🚫👔 - indie developer. <strong>Contact us for bugs 🐛 or collabs 🤝 ONLY!</strong> NOT basic tech support for wpForo and WordPress 🙅‍♂️🙅‍♂️🙅‍♂️ 🤦‍♀️. Also, there isn't built in auto-bug-alert system 🚫. <strong>Community, check logs and yell! 📢</strong> Pro tip: Enable informational logging, when needed, to find out where the problem is occuring 🕵️‍♂️.
         <br>
         <br>❗ The "Admin" usergroup is needed by the automatic cleanup cron job to delete unapproved posts of muted users. Allow atleast 1 user in the "Admin" usergroup with all required Access permissions. Failure to do so will result in automatic cleanup not deleting unapproved posts. ℹ️ Click "Show forum details" in the settings below to see which permissions are needed.
         <br>⚠️ Moderators → "Moderator" usergroup then give the unmute permission 😲. ℹ️ Check wpForo's guide for assigning usergroups.
         <br>⚠️ Give moderators the required forum Access permissions. wpForo → Forums → edit, assign required Access permissions 😲 
         <br>ℹ️ Add this shortcode for notifications <code>[colaias_wpforo_ai_notices top='30px' right='30%' width='40%']</code> on the <code>[wpforo]</code> page 📖🔧
-        <br>💡 Tip: Set a mimimum wpForo post character limit. Moderation currently does not assess context from preceding content.
+        <br>💡 Tip: Set a mimimum wpForo post character limit. ⚠️ Moderation currently does not assess context from preceding content. This is planned for a future update, feel free help out on Github.
         </p>
     </div>
     <div style="margin: 20px 0; padding: 15px; background: #f9f9f9; border-left: 4px solid #0073aa;">
@@ -720,21 +718,21 @@ function colaias_wpforo_ai_display_settings(){
                     </td>
                 </tr>
                 <tr>
-                    <th scope="row"><label for="openrouter_api_key">OpenRouter API Key</label></th>
+                    <th scope="row"><label for="colaias_wpforo_ai_openrouter_api_key">OpenRouter API Key</label></th>
                     <td>
-                        <?php $value = get_option( 'openrouter_api_key', '' ); ?>
-                        <input type="password" name="openrouter_api_key" id="openrouter_api_key" value="<?php echo esc_attr( $value ); ?>" size="50">
+                        <?php $value = get_option( 'colaias_wpforo_ai_openrouter_api_key', '' ); ?>
+                        <input type="password" name="colaias_wpforo_ai_openrouter_api_key" id="colaias_wpforo_ai_openrouter_api_key" value="<?php echo esc_attr( $value ); ?>" size="50">
                         <p class="description">Your <a href="https://openrouter.ai">OpenRouter</a> API key</p>
                     </td>
                 </tr>
                 <tr>
-                    <th scope="row"><label for="openrouter_model">Model</label></th>
+                    <th scope="row"><label for="colaias_wpforo_ai_openrouter_model">Model</label></th>
                     <td>
                         <?php 
                         global $colaias_wpforo_ai_config;
-                        $value = get_option( 'openrouter_model', $colaias_wpforo_ai_config['default_model'] );
+                        $value = get_option( 'colaias_wpforo_ai_openrouter_model', $colaias_wpforo_ai_config['default_model'] );
                         ?>
-                        <input type="text" name="openrouter_model" id="openrouter_model" value="<?php echo esc_attr( $value ); ?>" size="50">
+                        <input type="text" name="colaias_wpforo_ai_openrouter_model" id="colaias_wpforo_ai_openrouter_model" value="<?php echo esc_attr( $value ); ?>" size="50">
                         <p class="description">🤖 Model ( e.g. deepseek/deepseek-chat-v3.1, <?php echo esc_html( $colaias_wpforo_ai_config['default_model'] ); ?> )</p>
                         <p class="description"><strong>Model Examples:</strong><br>
                         Single model: <code>deepseek/deepseek-chat-v3.1</code><br>
@@ -761,9 +759,9 @@ function colaias_wpforo_ai_display_settings(){
                         <?php 
                         $custom_xtitle = get_option( 'colaias_wpforo_ai_custom_xtitle_for_openrouter', '' );
                         ?>
-                        <input type="text" name="colaias_wpforo_ai_custom_xtitle_for_openrouter" id="colaias_wpforo_ai_custom_xtitle_for_openrouter" value="<?php echo esc_attr( $custom_xtitle ); ?>" size="50">
+                        <input type="text" name="colaias_wpforo_ai_custom_xtitle_for_openrouter" id="colaias_wpforo_ai_custom_xtitle_for_openrouter" value="<?php echo esc_attr( $custom_xtitle ); ?>" placeholder="COLAIAs wpForo AI Moderation" size="50">
                         <p class="description">🏷️ Custom title to send to OpenRouter for site ranking. Recommended leave blank to use default: "COLAIAs wpForo AI Moderation"</p>
-                        <p class="description"><small>The default title helps identify the plugin in OpenRouter's ranking system and can be used for analytics.</small></p>
+                        <p class="description"><small>The default title helps identify the plugin in OpenRouter's ranking system and can be used for app analytics.</small></p>
                     </td>
                 </tr>
                 <tr>
@@ -841,7 +839,7 @@ function colaias_wpforo_ai_display_settings(){
                         $default_prompt = $colaias_wpforo_ai_config['default_prompt'];
                         $value = get_option( 'colaias_wpforo_ai_moderation_prompt', '' );
                         ?>
-                        <textarea name="colaias_wpforo_ai_moderation_prompt" id="colaias_wpforo_ai_moderation_prompt" rows="5" cols="80" placeholder="<?php echo esc_attr( $default_prompt ); ?>"><?php echo esc_textarea( stripslashes( $value ) ); ?></textarea>
+                        <textarea name="colaias_wpforo_ai_moderation_prompt" id="colaias_wpforo_ai_moderation_prompt" rows="5" cols="80" style="min-height: 380px;" placeholder="<?php echo esc_attr( $default_prompt ); ?>"><?php echo esc_textarea( stripslashes( $value ) ); ?></textarea>
                         <p class="description">Customize the moderation prompt used by the LLM. Leave blank to use the default prompt.</p>
                     </td>
                 </tr>
@@ -1207,7 +1205,7 @@ function colaias_wpforo_ai_display_metrics() {
                         if ( $premium_plugin_active ){
                             ?>
                             <h2 style="color: #007bff; margin: 20px 0 15px 0; font-size: 28px; line-height: 1.4;">
-                                🤩 Great, you have premium! <br style="margin-top:10px;" >🚀 See the Premium Metrics and Charts tab for Advanced Analytics</h2>
+                                🤩 Great, you have premium! <br style="margin-top:10px;" >❌ ❗ ERROR. But you should see the Premium Metrics and Charts tab here for Advanced Analytics</h2>
                             <?php
                         } else {
                             ?>
@@ -1239,7 +1237,7 @@ function colaias_wpforo_ai_display_metrics() {
                             box-shadow: 0 4px 15px rgba( 0,123,255,0.3 );
                         " onmouseover="this.style.transform='translateY( -2px )'; this.style.boxShadow='0 6px 20px rgba( 0,123,255,0.4 )';" 
                            onmouseout="this.style.transform='translateY( 0 )'; this.style.boxShadow='0 4px 15px rgba( 0,123,255,0.3 )';">
-                            💎 Get Premium Analytics, in conjuncture with a feature WP plugin ( TBA )
+                            💎 Get Premium Analytics
                         </a>
                     </div>
                     
@@ -1693,7 +1691,7 @@ function colaias_wpforo_ai_notices_display_frontend_notices( $manual_output = fa
 /**
  * Set a to be displayed for a specific user
  * 
- * Premium feature released in beta
+ * Premium feature released 
  */
 function colaias_wpforo_ai_notices_add_user_notice( $user_id, $message, $type = 'info', $duration = 10000 ) {
     $user_notices = get_transient( 'colaias_wpforo_ai_user_notices_' . $user_id );
@@ -1852,8 +1850,9 @@ function colaias_wpforo_ai_plugin_activation() {
             
             Provide a concise reason of 20 words or less in 'reason'. Always respond with valid JSON format only, no additional text.",
                 'default_mute_duration' => 7,
-                'default_model' => 'deepseek/deepseek-chat-v3.1',
+                'default_model' => 'deepseek/deepseek-v3.2',
                 'can_log_info_errors' => false, // Set to true to enable informational error logging
+                'can_send_metrics_to_openrouter' => false,
                 'flag_types' => [
                     [
                         'type' => 'FLAGGED',
@@ -1911,14 +1910,14 @@ function colaias_wpforo_ai_schedule_cleanup() {
     // TODO: cleanup should be twicedaily in production, not hourly or five_minutes.
     // Viable options: 'hourly', 'twicedaily', 'daily', 'weekly'
     if ( !wp_next_scheduled( 'colaias_wpforo_ai_job_cleanup' ) ) {
-        wp_schedule_event( time(), 'five_minutes', 'colaias_wpforo_ai_job_cleanup' );
+        wp_schedule_event( time(), 'ten_minutes', 'colaias_wpforo_ai_job_cleanup' );
     }
     
     // TODO: cleanup should be weekly in production, not hourly. Make sure to fix this before submission.
     // Viable options: 'hourly', 'twicedaily', 'daily', 'weekly'
     // Schedule flag metrics cleanup to run Xly ( minimal frequency )
     if ( !wp_next_scheduled( 'colaias_wpforo_ai_job_flag_metrics_cleanup' ) ) {
-        wp_schedule_event( time(), 'weekly', 'colaias_wpforo_ai_job_flag_metrics_cleanup' );
+        wp_schedule_event( time(), 'hourly', 'colaias_wpforo_ai_job_flag_metrics_cleanup' );
     }
 }
 
@@ -2226,8 +2225,8 @@ function colaias_wpforo_ai_plugin_uninstall(){
     delete_option( 'colaias_wpforo_ai_moderation_prompt' );
     delete_option( 'colaias_wpforo_ai_mute_duration' );
     delete_option( 'colaias_wpforo_ai_openrouter_timeout' );
-    delete_option( 'openrouter_api_key' );
-    delete_option( 'openrouter_model' );
+    delete_option( 'colaias_wpforo_ai_openrouter_api_key' );
+    delete_option( 'colaias_wpforo_ai_openrouter_model' );
     delete_option( 'colaias_wpforo_ai_send_metrics_to_openrouter' );
     delete_option( 'colaias_wpforo_ai_custom_xtitle_for_openrouter' );
 
@@ -2487,7 +2486,7 @@ function colaias_wpforo_ai_clean_expired_mutes() {
          * First step. On 'mute', the users post status is changed in the hook, this is all on wpForo side, the user is placed in the muted users table. The current user is the user w/o permission, but to set_status the permission is not forced. This is good because this doesn't require elevated permissions during the hook.
          * 2nd on 'unmute' previously we did not need Forced Check of forum_cans permissions to unmute, 2.4.14 does.
          * First it gets post, not protected/forced permission, then it gets status, again unprotected
-         * It deletes post if it exists, this is protected as of 2.4.14. So this requires the cron job ran as "admin" user, and wpforo cache cleared.
+         * It deletes post if it exists, this is protected as of 2.4.14. So this requires the cron job ran as "admin"/superuser, and wpforo cache cleared.
          * 
          * Therefore, when the permission to unmute is given to a usergroup, the group permission is given, but gives warning that insufficient unmute permissions per forum id.
         */
@@ -2765,8 +2764,6 @@ function colaias_wpforo_ai_check_wpforo_usergroup_exists( $group_name ) {
     } 
 }
 
-
-
 /** 
  * 
  * 
@@ -2854,10 +2851,6 @@ function colaias_wpforo_ai_manage_unmute_permission( $group_id, $action = 'add' 
         .$e->getMessage() );
     }
 }
-
-
-
-
 
 /** Function to unmute a user and delete their trigger post if unapproved. 
 *
@@ -3154,8 +3147,8 @@ function colaias_wpforo_ai_query_llm( $api_key, $model, $prompt )
             'messages' => [
                 ['role' => 'user', 'content' => $json_prompt],
             ], // Todo allow users to set max tokens per reply
-            'max_tokens' => 1000, // max token reply, not input. 50-80 is reasonable.
-            'temperature' => 0.1,
+            'max_tokens' => 1000, // max token reply, not input. 50-80 is reasonable. Capped because response should be reasonable, quick for realtime moderation, and to save costs.
+            'temperature' => 0.1, // https://openrouter.ai/docs/api/reference/parameters
             'response_format' => ['type' => 'json_object'],
         ] );
         
@@ -3760,9 +3753,9 @@ function colaias_wpforo_ai_moderate_topic_before_insert( $topic ) {
             }
 
             // Handle Moderation for topics
-            $api_key = get_option( 'openrouter_api_key' );
+            $api_key = get_option( 'colaias_wpforo_ai_openrouter_api_key' );
             global $colaias_wpforo_ai_config;
-            $model = get_option( 'openrouter_model', $colaias_wpforo_ai_config['default_model'] );
+            $model = get_option( 'colaias_wpforo_ai_openrouter_model', $colaias_wpforo_ai_config['default_model'] );
             if ( empty( $api_key ) ) {
                 colaias_wpforo_ai_log_info( '🤖 ⚠️ WPForo AI Moderation: No API key found, skipping topic moderation' );
                 return $topic;
@@ -4023,9 +4016,9 @@ function colaias_wpforo_ai_moderate_post_before_insert( $post ) {
             } 
 
             // Handle Moderation for posts
-            $api_key = get_option( 'openrouter_api_key' );
+            $api_key = get_option( 'colaias_wpforo_ai_openrouter_api_key' );
             global $colaias_wpforo_ai_config;
-            $model = get_option( 'openrouter_model', $colaias_wpforo_ai_config['default_model'] );
+            $model = get_option( 'colaias_wpforo_ai_openrouter_model', $colaias_wpforo_ai_config['default_model'] );
             if ( empty( $api_key ) ) {
                 colaias_wpforo_ai_log_info( '🤖 ⚠️ WPForo AI Moderation: No API key found, skipping post moderation' );
                 return $post;
@@ -4288,9 +4281,9 @@ function colaias_wpforo_ai_moderate_topic_before_update( $topic ) {
             }
 
             // Handle Moderation for topic-edits
-            $api_key = get_option( 'openrouter_api_key' );
+            $api_key = get_option( 'colaias_wpforo_ai_openrouter_api_key' );
             global $colaias_wpforo_ai_config;
-            $model = get_option( 'openrouter_model', $colaias_wpforo_ai_config['default_model'] );
+            $model = get_option( 'colaias_wpforo_ai_openrouter_model', $colaias_wpforo_ai_config['default_model'] );
             if ( empty( $api_key ) ) {
                 colaias_wpforo_ai_log_info( '🤖 ⚠️ WPForo AI Moderation: No API key found, skipping topic-edit moderation' );
                 return $topic;
@@ -4555,9 +4548,9 @@ function colaias_wpforo_ai_moderate_post_before_update( $post ) {
             } 
 
             // Handle Moderation for post updates
-            $api_key = get_option( 'openrouter_api_key' );
+            $api_key = get_option( 'colaias_wpforo_ai_openrouter_api_key' );
             global $colaias_wpforo_ai_config;
-            $model = get_option( 'openrouter_model', $colaias_wpforo_ai_config['default_model'] );
+            $model = get_option( 'colaias_wpforo_ai_openrouter_model', $colaias_wpforo_ai_config['default_model'] );
             if ( empty( $api_key ) ) {
                 colaias_wpforo_ai_log_info( '🤖 ⚠️ WPForo AI Moderation: No API key found, skipping post-edit moderation' );
                 return $post;
