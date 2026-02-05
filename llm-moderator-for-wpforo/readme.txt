@@ -218,10 +218,11 @@ The plugin expects OpenRouter to return a JSON object containing moderation resu
 
 == Changelog ==
 
-= 0.7.2 =
+= 0.7.3 =
 * Compatibility with wpForo 2.4.14
 * Security fixes
 * Renaming
+* Enqueued JS
 * Updated README
 
 = 0.6.7 =
@@ -229,6 +230,6 @@ The plugin expects OpenRouter to return a JSON object containing moderation resu
 
 == Upgrade Notice ==
 
-= 0.7.2 =
+= 0.7.3 =
 * This is a beta release. Please backup your site before upgrading.
 * The plugin is still in active development and may have breaking changes.

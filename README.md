@@ -232,7 +232,7 @@ The plugin creates a custom table `wp_colaias_wpforo_ai_flag_metrics` to track:
 - Permissions: `'colaias_wpforo_ai_can_access_moderation'`
 - wpForo group_cans: `'colaias_wpforo_ai_group_can_access_moderation'`
 - Primarily focus on moderation-only features. Other enhancing features can likely be separate premium plugins.
-- Keep main features into the same file, or move them to the main file once done coding. Do not add extra features. Create a separate plugin for extra features which can be uploaded here. While this maybe considered bad practice, it makes it easy to find code in the IDE.
+- Keep main features in the same base/main file, or move them to the main file once done coding. Due to the limited nature of this plugin, a single file is easier to maintain. Do not add extra features. Create a separate plugin for extra features which can be uploaded here. While this maybe considered bad practice, it makes it easy to find code in the IDE.
 - Stay in the loop. Keep the developer conscious of your plugin, so that updates have minimum impact on your code, or that you can be notified about what changes to make.
 
 ### SIMPLE LOGIC
@@ -271,6 +271,72 @@ add_action( 'wpforo_after_edit_post', 'colaias_wpforo_ai_after_post_update', 100
 
 
 ## Other
+
+### External Service
+
+This plugin integrates with the OpenRouter API (https://openrouter.ai/) to provide AI-powered content moderation for wpForo forums. When configured with a valid OpenRouter API key, the plugin sends moderation requests to analyze forum posts in real-time.
+
+### Data Transmission and Privacy
+
+**What Data Is Sent:**
+- Only the user's post content is transmitted to OpenRouter
+- A moderation prompt configured by the administrator precedes the post content
+- No personally identifiable information (name, username, or user ID) is included in the post content
+- Each post from non-muted users triggers exactly one API request
+
+**Future Development:**
+Future versions may include additional context (such as preceding and succeeding posts) to improve moderation accuracy. If implemented, usernames may be replaced with aliases to maintain user privacy. All planned features are subject to change based on development priorities.
+
+### About OpenRouter
+
+OpenRouter is an AI routing service that provides access to multiple LLM models from various providers. When using this plugin, your data passes through OpenRouter to the selected AI model provider.
+
+**Important Links:**
+- OpenRouter Privacy Policy: https://openrouter.ai/privacy
+- OpenRouter Terms of Service: https://openrouter.ai/terms  
+- OpenRouter Data Collection Policy: https://openrouter.ai/docs/guides/privacy/data-collection
+
+**AI Provider Policies:**
+Each LLM provider (such as OpenAI, Anthropic, DeepSeek, etc.) has its own data handling policies. For information on how different providers process data, see OpenRouter's provider logging documentation: https://openrouter.ai/docs/guides/privacy/logging
+
+### Optional Data Sharing
+
+You may optionally send:
+- Your site's URL (via HTTP-Referer header)
+- Application title (via X-Title header)
+
+These optional fields help OpenRouter rank applications and improve service quality.
+
+### Technical Implementation
+
+**API Request Structure:**
+The plugin sends POST requests to OpenRouter with the following JSON payload structure:
+
+```php
+$body = json_encode( [
+    'model' => $model,
+    'messages' => [
+        ['role' => 'user', 'content' => $json_prompt],
+    ],
+    'max_tokens' => 1000, // Maximum tokens in response (50-80 is typically sufficient)
+    'temperature' => 0.1,
+    'response_format' => ['type' => 'json_object'],
+] );
+```
+
+**Response Expectation:**
+The plugin expects OpenRouter to return a JSON object containing moderation results with 'type' and 'reason' keys as specified in your moderation prompt.
+
+**Configuration Options:**
+- The plugin uses default provider selection parameters. For advanced routing configuration, see: https://openrouter.ai/docs/guides/routing/provider-selection, though these can not be changed from default besides what is already configured above
+- You can customize request processing through the OpenRouter dashboard, including model selection and privacy policies on a per-key basis: https://openrouter.ai/settings/privacy
+- You can configure your key, and set limits and alerts as needed
+- With this plugin, you can also set a timeout for the OpenRouter query from 10-300 seconds 
+
+### Requirements
+- A valid OpenRouter API key must be configured in the plugin settings
+- Your OpenRouter account must have sufficient credits for API usage
+- Your prompt must specifically ask for a JSON format response with 'type' key and optionally 'reason' key, no other formats are accepted
 
 ### Community Help Requested
 
@@ -337,6 +403,12 @@ This plugin is released under the GPL v2 or later license.
 ## Version History
 
 **Still in beta**
+
+New in Version 0.7.3:
+ - Security fixes
+ - Renaming
+ - Enqueued js
+ - readme.txt
 
 New in Version 0.6.10:
  - Automatic cleanup with permission for wpForo version 2.4.14
