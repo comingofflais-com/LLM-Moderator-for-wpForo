@@ -16,7 +16,7 @@ AI-powered moderation interface for wpForo using OpenRouter with standalone Mode
 This plugin integrates AI-powered content moderation with the wpForo forum plugin. It uses OpenRouter API to analyze forum posts and topics in real-time, automatically flagging inappropriate content and muting users who violate forum guidelines.
 
 = Important Note =
-This plugin is in beta. **1st release! Backup your site before installing beta software.**
+This plugin is in beta. 192/192 automated test scenarios passed! Tested with wpForo 2.4.13. **1st release! Backup your site before installing beta software.**
 
 = Base Features =
 * **AI-Powered Moderation**: Uses OpenRouter API with configurable AI models (default: deepseek/deepseek-chat-v3.1)
@@ -33,7 +33,7 @@ This plugin is in beta. **1st release! Backup your site before installing beta s
 
 = Requirements =
 * WordPress 6.0+ (Tested 6.9)
-* wpForo plugin active (Tested 2.4.8 – 2.4.14)
+* wpForo plugin active (Tested 2.4.8 – 2.4.13)
 * PHP 8.0+ (Tested 8.2)
 * MySQL 8.0+ (Tested 8.0)
 * OpenRouter API key
@@ -133,7 +133,7 @@ If you don't want any moderation, deactivate the plugin. Alternatively, you can 
 Tested through wpForo versions 2.4.8 – 2.4.14. The plugin should work with newer versions but may require updates. The latest version can also be broken on the older versions of wpForo. 
 
 = Will this be supported with future wpForo versions? =
-The goal is to support it as long as possible. The base plugin is feature complete and shouldn't require more features that can break it. (If the community wants other AI features, they are easier to build out separately. Contact the developer for serious inquires.)
+The goal is to support it as long as possible. The base plugin is feature complete and shouldn't require more features that can break it. (If the community wants other AI features, they are easier to build out separately.)
 wpForo seldomly makes core updates, and even promotes the source code in their "Interested in development?" section of the plugin, strongly suggesting they want the community to build with them.
 The main developer is, however, very busy with other web and android projects, but will take a look if the community reaches out directly on Telegram https://t.me/wpforo_ai (and YELLS haha, remember this) as that is the quickest way to get in touch.
 You can also directly participate in keeping the plugin up-to-date over on Github https://github.com/comingofflais-com/LLM-Moderator-for-wpForo
@@ -195,7 +195,7 @@ $body = json_encode( [
 The plugin expects OpenRouter to return a JSON object containing moderation results with 'type' and 'reason' keys as specified in your moderation prompt.
 
 **Configuration Options:**
-- The plugin uses default provider selection parameters. For advanced routing configuration, see: https://openrouter.ai/docs/guides/routing/provider-selection, though these can not be changed from default besides what is already configured above
+- The plugin uses default provider selection parameters. For advanced routing configuration, see: https://openrouter.ai/docs/guides/routing/provider-selection
 - You can customize request processing through the OpenRouter dashboard, including model selection and privacy policies on a per-key basis: https://openrouter.ai/settings/privacy
 - You can configure your key, and set limits and alerts as needed
 - With this plugin, you can also set a timeout for the OpenRouter query from 10-300 seconds 
@@ -203,7 +203,7 @@ The plugin expects OpenRouter to return a JSON object containing moderation resu
 ### Requirements
 - A valid OpenRouter API key must be configured in the plugin settings
 - Your OpenRouter account must have sufficient credits for API usage
-- Your prompt must specifically ask for a JSON format response with 'type' key and optionally 'reason' key, no other formats are accepted
+
 
 == Screenshots ==
 
@@ -218,17 +218,12 @@ The plugin expects OpenRouter to return a JSON object containing moderation resu
 
 == Changelog ==
 
-= 0.7.2 =
-* Compatibility with wpForo 2.4.14
-* Security fixes
-* Renaming
-* Updated README
-
 = 0.6.7 =
-* Initial WordPress.org submit version
+* Initial WordPress.org release version
 
 == Upgrade Notice ==
 
-= 0.7.2 =
+= 0.6.7 =
 * This is a beta release. Please backup your site before upgrading.
 * The plugin is still in active development and may have breaking changes.
+* Recent changes include text domain renaming and phpc required error updates.

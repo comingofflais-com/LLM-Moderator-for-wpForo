@@ -3,11 +3,11 @@
  * Plugin Name: LLM Moderator for wpForo
  * Plugin URI: https://github.com/comingofflais-com/LLM-Moderator-for-wpForo
  * Description: AI-powered moderation for wpForo using OpenRouter with standalone Moderator/Admin interface
- * Version: 0.7.3
+ * Version: 0.7.2
  * Requires at least: 5.0
  * Requires PHP: 7.4
  * Requires Plugins: wpforo
- * Tested with wpForo versions: 2.4.13 - 2.4.14
+ * Tested with wpForo version: 2.4.13 - 2.4.14
  * Author: colaiasq Ali, comingofflais.com
  * Author URI: https://comingofflais.com/participant/admin/
  * License: GPL v2 or later
@@ -1910,14 +1910,14 @@ function colaias_wpforo_ai_schedule_cleanup() {
     // TODO: cleanup should be twicedaily in production, not hourly or five_minutes.
     // Viable options: 'hourly', 'twicedaily', 'daily', 'weekly'
     if ( !wp_next_scheduled( 'colaias_wpforo_ai_job_cleanup' ) ) {
-        wp_schedule_event( time(), 'twicedaily', 'colaias_wpforo_ai_job_cleanup' );
+        wp_schedule_event( time(), 'ten_minutes', 'colaias_wpforo_ai_job_cleanup' );
     }
     
     // TODO: cleanup should be weekly in production, not hourly. Make sure to fix this before submission.
     // Viable options: 'hourly', 'twicedaily', 'daily', 'weekly'
     // Schedule flag metrics cleanup to run Xly ( minimal frequency )
     if ( !wp_next_scheduled( 'colaias_wpforo_ai_job_flag_metrics_cleanup' ) ) {
-        wp_schedule_event( time(), 'weekly', 'colaias_wpforo_ai_job_flag_metrics_cleanup' );
+        wp_schedule_event( time(), 'hourly', 'colaias_wpforo_ai_job_flag_metrics_cleanup' );
     }
 }
 
@@ -3147,7 +3147,7 @@ function colaias_wpforo_ai_query_llm( $api_key, $model, $prompt )
             'messages' => [
                 ['role' => 'user', 'content' => $json_prompt],
             ], // Todo allow users to set max tokens per reply
-            'max_tokens' => 1000, // max token reply, not input. 50-80 is reasonable.
+            'max_tokens' => 1000, // max token reply, not input. 50-80 is reasonable. Capped because response should be reasonable, quick for realtime moderation, and to save costs.
             'temperature' => 0.1, // https://openrouter.ai/docs/api/reference/parameters
             'response_format' => ['type' => 'json_object'],
         ] );
