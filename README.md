@@ -59,7 +59,7 @@ Get control over your moderation ✊ ✊ ✊. Moderate at mere pennies. During t
 
 ## Requirements
 
-- WordPress 6.0+ - Tested 6.9
+- WordPress 6.0+ - Tested 6.9.1
 - wpForo plugin (active) - Tested through versions 2.4.8 - 2.4.14
 - PHP 8.0+ - Tested 8.2
 - MySQL 8.0+ - Tested 8.0
@@ -403,6 +403,9 @@ This plugin is released under the GPL v2 or later license.
 ## Version History
 
 **Still in beta**
+
+New in Version 0.7.4:
+ - Minor refactoring fixes
 
 New in Version 0.7.3:
  - Security fixes

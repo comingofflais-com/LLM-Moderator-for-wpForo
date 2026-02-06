@@ -3,8 +3,8 @@
  * Plugin Name: LLM Moderator for wpForo
  * Plugin URI: https://github.com/comingofflais-com/LLM-Moderator-for-wpForo
  * Description: AI-powered moderation for wpForo using OpenRouter with standalone Moderator/Admin interface
- * Version: 0.7.4
- * Requires at least: 6.0
+ * Version: 0.7.3
+ * Requires at least: 5.0
  * Requires PHP: 7.4
  * Requires Plugins: wpforo
  * Tested with wpForo versions: 2.4.13 - 2.4.14
@@ -650,9 +650,9 @@ function colaias_wpforo_ai_display_settings(){
                                                     ?>
                                                         <div style="margin-bottom: 3px;">
                                                             <?php if ( $permission_info['has_permission'] ): ?>
-                                                                ✅ <?php echo esc_html($forum_title); ?> (ID: <?php echo esc_html( $forum_id ); ?>)
+                                                                ✅ <?php echo $forum_title; ?> (ID: <?php echo esc_html( $forum_id ); ?>)
                                                             <?php else: ?>
-                                                                ❌ <?php echo esc_html($forum_title); ?> (ID: <?php echo esc_html( $forum_id ); ?>)
+                                                                ❌ <?php echo $forum_title; ?> (ID: <?php echo esc_html( $forum_id ); ?>)
                                                                 <small style="color: #cc0000; margin-left: 10px;">
                                                                     Missing: <?php echo esc_html( implode( ', ', $permission_info['missing_permissions'] ) ); ?>
                                                                 </small>
@@ -1884,7 +1884,6 @@ function colaias_wpforo_ai_plugin_activation() {
 
 // Cache the site URL for LLM queries
 function colaias_wpforo_ai_cache_site_url() {
-    // Note get_home_url return "Unknown" in OpenRouter App
     $site_url = get_site_url();
     update_option( 'colaias_wpforo_ai_cached_site_url', $site_url );
     colaias_wpforo_ai_log_info( 'WPForo AI Moderation: Cached site URL for LLM queries: ' . $site_url );
@@ -2234,13 +2233,11 @@ function colaias_wpforo_ai_plugin_uninstall(){
     // Drop the muted users table
     global $wpdb;
     $table_name = $wpdb->prefix . 'colaias_wpforo_ai_muted_users';
-    $sql = "DROP TABLE IF EXISTS `" . esc_sql( $table_name ) . "`";
-    $wpdb->query( $sql );
+    $wpdb->query( $wpdb->prepare( "DROP TABLE IF EXISTS %s", $table_name ) );
 
     // drop the metrics table
     $table_name = $wpdb->prefix . 'colaias_wpforo_ai_flag_metrics';
-    $sql = "DROP TABLE IF EXISTS `" . esc_sql( $table_name ) . "`";
-    $wpdb->query( $sql );
+    $wpdb->query( $wpdb->prepare( "DROP TABLE IF EXISTS %s", $table_name ) );
 }
 
 function colaias_wpforo_ai_cleanup_capabilities() {
@@ -2509,19 +2506,22 @@ function colaias_wpforo_ai_clean_expired_mutes() {
         $is_cron = wp_doing_cron();
         
         if ( $is_cron && $original_user_id === 0 ) {
-            colaias_wpforo_ai_log_info( "WPForo AI Moderation: Cron job detected original user ID 0, attempting to switch to moderator user" );
+            colaias_wpforo_ai_log_info( "WPForo AI Moderation: Batch cron job detected original user ID 0, attempting to switch to moderator user" );
             
             // Try to find a user with moderation capabilities
             $moderator_user_id = colaias_wpforo_ai_Utilities::get_user_with_moderation_cap();
             
-            if ( $moderator_user_id ) {                
+            if ( $moderator_user_id ) {
+                colaias_wpforo_ai_log_info( "WPForo AI Moderation: Batch cron job found moderator user ID {$moderator_user_id}, attempting to switch" );
+                
                 // Set the current user
                 wp_set_current_user( $moderator_user_id );
+                
                 // Force initialization of WordPress user object
                 $current_user = wp_get_current_user();
                 $new_user_id = get_current_user_id();
                 
-                colaias_wpforo_ai_log_info( "WPForo AI Moderation: Cron job after wp_set_current_user, get_current_user_id() returns {$new_user_id}, wp_get_current_user()->ID returns " . $current_user->ID . ". Original ID {$original_user_id} is set to run as user ID {$moderator_user_id} for permissions" );
+                colaias_wpforo_ai_log_info( "WPForo AI Moderation: Batch cron job after wp_set_current_user, get_current_user_id() returns {$new_user_id}, wp_get_current_user()->ID returns " . $current_user->ID );
                 
                 // Force wpForo to reinitialize its current user data
             
@@ -2536,22 +2536,21 @@ function colaias_wpforo_ai_clean_expired_mutes() {
                     // Clear cached permissions to force fresh lookup
                     if ( property_exists( WPF(), 'current_user_accesses' ) ) {
                         WPF()->current_user_accesses = null;
-                        colaias_wpforo_ai_log_info( "WPForo AI Moderation: Cron job cleared WPF()->current_user_accesses cache" );
+                        colaias_wpforo_ai_log_info( "WPForo AI Moderation: Batch cron job cleared WPF()->current_user_accesses cache" );
                     }
                     
-                    colaias_wpforo_ai_log_info( "WPForo AI Moderation: Cron job with original ID {$original_user_id} is set to run as user ID {$moderator_user_id} for permissions and wpForo user data reinitialized" );
+                    colaias_wpforo_ai_log_info( "WPForo AI Moderation: Batch cron job with original ID {$original_user_id} is set to run as user ID {$moderator_user_id} for permissions and wpForo user data reinitialized" );
                 } else {
-                    colaias_wpforo_ai_log_info( "WPForo AI Moderation: ❌ ERROR. Cron job with original ID {$original_user_id} is set to run as user ID {$moderator_user_id} for permissions (wpForo init_current_user method not available)" );
+                    colaias_wpforo_ai_log_info( "WPForo AI Moderation: ❌ ERROR. Batch cron job with original ID {$original_user_id} is set to run as user ID {$moderator_user_id} for permissions (wpForo init_current_user method not available)" );
                 }
                
             } else {
-                colaias_wpforo_ai_log_info( "WPForo AI Moderation: Cron job could not find any user with moderation capabilities" );
+                colaias_wpforo_ai_log_info( "WPForo AI Moderation: Batch cron job could not find any user with moderation capabilities" );
                 // Log error but continue - let individual deletion functions handle permission errors
-                // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
-                error_log( '🤖 ❌ WPForo AI Moderation: Cron job could not find a user with moderation capabilities. Did web-admin forget to assign ❗😵? Deletions will fail due to permission checks. Now proceeding to automatic cleanup...' );
+                error_log( '🤖 ❌ WPForo AI Moderation: Cron job could not find a user with moderation capabilities. Deletions may fail due to permission checks.' );
             }
         } else if ( $is_cron ) {
-            colaias_wpforo_ai_log_info( "WPForo AI Moderation: Cron job already running with user ID {$original_user_id}" );
+            colaias_wpforo_ai_log_info( "WPForo AI Moderation: Batch cron job already running with user ID {$original_user_id}" );
         }
 
         /*
@@ -2578,6 +2577,20 @@ function colaias_wpforo_ai_clean_expired_mutes() {
             colaias_wpforo_ai_log_info( 'WPForo AI Moderation: Processing batch of ' . count( $expired_users ) . ' expired muted users' );
             
 
+            
+            
+            if ( $is_cron && $original_user_id === 0 ) {
+                // Try to find a user with moderation capabilities
+                $moderator_user_id = colaias_wpforo_ai_Utilities::get_user_with_moderation_cap();
+                
+                if ( $moderator_user_id ) {
+                    wp_set_current_user( $moderator_user_id );
+                    colaias_wpforo_ai_log_info( "WPForo AI Moderation: Cron job with original ID {$original_user_id} is set to run as user ID {$moderator_user_id} for permissions" );
+                } else {
+                    // Log error but continue - let individual deletion functions handle permission errors
+                    error_log( '🤖 ❌ WPForo AI Moderation: Cron job could not find a user with moderation capabilities. Deletions may fail due to permission checks.' );
+                }
+            }
 
             foreach ( $expired_users as $user ) {            
                 colaias_wpforo_ai_delete_penalizing_topic_or_post_for_user( $user->user_id );

@@ -4,7 +4,7 @@ Tags: llm, moderator, wpforo, ai, forum
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 0.7.4
+Stable tag: 0.6.7
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 #Donate link: https://comingofflais.com
@@ -218,19 +218,18 @@ The plugin expects OpenRouter to return a JSON object containing moderation resu
 
 == Changelog ==
 
-= 0.7.4 =
+= 0.7.3 =
 * Compatibility with wpForo 2.4.14
 * Security fixes
 * Renaming
 * Enqueued JS
 * Updated README
-* Minor refactoring, fixes
 
 = 0.6.7 =
 * Initial WordPress.org submit version
 
 == Upgrade Notice ==
 
-= 0.7.4 =
+= 0.7.3 =
 * This is a beta release. Please backup your site before upgrading.
 * The plugin is still in active development and may have breaking changes.
