@@ -143,6 +143,8 @@ For additional support and bug reports please see the Github page.
 
 This plugin integrates with the OpenRouter API (https://openrouter.ai/) to provide AI-powered content moderation for wpForo forums. When configured with a valid OpenRouter API key, the plugin sends moderation requests to analyze forum posts in real-time.
 
+The query is made to this url: 'https://openrouter.ai/api/v1/chat/completions'
+
 ### Data Transmission and Privacy
 
 **What Data Is Sent:**
