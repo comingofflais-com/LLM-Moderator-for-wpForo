@@ -4,7 +4,7 @@ Tags: llm, moderator, wpforo, ai, forum
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 0.7.5
+Stable tag: 0.7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 #Donate link: https://comingofflais.com
@@ -33,7 +33,7 @@ This plugin is in beta. **1st release! Backup your site before installing beta s
 
 = Requirements =
 * WordPress 6.0+ (Tested 6.9)
-* wpForo plugin active (Tested current: 2.4.15, Previous versions tested 2.4.8 – 2.4.15)
+* wpForo plugin active (Tested 2.4.8 – 2.4.14)
 * PHP 8.0+ (Tested 8.2)
 * MySQL 8.0+ (Tested 8.0)
 * OpenRouter API key
@@ -85,13 +85,6 @@ This is a moderation only plugin that mutes users who violate your custom rules 
 
 While it can, however, be custom coded for a some features beyond moderation, this plugin will not support extra features beyond moderation. If you are interested in more AI features, contact the developer.
 
-= Does this plugin track or send any data? =
-No, only the user data post content is sent to OpenRouter for moderation purposes without any identifiable information.
-Privacy commitment:
-    🚫 No ads
-    🚫 No tracking
-    🚫 No data selling
-
 = Why Choose LLM Moderator for wpForo? =
 ✊ **Take Control of Your Moderation** – Easy to set up. Let AI handle the heavy lifting to automatically mute users, and delete unwanted posts (if unapproved) while you focus on community building.
 
@@ -112,7 +105,7 @@ Upgrade to the premium version for advanced features including:
 * Easy Prompt engineering interface
 * Forum flood control and user post limits
 * Comprehensive Premium metrics with 5-year data retention
-* Enhanced charts and graphs, and user table for metrics
+* Enhanced table, charts and graphs for metrics
 * Lifetime single purchase
 
 Support independent development – your purchase helps keep this plugin free and actively maintained!
@@ -124,8 +117,6 @@ OpenRouter is a service that routes access to various AI models. Yes, you need a
 = How much does it cost to use this plugin? =
 The plugin itself is free. However, you need to pay for OpenRouter API usage. During testing, the average cost per request is about USD $0.00005 using DeepSeek-v3.1 model (DeepSeek-v3.2 is even cheaper).
 
-The premium version is available for paying users.
-
 = Can I use free AI models? =
 Yes, free models are available on OpenRouter, but you can not use a free model with model-chaining. Moreover, AI moderation with OpenRouter is relatively cost effective and efficient with paid models that can be chained.
 
@@ -133,7 +124,7 @@ Yes, free models are available on OpenRouter, but you can not use a free model w
 If your key is at its limit or your account is out of credits, the moderation will simply be skipped. Make sure to enable OpenRouter alerts to monitor your usage.
 
 = What happens if my forum comes under spam and troll attacks, will it cost me money? =
-After an account is muted, their posts will not query to OpenRouter until they are unmuted. The premium plugin also has a flood control system for user and forum posting limits. Moreover, you can set a spending limit on your OpenRouter key to prevent overuse. Further blocking and anti-spam solutions maybe available from gVectors.
+After an account is muted, their posts will not query to OpenRouter until they are unmuted. The premium plugin also has a flood control system for user and forum posting limits. Moreover, you can set a spending limit on your OpenRouter key to prevent overuse. Further blocking solutions maybe available from gVectors.
 
 = How do I disable moderation temporarily? =
 If you don't want any moderation, deactivate the plugin. Alternatively, you can remove/unsave your OpenRouter API key in the settings, doing so will retain the currently muted users.
@@ -147,9 +138,6 @@ wpForo seldomly makes core updates, and even promotes the source code in their "
 The main developer is, however, very busy with other web and android projects, but will take a look if the community reaches out directly on Telegram https://t.me/wpforo_ai (and YELLS haha, remember this) as that is the quickest way to get in touch.
 You can also directly participate in keeping the plugin up-to-date over on Github https://github.com/comingofflais-com/LLM-Moderator-for-wpForo
 For additional support and bug reports please see the Github page.
-
-= Can I customize the prompt per individual forum bases? =
-No, the plugin has global moderation that is applied to all forums, however, this is a feature that can be built out. Feel free to add features as you like through Github pull requests. Make sure to discuss your idea with us on our Telegram before working on the changes. 
 
 == External Services ==
 

@@ -3,11 +3,11 @@
  * Plugin Name: LLM Moderator for wpForo
  * Plugin URI: https://github.com/comingofflais-com/LLM-Moderator-for-wpForo
  * Description: AI-powered moderation for wpForo using OpenRouter with standalone Moderator/Admin interface
- * Version: 0.7.5
+ * Version: 0.7.4
  * Requires at least: 6.0
  * Requires PHP: 7.4
  * Requires Plugins: wpforo
- * Tested with wpForo versions: 2.4.15
+ * Tested with wpForo versions: 2.4.13 - 2.4.14
  * Author: colaiasq Ali, comingofflais.com
  * Author URI: https://comingofflais.com/participant/admin/
  * License: GPL v2 or later
@@ -330,9 +330,10 @@ function colaias_wpforo_ai_llm_settings_page(){
                 <li>Improved moderator control panel plugin</li>
                 <li>Easy prompt generation panel</li>
                 <li>Advanced flood control system</li>
-                <li>Charts and graph based metrics with user lookup</li>
+                <li>Charts and graph based metrics</li>
+                <li>"Wall of Shame" shortcode page to display muted users with reasons ( TBD ).</li>
             </ul>
-            <p><strong>Get it now at: <a href="https://insertmywebsitehere.com/shop" target="_blank" style="color: #0073aa; text-decoration: underline;">insertmywebsitehere.com ( beta version, store coming soon )</a></strong></p>
+            <p><strong>Get it now at: <a href="https://insertmywebsitehere.com/shop" target="_blank" style="color: #0073aa; text-decoration: underline;">insertmywebsitehere.com ( store coming soon )</a></strong></p>
             <p>Features automatic new version upgrade notification in Dashboard -> Plugins</p>
             <br><p style="padding: 10px; background:rgba( 170, 170, 170, 0.25 );">🤖 Your active participation in development is greatly appreciated. Check out the repository on Github <a href="https://github.com/comingofflais-com/LLM-Moderator-for-wpForo" target="_blank" style="color: #0073aa; text-decoration: underline;">https://github.com/comingofflais-com/LLM-Moderator-for-wpForo</a>. Enjoy the moderation features!</p>
         </div>
@@ -549,8 +550,7 @@ function colaias_wpforo_ai_llm_settings_page(){
 function colaias_wpforo_ai_display_settings(){
     ?>
     <div class="notice is-dismissible">
-        <p style="font-size: small;"><strong style="color: green;">✅ Everything working?</strong> 🤖?? <strong style="color: red;">❌ No?</strong> ... 😅.
-         This is a beta version, make sure to use with the tested wpForo version. Bugs may still be prenent. Safety brakes should prevent crashes ( hopefully! 🤞 ). If wpForo updates break things, check debug.log 🕵️‍♂️. Use the tested version ( But even that might break mwhahaha 🦹 ) ⚠️ Small chance of memory leaks if not working ... Might need to deactivate ( not uninstall! 🚫🗑️ ).
+        <p style="font-size: small;"><strong style="color: green;">✅ Everything working?</strong> 🤖?? <strong style="color: red;">❌ No?</strong> ... 😅. Safety brakes should prevent crashes ( hopefully! 🤞 ). If wpForo updates break things, check debug.log 🕵️‍♂️. Use the tested version ( But even that might break mwhahaha 🦹 ) ⚠️ Small chance of memory leaks if not working ... Might need to deactivate ( not uninstall! 🚫🗑️ ).
         <br>
         <br>For urgent fixes 🚨, fastest way to contact developer is <a href='https://t.me/wpforo_ai'>Telegram</a>. Note this down for future reference. 💬 Have your message ready! Not official wpForo devs 🚫👔 - indie developer. <strong>Contact us for bugs 🐛 or collabs 🤝 ONLY!</strong> NOT basic tech support for wpForo and WordPress 🙅‍♂️🙅‍♂️🙅‍♂️ 🤦‍♀️. Also, there isn't built in auto-bug-alert system 🚫. <strong>Community, check logs and yell! 📢</strong> Pro tip: Enable informational logging, when needed, to find out where the problem is occuring 🕵️‍♂️.
         <br>
@@ -829,8 +829,8 @@ function colaias_wpforo_ai_display_settings(){
                     <th scope="row">
                         <label for="colaias_wpforo_ai_moderation_prompt">Moderation Prompt</label>
                         <hr>
-                        <small class="description" style="display: block; color: #6c757d;">❗Note: The 'type' key is required in the LLM's JSON response for this plugin to function.</small>
-                        <small class="description" style="display: block; color: #6c757d;">⚠️ Note: The 'reason' key is recommended. It is used for flag metrics, to display the reason for muting user, and to append the LLM reason at the end of the user post with the {REASON} formatting tag.</small>
+                        <small class="description" style="display: block; color: #6c757d;">❗Note: The'type' key is required in the LLM's JSON response for this plugin to function.</small>
+                        <small class="description" style="display: block; color: #6c757d;">⚠️ Note: The'reason' key is recommended. It is used in flag metrics, to display reason for muted users, and to append the LLM reason at the bottom of the user post with the {REASON} formatting tag.</small>
                         <br>
                     </th>
                     <td>
@@ -1119,7 +1119,7 @@ function colaias_wpforo_ai_display_metrics() {
                     <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; text-align: center;">
                         <h4 style="margin: 0 0 10px 0; color: #495057;">Past Year Muted Users Prevented</h4>
                         <p style="font-size: 2em; font-weight: bold; color: #dc3545; margin: 0;"><?php echo esc_html( number_format( $past_year_muted_hits ) ); ?></p>
-                        <p style="font-size: 0.9em; color: #6c757d; margin: 5px 0 0 0;">Muted users' attempts to post</p>
+                        <p style="font-size: 0.9em; color: #6c757d; margin: 5px 0 0 0;">Muted users' attempts to post hits</p>
                     </div>
                     <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; text-align: center;">
                         <h4 style="margin: 0 0 10px 0; color: #495057;">Past Year Muted</h4>
@@ -2629,13 +2629,13 @@ function colaias_wpforo_ai_clean_expired_mutes() {
 
 /**
  * Clean up old flag metrics records ( over 5 years old )
- * Runs on a weekly schedule to minimize database impact
+ * Runs on a monthly schedule to minimize database impact
  */
 function colaias_wpforo_ai_clean_old_flag_metrics() {
     try {
         global $wpdb;
         
-        colaias_wpforo_ai_log_info( 'WPForo AI Moderation: Starting weekly cleanup of old flag metrics records' );
+        colaias_wpforo_ai_log_info( 'WPForo AI Moderation: Starting monthly cleanup of old flag metrics records' );
         
         $table_name = $wpdb->prefix . 'colaias_wpforo_ai_flag_metrics';
         $current_time = current_time( 'mysql' );
@@ -3437,7 +3437,7 @@ function colaias_wpforo_ai_record_muted_hit( $user_id, $is_topic, $is_edit )  {
                 'hit_time' => current_time( 'mysql' ),
                 'hit_type' => 'muted_prevented',
                 'content_type' => $content_type,
-                'flag_type' => null
+                'flag_type' => 'MUTED_PREVENTED'
             ),
             array( '%d', '%s', '%s', '%s', '%s' )
         );
