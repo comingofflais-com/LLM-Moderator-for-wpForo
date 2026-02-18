@@ -7,19 +7,21 @@ AI-powered moderation using OpenRouter with standalone Moderator/Admin interface
 ## Description
 
 ### Important
-This plugin is in beta. See tested versions below (current 2.4.15). **WARNING**: The code is released for early adopters beta testing on non-production sites and reference purposes only. In any case, **back up your site first!** Use at your own risk. Bug fixes are appreciated.
+This plugin is in beta. See tested versions below (current 2.4.15). **WARNING**: Plugin is complete, but is in beta, and seeking early adopters, please **back up your site first!** and report any bugs via our Telegram.
 
 LLM Moderator for wpForo is a WordPress plugin that integrates AI-powered content moderation with the wpForo forum plugin. It uses OpenRouter API to analyze forum posts and topics in real-time, automatically flagging inappropriate content and muting users who violate forum guidelines. Utilizing independent database tables for muted users, and flag metrics.
 
 Get control over your moderation ✊ ✊ ✊. Moderate at mere pennies. During testing the average cost per request is recorded at USD $0.00005 using the default prompt, with DeepSeek-v3.1.
 
 ## News
- - Jan 31th, 2025 | new wpForo version 2.4.14 forces permission before deleting posts, I have implemented this change
+ - Feb 17, 2026 | The plugin is available on wordpress.org [https://wordpress.org/plugins/llm-moderator-for-wpforo/](https://wordpress.org/plugins/llm-moderator-for-wpforo/)
+ - Jan 31th, 2026 | new wpForo version 2.4.14 forces permission before deleting posts, I have implemented this change
  - Jan 2026 | Looking for beta testers. Join the Telegram group!
 
 ## Features
 
 - **AI-Powered Moderation**: Uses OpenRouter API with configurable AI models (default: deepseek/deepseek-chat-v3.1)
+- **Private By Default**: Does not send personally user identifiable data to the LLM models, no tracking, no ads
 - **Flexible Flagging System**: Customizable flag types (flag, nsfw, spam, etc.) with individual mute durations
 - **User Management**: Automatically moves flagged users to a "Muted" database table
 - **Standalone Admin Interface**: Accessible to both Administrators and Moderators with proper capability controls
@@ -27,15 +29,15 @@ Get control over your moderation ✊ ✊ ✊. Moderate at mere pennies. During t
 - **Append AI Message to post**: Append a custom string with {TYPE} and {REASON} formatting tags for AI response to the original post or topic after the edit 
 - **Content Cleanup**: Automatically handles unapproved content removal when users are unmuted
 - **Scheduled Maintenance**: Daily cleanup of expired mutes and orphaned records
-- **Metrics**: Know how many posts resulted muting, how many muted users were prevented, the flag types, up to 1 year. 
+- **Metrics And Analytics**: Know how many posts resulted muting, how many muted users were prevented, the flag types, up to 1 year, robust charts and graphs in premium to analyze forum or individual users by grouping 
 - **Notifications**: Short-code for notification to user about the moderation and mute status
 
-## Premium (unreleased, in development)
+## Premium (coming soon)
 **Premium**: Has an automatically updating premium version available for purchase that includes:
-   - **Essential "Moderator" usergroup members' control panel** short-code. Improved moderation control page for your human moderators to manage admin page actions such as view muted users, un-mute muted users, view the triggering posts and approve or delete.
-   - **Easy Prompt panel** to help you create llm prompts with organized structure  
+   - **Essential "Moderator" usergroup members' control panel** short-code. Improved moderation control page for your human moderators to manage admin page actions such as view muted users, bulk actions to unmute users, view the triggering posts and approve or delete, search by username or ID.
+   - **Easy Prompt panel** to help you create llm prompts with organized structure, quickly, and with less effort  
    - **Forum flood control and user post limit** to stop excessive user posting resulting in excessive AI use
-   - **Premium Metrics** utilizing the robust pre-existing WordPress plugins to create charts and graphs, up to 5 years retention since base plugin activation
+   - **Premium Metrics** utilizing robust charts and graphs, up to 5 years retention since base plugin activation
 
    **Purchase the premium**: The purchase for the premium features will be available soon (after I finish development). Your purchase is greatly appreciated because it supports me and my work.
 
@@ -50,11 +52,17 @@ Get control over your moderation ✊ ✊ ✊. Moderate at mere pennies. During t
 ![Alt text](screenshots/8.png)
 
 ## Premium Version Screenshots
-![Alt text](screenshots/p/1.png)
 ![Alt text](screenshots/p/2.png)
-![Alt text](screenshots/p/3.png)
-![Alt text](screenshots/p/4.png)
-![Alt text](screenshots/p/5.png)
+![Alt text](screenshots/p/6.png)
+![Alt text](screenshots/p/7.png)
+![Alt text](screenshots/p/8.png)
+![Alt text](screenshots/p/9.png)
+![Alt text](screenshots/p/10.png)
+![Alt text](screenshots/p/11.png)
+![Alt text](screenshots/p/12.png)
+![Alt text](screenshots/p/13.png)
+![Alt text](screenshots/p/15.png)
+
 
 
 ## Requirements
@@ -226,7 +234,7 @@ The plugin creates a custom table `wp_colaias_wpforo_ai_flag_metrics` to track:
 ## Development
 - **Do not start right away, read the following first.**
 - Join the Telegram group first before taking on a project or making changes. Someone might already be working on it, or we may not be able to accept it into the codebase.
-- Some features maybe premium, and may already be coded out. You can help us improve features instead of creating them from scratch.
+- Some features may be premium, and may already be coded out. You can help us improve features instead of creating them from scratch.
 - Our premium plugins rely on the functions inside this base plugin, any changes will likely effect them, so join the Telegram and address these issues first. Your changes may not be accepted if you do not consult the developer.
 - Enable information logging to get step-by-step moderation flow. View the logs in the terminal with cmd `tail -f wp-content/debug.log`. Helpful for debugging and understanding how the plugin works. 
 - Permissions: `'colaias_wpforo_ai_can_access_moderation'`
@@ -340,11 +348,11 @@ The plugin expects OpenRouter to return a JSON object containing moderation resu
 
 ### Community Help Requested
 
-**HELP WANTED!** 
+**HELP REQUESTED!** 
 
 This is an open-source project available on GitHub that is built upon several different, changing, and evolving ecosystems, most importantly wpForo. This means we need community updates to this free plugin to keep it running consistently with version updates. At the very least, I need you to join my telegram group to immediately update/notify me of changes, and provide help.
 
-I am not a primarily WordPress developer, I will likely be forever busy with other projects. However, the effort put into making the project means it must survive! **Yell at me if something breaks.**
+I am not a primarily WordPress developer. I will likely be working on another project and wont be able to keep up going back and forth constantly to check for changes. I will likely be forever busy with other projects. However, the effort put into making the project means it must survive! **PLEASE ALERT ME IF SOMETHING BREAKS OR CHANGES ARE NEEDED.** 
 
 ### Project Background
 
@@ -352,7 +360,7 @@ I, the developer, have put a lot of effort into creating this plugin, wanting to
 
 But maybe that is a good thing for you. And not only that, there may be some considerable differences where this might be all you need. This is a super low cost, user-controlled moderation system. Moderation only.
 
-The wpForo AI suite may have more features, but this plugin still solves the critical need for AI moderation. This is effective, and free (except for the very low cost OpenRouter fees), and gives you control over your moderation needs ✊ ✊ ✊.
+The wpForo AI suite may have more features, but this plugin still solves the critical need for AI moderation. This is effective, strong privacy by default, feature rich, and free (except for the very low cost OpenRouter fees), and gives you control over your moderation needs ✊ ✊ ✊.
 
 ### Comparison with wpForo AI Suite
 
@@ -361,7 +369,7 @@ I was told by the gVectors team that their system is an "Enterprise" level AI su
 
 However, this plugin can potentially be expanded to do some stuff beyond just moderation. It follows a "chain-of-responsibility" pattern, making it easy for developers to understand and expand upon. For example, it can be used to add topic tags upon topic creation, or to track posting metrics.
 
-In short, this plugin can be expanded to do a lot more because of how post data is passed between the "chain-points", which makes it rather easy to develop with for moderation purposes. While that base plugin will only support moderation, feel free to contact the developer if you want enhanced AI features (or extra features) in another forum plugin.
+In short, this plugin can be expanded to do a lot more because of how post data is passed between the "chain-points", which makes it rather easy to develop with for moderation purposes. While this base plugin will only support moderation, feel free to contact the developer if you want enhanced AI features (or extra features) in another form.
 
 ### Premium Features & Community Development
 
@@ -375,17 +383,16 @@ As noted, I created this with the intention to capitalize on a commercial opport
 
 - **Don't Crash wpForo Guard**: Likewise, all code manipulating wpForo should use built-in wpForo methods such as for deletion, status change, usergroup permission assignments, etc.
 
-- **Exception Notification System**: Some sort of notification system on exceptions, passing the wpForo version, to quickly let me know if someone had crashing issues. GDPR compliant, opt-in permission needed. Probably only auto alert the site admin, who will then alert me. I think this should a separate plugin to build out, then call functions of from this that record if the catch code was triggered. Sends notification to admin menu.
+- **Exception Notification System**: Some sort of notification system on exceptions, passing the wpForo version, to quickly let me know if someone had crashing issues. GDPR compliant, opt-in permission needed. Probably only auto alert the site admin, who will then alert me. I think this should a separate plugin to build out. It should sends notification to admin menu, or via a messaging service.
 
-- **User Progress Notification**: Notification system to show AI moderation progress to user. Somewhat implemented. Seems difficult to make, but done.
+- **User Progress Notification**: Notification system to show AI moderation progress to user. Somewhat implemented, was difficult to make, but not exactly as I wanted it.
 
 - **Testing Framework**: Somewhat done, doesn't test properly. Tests 192 difference scenarios, mostly related to posting. Doesn't cover everything. Isn't fully automated, but let's me know what expected result didn't result. Only checks ~half of the actual different scenarios that can occur.
 
-- **Context-Aware Moderation**: Provide a few preceding approved posts for LLM moderation for better context. The best way may be the "memory" feature that is currently not supported by OpenRouter, so there may be no need to build it out now, also I'm simply exhausted and want to work on some other projects. The idea would be to get the AI to request back for more context, up to a few posts if it doesn't have enough certainty. Posts will need to be sent with user ID, name, order, whether it is a reply, what posts it directly succeeds, and post content. Users will need to be kept in the loop with notices and shown LLM reasons why it wants more context. (Somewhat time-consuming and requires some LLM knowledge)
+- **Context-Aware Moderation**: Provide a few preceding approved posts for LLM moderation for better context. The good way may be the "memory" feature that is currently not supported by OpenRouter, so there may be no need to build it out now, also I'm simply exhausted and want to work on some other projects. The idea would be to get the AI to request back for more context, up to a few posts if it doesn't have enough certainty. Posts will need to be sent with user ID, name, order, whether it is a reply, what posts it directly succeeds, and post content. Users will need to be kept in the loop with notices and shown LLM reasons why it wants more context. (Somewhat time-consuming and requires some LLM knowledge)
 
 - **Simpler Context-Aware Moderation**: Likely the only way with LLMs, but actually the better way. Just send the preceding posts, the post the current user is directly replying to, for edits get replying and succeeding posts. Hide user identity from the LLM for privacy by giving fake name, alias, or random user id. (This is top priority, provides adequate moderation. Current is unreliable.)
 
-- **Metrics and Analytics**: Work in progress.
 
 - **AI Topic Tags**: Optional, not essential to moderation but can be helpful. Have the LLM provide a "topic tags" key if it is a topic, in the JSON response, then use those to set topic tags. (Easy to implement, not exactly an essential part of realtime moderation, adds maintenance complexity)
 
