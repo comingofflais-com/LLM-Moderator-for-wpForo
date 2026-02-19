@@ -1,9 +1,9 @@
 <?php
 /**
- * Plugin Name: LLM Moderator For wpForo
+ * Plugin Name: LLM Moderator for wpForo
  * Plugin URI: https://github.com/comingofflais-com/LLM-Moderator-for-wpForo
  * Description: AI-powered moderation for wpForo using OpenRouter with standalone Moderator/Admin interface
- * Version: 0.7.6
+ * Version: 0.7.5
  * Requires at least: 6.0
  * Requires PHP: 7.4
  * Requires Plugins: wpforo
@@ -42,7 +42,7 @@ RULES:
 PRIORITY ORDER (check in this sequence):
     1. Check for '[FLAG]' → if confirmed, type = 'FLAGGED' (stop checking further)
     2. Check for '[REVIEW]' → if confirmed, type = 'REVIEW' (stop checking further)
-    3. Check for '[ALLOW]' → if confirmed, type = 'ALLOWED'
+    3. Check for '[ALLOW]'' → if confirmed, type = 'ALLOWED'
 
 
 Provide a concise reason of 20 words or less in 'reason'. Always respond with valid JSON format only, no additional text.
@@ -3086,351 +3086,13 @@ function colaias_wpforo_ai_async_status_verification( $post_id, $expected_status
 add_action( 'colaias_wpforo_ai_async_status_verification', 'colaias_wpforo_ai_async_status_verification', 10, 4 );
 
 
-// === LLM GET CONTENT WITH CONTEXT ===
-
-/**
- * Premium function generously made available in base version. But set $max_succeeding only through premium.
- * Returns organized and JSON string formated topic content data with context for better moderation
- */
-function colaias_wpforo_ai_get_moderation_topic_content_with_context( $topic, $max_succeeding ){
-    try {
-        // Use associative array as map since PHP doesn't have built-in Map class
-        $topic_map = [];
-
-        // Check if wpForo is available
-        if ( !function_exists( 'WPF' ) ) {
-            return '';
-        }
-
-        // Validate topic data
-        if ( !isset( $topic['topicid'] ) || !isset( $topic['first_postid'] ) ) {
-            colaias_wpforo_ai_log_info( '⚠️ ❌ 💀 WPForo AI Moderation: ERROR. UNUSUAL. When getting CONTEXT. Could not validate topicid or first_postid was not set. Returing empty for fallback' );
-            return '';
-        }
-
-        $topic_id = $topic['topicid'];
-        $first_post_id = $topic['first_postid'];
-
-        // Get the first post (topic starter)
-        $first_post = WPF()->post->get_post( $first_post_id, false );
-        if ( !$first_post ) {
-            colaias_wpforo_ai_log_info( '⚠️ ❌ 💀 WPForo AI Moderation: ERROR. UNUSUAL. When getting CONTEXT. Could not get first post. Returing empty for fallback' );
-            return '';
-        }
-
-        // Add topic starter to map
-        $first_post_content = isset( $first_post['body'] ) ? $first_post['body'] : '';
-        if ( isset( $first_post['title'] ) && !empty( $first_post['title'] ) ) {
-            $first_post_content = $first_post['title'] . "\n\n" . $first_post_content;
-        }
-
-        $topic_map[$first_post_id] = [
-            'content' => $first_post_content,
-            'user_id' => isset( $first_post['userid'] ) ? $first_post['userid'] : 0,
-            'relationships' => ['The topic (first post) to analyize']
-        ];
-
-        $topic_map[$first_post_id]['relationships'][] = 'Topic starter post';
-
-        // Get list of post IDs in the topic to find position and neighboring posts
-        // We'll get post IDs only to be more efficient
-        $post_ids_result = WPF()->post->get_posts( [
-            'topicid' => $topic_id,
-            'orderby' => 'created',
-            'order' => 'ASC',
-            'fields' => ['postid'] // Only get post IDs
-        ] );
-        
-        if ( $post_ids_result && is_array( $post_ids_result ) ) {
-            // Extract post IDs from result
-            $post_ids = [];
-            foreach ( $post_ids_result as $post_item ) {
-                // Handle different possible result structures:
-                // 1. Simple integer (post ID)
-                // 2. Array with 'postid' key
-                // 3. Other unexpected structure
-                if ( is_numeric( $post_item ) ) {
-                    $post_ids[] = (int) $post_item;
-                } elseif ( is_array( $post_item ) && isset( $post_item['postid'] ) ) {
-                    colaias_wpforo_ai_log_info( '⚠️ ❌ 💀 WPForo AI Moderation: ERROR. unexpected structure. UNUSUAL, does not occur in previous verisons.' );
-                    $post_ids[] = (int) $post_item['postid'];
-                }
-                // Skip any other unexpected items
-            }
-
-            // Find first post position
-            $first_post_index = array_search( $first_post_id, $post_ids );
-
-            if ( $first_post_index !== false ) {
-                // Get succeeding posts (posts after the first post in the same topic)
-                if ( $max_succeeding > 0 ) {
-                    $total_posts = count( $post_ids );
-                    $end_index = min( $total_posts - 1, $first_post_index + $max_succeeding );
-
-                    if ( $first_post_index < $total_posts - 1 ) {
-                        // Get IDs of succeeding posts
-                        $succeeding_ids = array_slice( $post_ids, $first_post_index + 1, $end_index - $first_post_index );
-
-                        foreach ( $succeeding_ids as $index_offset => $succeeding_id ) {
-                            $distance = $index_offset + 1;
-                            $relationship = $distance == 1 ? 'Post succeeding directly (next post)' : "Post succeeding by {$distance} posts";
-
-                            if ( $succeeding_id > 0 && !isset( $topic_map[$succeeding_id] ) ) {
-                                $succeeding_post = WPF()->post->get_post( $succeeding_id, false );
-                                if ( $succeeding_post ) {
-                                    $succeeding_content = isset( $succeeding_post['body'] ) ? $succeeding_post['body'] : '';
-                                    if ( isset( $succeeding_post['title'] ) && !empty( $succeeding_post['title'] ) ) {
-                                        $succeeding_content = $succeeding_post['title'] . "\n\n" . $succeeding_content;
-                                    }
-
-
-                                    $topic_map[$succeeding_id] = [
-                                        'content' => $succeeding_content,
-                                        'user_id' => isset( $succeeding_post['userid'] ) ? $succeeding_post['userid'] : 0,
-                                        'relationships' => [$relationship]
-                                    ];
-                                }
-                            } else if ( $succeeding_id > 0 && isset( $topic_map[$succeeding_id] ) ) {
-                                $topic_map[$succeeding_id]['relationships'][] = $relationship;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // Convert the map to JSON string
-        $json_string = json_encode( $topic_map, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE );
-
-        // Handle JSON encoding errors
-        if ( $json_string === false ) {
-            // If encoding fails, return empty string
-            colaias_wpforo_ai_log_info( '⚠️ ❌ 💀 WPForo AI Moderation: ERROR. JSON encoding failed. Returing empty for fallback' );
-            return '';
-        }
-        
-        colaias_wpforo_ai_log_info( 'WPForo AI Moderation: The encoded JSON topic CONTENT + CONTEXT string:   ' . $json_string  );
-        return $json_string;
-    
-    } catch (Exception $e) {
-        // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
-        error_log( '🤖 ❌ 💀 WPForo AI Moderation: CRITICAL ERROR. Could not get topic context for LLM. Exception : '
-        .$e->getMessage() );
-        return '';
-    } 
-}
-
-/**
- * Premium function generously made available in base version. But set $max_ only through premium.
- * Returns organized and JSON string formated post content data with context for better moderation
- */
-function colaias_wpforo_ai_get_moderation_post_content_with_context( $post, $max_succeeding, $max_preceding ){
-    try {    
-        // Use associative array as map since PHP doesn't have built-in Map class
-        $post_map = [];
-
-        // Check if wpForo is available
-        if ( !function_exists( 'WPF' ) ) {
-            return '';
-        }
-
-        // Validate post data
-        if ( !isset( $post['postid'] ) || !isset( $post['topicid'] ) ) {
-            colaias_wpforo_ai_log_info( '⚠️ ❌ 💀 WPForo AI Moderation: ERROR. UNUSUAL. When getting CONTEXT. Could not validate postid or topicid. Returing empty for fallback' );
-            return '';
-        }
-
-        $post_id = $post['postid'];
-        $topic_id = $post['topicid'];
-
-        // Get the topic
-        $topic = WPF()->topic->get_topic( $topic_id, false );
-        if ( !$topic ) {
-            colaias_wpforo_ai_log_info( '⚠️ ❌ 💀 WPForo AI Moderation: ERROR. UNUSUAL. When getting CONTEXT. Could not get topic. Returing empty for fallback' );
-            return '';
-        }
-
-
-
-        // Add current post to map
-        $current_post_content = isset( $post['body'] ) ? $post['body'] : '';
-        if ( isset( $post['title'] ) && !empty( $post['title'] ) ) {
-            $current_post_content = $post['title'] . "\n\n" . $current_post_content;
-        }
-
-        $post_map[$post_id] = [
-            'content' => $current_post_content,
-            'user_id' => isset( $post['userid'] ) ? $post['userid'] : 0,
-            'relationships' => ['The post to analyize']
-        ];
-
-
-        // Get the first post (topic starter)
-        $first_post_id = isset( $topic['first_postid'] ) ? $topic['first_postid'] : null;
-        if ( $first_post_id ) {
-            $first_post = WPF()->post->get_post( $first_post_id, false );
-            if ( $first_post ) {
-                // Add topic starter to map
-                if ( ! isset( $post_map[$first_post_id] ) ) {
-                    $post_map[$first_post_id] = [
-                        'content' => ( isset( $first_post['title'] ) ? $first_post['title'] . "\n\n" : '' ) . ( isset( $first_post['body'] ) ? $first_post['body'] : '' ),
-                        'user_id' => isset( $first_post['userid'] ) ? $first_post['userid'] : 0,
-                        'relationships' => ['Topic starter post']
-                    ]; 
-                } else { // technically this block should never run
-                    $post_map[$first_post_id]['relationships'][] = 'Topic starter post';
-                }
-            }
-        }
-
-        // Check if this post is a reply to another post
-        // In wpForo, if a post has a parentid > 0, it's a reply to that post
-        $parent_id = isset( $post['parentid'] ) ? $post['parentid'] : 0;
-        if ( $parent_id > 0 ) {
-            $parent_post = WPF()->post->get_post( $parent_id, false );
-            if ( $parent_post ) {
-                // Check if parent already exists in map
-                if ( isset( $post_map[$parent_id] ) ) {
-                    // Append relationship
-                    $post_map[$parent_id]['relationships'][] = 'Post being replied to';
-                } else {
-                    // Add parent to map
-                    $parent_content = isset( $parent_post['body'] ) ? $parent_post['body'] : '';
-                    if ( isset( $parent_post['title'] ) && !empty( $parent_post['title'] ) ) {
-                        $parent_content = $parent_post['title'] . "\n\n" . $parent_content;
-                    }
-                    $post_map[$parent_id] = [
-                        'content' => $parent_content,
-                        'user_id' => isset( $parent_post['userid'] ) ? $parent_post['userid'] : 0,
-                        'relationships' => ['The post being replied to']
-                    ];
-                }
-            }
-        }
-
-        // Get list of post IDs in the topic to find position and neighboring posts
-        // We'll get post IDs only to be more efficient
-        $post_ids_result = WPF()->post->get_posts( [
-            'topicid' => $topic_id,
-            'orderby' => 'created',
-            'order' => 'ASC',
-            'fields' => ['postid'] // Only get post IDs
-        ] );
-        
-        if ( $post_ids_result && is_array( $post_ids_result ) ) {
-            // Extract post IDs from result
-            $post_ids = [];
-            foreach ( $post_ids_result as $post_item ) {
-                // Handle different possible result structures:
-                // 1. Simple integer (post ID)
-                // 2. Array with 'postid' key
-                // 3. Other unexpected structure
-                if ( is_numeric( $post_item ) ) {
-                    $post_ids[] = (int) $post_item;
-                } elseif ( is_array( $post_item ) && isset( $post_item['postid'] ) ) {
-                    colaias_wpforo_ai_log_info( '⚠️ ❌ 💀 WPForo AI Moderation: ERROR. unexpected structure. UNUSUAL, does not occur in previous verisons. Returing empty for fallback' );
-                    $post_ids[] = (int) $post_item['postid'];
-                }
-                // Skip any other unexpected items
-            }
-
-            // Find current post position
-            $current_index = array_search( $post_id, $post_ids );
-
-            if ( $current_index !== false ) {
-                // Get preceding posts (posts before this one in the same topic)
-                if ( $max_preceding > 0 && $current_index > 0 ) {
-                    $start_index = max( 0, $current_index - $max_preceding );
-
-                    // Get IDs of preceding posts
-                    $preceding_ids = array_slice( $post_ids, $start_index, $current_index - $start_index );
-
-                    foreach ( $preceding_ids as $index_offset => $preceding_id ) {
-                        $distance = $current_index - ( $start_index + $index_offset );
-                        $relationship = $distance == 1 ? 'Post preceding directly (previous post)' : "Post preceding by {$distance} posts";
-
-                        if ( $preceding_id > 0 && !isset( $post_map[$preceding_id] ) ) {
-                            $preceding_post = WPF()->post->get_post( $preceding_id, false );
-                            if ( $preceding_post ) {
-                                $preceding_content = isset( $preceding_post['body'] ) ? $preceding_post['body'] : '';
-                                if ( isset( $preceding_post['title'] ) && !empty( $preceding_post['title'] ) ) {
-                                    $preceding_content = $preceding_post['title'] . "\n\n" . $preceding_content;
-                                }
-
-
-
-                                $post_map[$preceding_id] = [
-                                    'content' => $preceding_content,
-                                    'user_id' => isset( $preceding_post['userid'] ) ? $preceding_post['userid'] : 0,
-                                    'relationships' => [$relationship]
-                                ];
-                            }
-                        } else if ( $preceding_id > 0 && isset( $post_map[$preceding_id] ) ) {
-                            $post_map[$preceding_id]['relationships'][] = $relationship;
-                        }
-                    }
-                }
-
-                // Get succeeding posts (posts after this one in the same topic)
-                if ( $max_succeeding > 0 ) {
-                    $total_posts = count( $post_ids );
-                    $end_index = min( $total_posts - 1, $current_index + $max_succeeding );
-
-                    if ( $current_index < $total_posts - 1 ) {
-                        // Get IDs of succeeding posts
-                        $succeeding_ids = array_slice( $post_ids, $current_index + 1, $end_index - $current_index );
-
-                        foreach ( $succeeding_ids as $index_offset => $succeeding_id ) {
-                            $distance = $index_offset + 1;
-                            $relationship = $distance == 1 ? 'Post succeeding directly (next post)' : "Post succeeding by {$distance} posts";
-                            if ( $succeeding_id > 0 && !isset( $post_map[$succeeding_id] ) ) {
-                                $succeeding_post = WPF()->post->get_post( $succeeding_id, false );
-                                if ( $succeeding_post ) {
-                                    $succeeding_content = isset( $succeeding_post['body'] ) ? $succeeding_post['body'] : '';
-                                    if ( isset( $succeeding_post['title'] ) && !empty( $succeeding_post['title'] ) ) {
-                                        $succeeding_content = $succeeding_post['title'] . "\n\n" . $succeeding_content;
-                                    }
-                                    $post_map[$succeeding_id] = [
-                                        'content' => $succeeding_content,
-                                        'user_id' => isset( $succeeding_post['userid'] ) ? $succeeding_post['userid'] : 0,
-                                        'relationships' => [$relationship]
-                                    ];
-                                }
-                            } else if ( $succeeding_id > 0 && isset( $post_map[$succeeding_id] ) ) {
-                                $post_map[$succeeding_id]['relationships'][] = $relationship;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // Convert the map to JSON string
-        $json_string = json_encode( $post_map, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE );
-
-        // Handle JSON encoding errors
-        if ( $json_string === false ) {
-            // If encoding fails, return empty JSON object
-            colaias_wpforo_ai_log_info( '⚠️ ❌ 💀 WPForo AI Moderation: ERROR. JSON encoding failed. Returing empty for fallback' );
-            return '';
-        }
-    
-        colaias_wpforo_ai_log_info( 'WPForo AI Moderation: The encoded JSON post CONTENT + CONTEXT string:   ' . $json_string  );
-        return $json_string;
-    } catch (Exception $e) {
-         // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Critical error logging required for admin debugging
-         error_log( '🤖 ❌ 💀 WPForo AI Moderation: CRITICAL ERROR. Could not get post context for LLM. Exception : '
-         .$e->getMessage() );
-        return '';
-    }
-}
-
 
 // === LLM API CALL ===
 /**
- * @param mixed $api_key  OpenRouter API Key
- * @param mixed $model  OpenRouter Model
- * @param mixed $prompt  Administrator settings tab prompt
+ * ?
+ * @param mixed $api_key OpenRouter API Key
+ * @param mixed $model OpenRouter Model
+ * @param mixed $prompt
  */
 function colaias_wpforo_ai_query_llm( $api_key, $model, $prompt )
 {
@@ -4089,17 +3751,8 @@ function colaias_wpforo_ai_moderate_topic_before_insert( $topic ) {
             colaias_wpforo_ai_log_info( 'WPForo AI Moderation: API key found, proceeding with topic moderation' );
 
             global $colaias_wpforo_ai_config;
-
-            // Get content with context
-            $content_with_context = colaias_wpforo_ai_get_moderation_topic_content_with_context($topic, 5);
-
-            if ( ! empty( $context_with_context ) ) {
-                $content = $content_with_context;
-            } else {
-                colaias_wpforo_ai_log_info( '🤖 ⚠️ WPForo AI Moderation: ⤵️ Using fallback pure topic as content for LLM' );
-                $content = sanitize_text_field( $topic['title'] . "\n\n" . $topic['body'] );
-            }
-
+            // Combine topic title and body for moderation
+            $content = sanitize_text_field( $topic['title'] . "\n\n" . $topic['body'] );
             $custom_prompt = trim( get_option( 'colaias_wpforo_ai_moderation_prompt', '' ) );
             $default_prompt = $colaias_wpforo_ai_config['default_prompt'];
 
@@ -4361,17 +4014,8 @@ function colaias_wpforo_ai_moderate_post_before_insert( $post ) {
             colaias_wpforo_ai_log_info( 'WPForo AI Moderation: API key found, proceeding with post moderation' );
 
             global $colaias_wpforo_ai_config;
-            
-            // Get content with context
-            $content_with_context = colaias_wpforo_ai_get_moderation_post_content_with_context($post, 5, 5);
-
-            if ( ! empty( $context_with_context ) ) {
-                $content = $content_with_context;
-            } else {
-                colaias_wpforo_ai_log_info( '🤖 ⚠️ WPForo AI Moderation: ⤵️ Using fallback pure post as content for LLM' );
-                $content = sanitize_text_field( $post['body'] );
-            }
-
+            // Get post body for moderation
+            $content = sanitize_text_field( $post['body'] );
             $custom_prompt = trim( get_option( 'colaias_wpforo_ai_moderation_prompt', '' ) );
             $default_prompt = $colaias_wpforo_ai_config['default_prompt'];
 
@@ -4635,17 +4279,8 @@ function colaias_wpforo_ai_moderate_topic_before_update( $topic ) {
             colaias_wpforo_ai_log_info( 'WPForo AI Moderation: API key found, proceeding with topic-edit moderation' );
 
             global $colaias_wpforo_ai_config;
-            
-            // Get content with context
-            $content_with_context = colaias_wpforo_ai_get_moderation_topic_content_with_context($topic, 5);
-
-            if ( ! empty( $context_with_context ) ) {
-                $content = $content_with_context;
-            } else {
-                colaias_wpforo_ai_log_info( '🤖 ⚠️ WPForo AI Moderation: ⤵️ Using fallback pure topic-edit as content for LLM' );
-                $content = sanitize_text_field( $topic['title'] . "\n\n" . $topic['body'] );
-            }
-
+            // Combine topic-edit title and body for moderation
+            $content = sanitize_text_field( $topic['title'] . "\n\n" . $topic['body'] );
             $custom_prompt = trim( get_option( 'colaias_wpforo_ai_moderation_prompt', '' ) );
             $default_prompt = $colaias_wpforo_ai_config['default_prompt'];
 
@@ -4911,17 +4546,8 @@ function colaias_wpforo_ai_moderate_post_before_update( $post ) {
             colaias_wpforo_ai_log_info( 'WPForo AI Moderation: API key found, proceeding with post-edit moderation' );
 
             global $colaias_wpforo_ai_config;
-            
-            // Get content with context
-            $content_with_context = colaias_wpforo_ai_get_moderation_post_content_with_context($post, 5, 5);
-
-            if ( ! empty( $context_with_context ) ) {
-                $content = $content_with_context;
-            } else {
-                colaias_wpforo_ai_log_info( '🤖 ⚠️ WPForo AI Moderation: ⤵️ Using fallback pure post-edit as content for LLM' );
-                $content = sanitize_text_field( $post['body'] );
-            }
-
+            // Get post-edit body for moderation
+            $content = sanitize_text_field( $post['body'] );
             $custom_prompt = trim( get_option( 'colaias_wpforo_ai_moderation_prompt', '' ) );
             $default_prompt = $colaias_wpforo_ai_config['default_prompt'];
 

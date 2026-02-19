@@ -1,4 +1,4 @@
-=== LLM Moderator For wpForo ===
+=== LLM Moderator for wpForo ===
 Contributors: colaiasq
 Tags: llm, moderator, wpforo, ai, forum
 Requires at least: 6.0
@@ -7,7 +7,7 @@ Requires PHP: 7.4
 Stable tag: 0.7.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
-Donate link: https://comingofflais.com 
+#Donate link: https://comingofflais.com
 
 AI-powered moderation interface for wpForo using OpenRouter with standalone Moderator/Admin interface.
 
@@ -73,7 +73,7 @@ This plugin provides shortcodes for displaying moderation-related content on you
 
 **Placement:**
 Add this shortcode to the `[wpforo]` page. The notifications will display information to users:
-* When a user is muted hence cannot post
+* When a user is muted cannot not post
 * When a user's post has been flagged
 * Moderation status updates
 
@@ -151,10 +151,10 @@ Upgrade to the premium version for advanced features including:
 
 🌟 **Enhanced Features:**
 * 🛠️ **Enhanced Moderator Control Panel** – Bulk select management for efficient moderation
-* 🎨 **Easy Prompt Engineering Interface** – Visual prompt builder
+* 🎨 **Easy Prompt Engineering Interface** – Visual prompt builder with templates
 * 🌊 **Forum Flood Control System** – User and forum posting limits to prevent spam attacks
 * 📊 **Comprehensive Premium Metrics** – 5-year data retention with detailed analytics
-* 📈 **Charts & Graphs For Metrics** – Comprehensive visualizations with user table for metrics
+* 📈 **Enhanced Charts & Graphs** – Beautiful visualizations with user table for metrics
 * 🔎 **User Look-Up** – Look up individual users flag metrics
 * 💎 **Lifetime Single Purchase** – No subscriptions, one-time payment for lifetime updates
 
