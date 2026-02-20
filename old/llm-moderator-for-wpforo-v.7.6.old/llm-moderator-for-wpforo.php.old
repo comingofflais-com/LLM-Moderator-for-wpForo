@@ -3,7 +3,7 @@
  * Plugin Name: LLM Moderator For wpForo
  * Plugin URI: https://github.com/comingofflais-com/LLM-Moderator-for-wpForo
  * Description: AI-powered moderation for wpForo using OpenRouter with standalone Moderator/Admin interface
- * Version: 0.7.7
+ * Version: 0.7.6
  * Requires at least: 6.0
  * Requires PHP: 7.4
  * Requires Plugins: wpforo
@@ -1609,90 +1609,6 @@ function colaias_wpforo_ai_is_moderator_or_admin( $user_id = null ) {
 
 
 /**
- * Get post IDs for a topic around a specific post position
- * 
- * @param int $topic_id The topic ID
- * @param int $target_post_id The post ID we want to find (0 if not looking for specific post)
- * @param int $context_before Number of posts before target to include
- * @param int $context_after Number of posts after target to include
- * @param int $fallback_limit Fallback limit if target_post_id is 0 or not found
- * @return array Array of post IDs
- */
-function colaias_wpforo_ai_get_topic_post_ids( $topic_id, $target_post_id = 0, $context_before = 5, $context_after = 5, $fallback_limit = 100 ) {
-    global $wpdb;
-    
-    if ( !$topic_id || !is_numeric( $topic_id ) || !is_numeric( $target_post_id ) || !is_numeric( $context_before ) || 
-        !is_numeric( $context_after ) || !is_numeric( $fallback_limit ) ) {
-        return [];
-    }
-    
-    // Use wpForo's database object to ensure we're using the correct table
-    if ( !function_exists( 'WPF' ) || !isset( WPF()->db ) || !isset( WPF()->tables->posts ) ) {
-        colaias_wpforo_ai_log_info( '⚠️ WPForo AI Moderation: wpForo not loaded when trying to get topic post IDs' );
-        return [];
-    }
-    
-    // If we have a target post ID, try to get posts around it efficiently
-    if ( $target_post_id > 0 ) {
-        // First, get the position of the target post in the topic
-        $position_sql = WPF()->db->prepare(
-            "SELECT COUNT(*) FROM `" . WPF()->tables->posts . "` 
-             WHERE `topicid` = %d 
-             AND `created` <= (
-                 SELECT `created` FROM `" . WPF()->tables->posts . "` 
-                 WHERE `postid` = %d
-             )",
-            $topic_id, $target_post_id
-        );
-        
-        $position = intval( WPF()->db->get_var( $position_sql ) );
-        
-        if ( $position > 0 ) {
-            // We found the position, now get posts around it
-            // Calculate OFFSET and LIMIT
-            $offset = max( 0, $position - $context_before - 1 ); // -1 because position is 1-based
-            $limit = $context_before + $context_after + 1; // +1 for the target post itself
-            
-            $sql = WPF()->db->prepare(
-                "SELECT `postid` FROM `" . WPF()->tables->posts . "` 
-                 WHERE `topicid` = %d 
-                 ORDER BY `created` ASC
-                 LIMIT %d OFFSET %d",
-                $topic_id, $limit, $offset
-            );
-            
-            $post_ids = WPF()->db->get_col( $sql );
-            $post_ids = array_map( 'intval', $post_ids );
-            
-            // Log for debugging
-            colaias_wpforo_ai_log_info( "📊 WPForo AI Moderation: Got " . count($post_ids) . " post IDs around position $position for topic $topic_id" );
-            
-            return $post_ids;
-        }
-        // If position not found, fall through to fallback
-    }
-    
-    // Fallback: get posts with fallback limit
-    $sql = "SELECT `postid` FROM `" . WPF()->tables->posts . "` 
-            WHERE `topicid` = %d 
-            ORDER BY `created` ASC";
-    
-    if ( $fallback_limit > 0 ) {
-        $sql .= " LIMIT %d";
-        $sql = WPF()->db->prepare( $sql, $topic_id, $fallback_limit );
-    } else {
-        $sql = WPF()->db->prepare( $sql, $topic_id );
-    }
-    
-    $post_ids = WPF()->db->get_col( $sql );
-    $post_ids = array_map( 'intval', $post_ids );
-    
-    colaias_wpforo_ai_log_info( "📊 WPForo AI Moderation: Got " . count($post_ids) . " post IDs (fallback/NEW post) for topic $topic_id" );
-    
-    return $post_ids;
-}
-
-/**
  * Get the count of currently muted users
  * 
  * @return int Number of muted users
@@ -3157,7 +3073,7 @@ function colaias_wpforo_ai_async_status_verification( $post_id, $expected_status
                 error_log( '🤖 ⚠️ WPForo AI Moderation: 1 ) ⏱️ ASYNC STATUS VERIFICATION ERROR / WARNING / FALSE POSITIVE ( possibilites: 1. check if dlt was called 2. Cached ) - Post ' . $post_id . ' status is ' . $actual_status . ' ( expected ' . $expected_status . ' ) after ' . $operation );
                 if ( $updated_post ) {
                     // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log,WordPress.PHP.DevelopmentFunctions.error_log_print_r -- Warning logging required for admin debugging
-                    error_log( '🤖 ⚠️ WPForo AI Moderation: 2 ) ⏱️ ASYNC STATUS VERIFICATION ERROR / WARNING / FALSE POSITIVE' );
+                    error_log( '🤖 ⚠️ WPForo AI Moderation: 2 ) ⏱️ ASYNC STATUS VERIFICATION ERROR / WARNING / FALSE POSITIVE - Post data: ' . print_r( $updated_post, true ) );
                 }
             }
         }
@@ -3176,7 +3092,7 @@ add_action( 'colaias_wpforo_ai_async_status_verification', 'colaias_wpforo_ai_as
  * Premium function generously made available in base version. But set $max_succeeding only through premium.
  * Returns organized and JSON string formated topic content data with context for better moderation
  */
-function colaias_wpforo_ai_get_moderation_topic_content_with_context( &$topic, $max_succeeding ){
+function colaias_wpforo_ai_get_moderation_topic_content_with_context( $topic, $max_succeeding ){
     try {
         // Use associative array as map since PHP doesn't have built-in Map class
         $topic_map = [];
@@ -3187,32 +3103,60 @@ function colaias_wpforo_ai_get_moderation_topic_content_with_context( &$topic, $
         }
 
         // Validate topic data
-        if ( !isset( $topic['topicid'] ) || !isset( $topic['postid'] ) ) {
-            colaias_wpforo_ai_log_info( "⚠️ WPForo AI Moderation: WARNING. Could not get topicid or postid. This is normal for a NEW topic. Returing empty for fallback" );
+        if ( !isset( $topic['topicid'] ) || !isset( $topic['first_postid'] ) ) {
+            colaias_wpforo_ai_log_info( '⚠️ ❌ 💀 WPForo AI Moderation: ERROR. UNUSUAL. When getting CONTEXT. Could not validate topicid or first_postid was not set. Returing empty for fallback' );
             return '';
         }
 
         $topic_id = $topic['topicid'];
-        $first_post_id = $topic['postid'];
+        $first_post_id = $topic['first_postid'];
 
-        
+        // Get the first post (topic starter)
+        $first_post = WPF()->post->get_post( $first_post_id, false );
+        if ( !$first_post ) {
+            colaias_wpforo_ai_log_info( '⚠️ ❌ 💀 WPForo AI Moderation: ERROR. UNUSUAL. When getting CONTEXT. Could not get first post. Returing empty for fallback' );
+            return '';
+        }
+
         // Add topic starter to map
-        $first_post_content = sanitize_text_field( $topic['title'] . "\n\n" . $topic['body'] );
+        $first_post_content = isset( $first_post['body'] ) ? $first_post['body'] : '';
+        if ( isset( $first_post['title'] ) && !empty( $first_post['title'] ) ) {
+            $first_post_content = $first_post['title'] . "\n\n" . $first_post_content;
+        }
 
         $topic_map[$first_post_id] = [
             'content' => $first_post_content,
-            'user_id' => isset( $topic['userid'] ) ? $topic['userid'] : 0,
-            'relationships' => ['The topic (first post\'s title and body) to analyize']
+            'user_id' => isset( $first_post['userid'] ) ? $first_post['userid'] : 0,
+            'relationships' => ['The topic (first post) to analyize']
         ];
 
         $topic_map[$first_post_id]['relationships'][] = 'Topic starter post';
 
         // Get list of post IDs in the topic to find position and neighboring posts
-        // Use our helper function for direct database query to get just post IDs
-        // We're looking for the first post, so pass it as target_post_id
-        $post_ids = colaias_wpforo_ai_get_topic_post_ids( $topic_id, $first_post_id, 0, $max_succeeding );
+        // We'll get post IDs only to be more efficient
+        $post_ids_result = WPF()->post->get_posts( [
+            'topicid' => $topic_id,
+            'orderby' => 'created',
+            'order' => 'ASC',
+            'fields' => ['postid'] // Only get post IDs
+        ] );
         
-        if ( $post_ids && is_array( $post_ids ) && !empty( $post_ids ) ) {
+        if ( $post_ids_result && is_array( $post_ids_result ) ) {
+            // Extract post IDs from result
+            $post_ids = [];
+            foreach ( $post_ids_result as $post_item ) {
+                // Handle different possible result structures:
+                // 1. Simple integer (post ID)
+                // 2. Array with 'postid' key
+                // 3. Other unexpected structure
+                if ( is_numeric( $post_item ) ) {
+                    $post_ids[] = (int) $post_item;
+                } elseif ( is_array( $post_item ) && isset( $post_item['postid'] ) ) {
+                    colaias_wpforo_ai_log_info( '⚠️ ❌ 💀 WPForo AI Moderation: ERROR. unexpected structure. UNUSUAL, does not occur in previous verisons.' );
+                    $post_ids[] = (int) $post_item['postid'];
+                }
+                // Skip any other unexpected items
+            }
 
             // Find first post position
             $first_post_index = array_search( $first_post_id, $post_ids );
@@ -3265,7 +3209,7 @@ function colaias_wpforo_ai_get_moderation_topic_content_with_context( &$topic, $
             return '';
         }
         
-        colaias_wpforo_ai_log_info( 'WPForo AI Moderation: The encoded JSON topic CONTENT + CONTEXT string: ' . $json_string  );
+        colaias_wpforo_ai_log_info( 'WPForo AI Moderation: The encoded JSON topic CONTENT + CONTEXT string:   ' . $json_string  );
         return $json_string;
     
     } catch (Exception $e) {
@@ -3291,18 +3235,12 @@ function colaias_wpforo_ai_get_moderation_post_content_with_context( $post, $max
         }
 
         // Validate post data
-        if ( !isset( $post['topicid'] ) ) {
-            colaias_wpforo_ai_log_info( "⚠️ ❌ 💀 WPForo AI Moderation: ERROR. UNUSUAL. When getting CONTEXT. Could not validate topicid {$post['topicid']}. Returing empty for fallback" );
+        if ( !isset( $post['postid'] ) || !isset( $post['topicid'] ) ) {
+            colaias_wpforo_ai_log_info( '⚠️ ❌ 💀 WPForo AI Moderation: ERROR. UNUSUAL. When getting CONTEXT. Could not validate postid or topicid. Returing empty for fallback' );
             return '';
         }
 
-        // Validate post data
-        if ( !isset( $post['postid'] ) ) {
-            colaias_wpforo_ai_log_info( "⚠️ WPForo AI Moderation: Could not validate post ID, likely means the post is a reply, setting post ID to 0" );
-            $post['postid'] = '0';
-        }
-
-        $post_id = $post['postid']; // this doesn't exist for the NEW post, returns 0 For new post, or null for new reply post.
+        $post_id = $post['postid'];
         $topic_id = $post['topicid'];
 
         // Get the topic
@@ -3315,7 +3253,7 @@ function colaias_wpforo_ai_get_moderation_post_content_with_context( $post, $max
 
 
         // Add current post to map
-        $current_post_content = isset( $post['body'] ) ? sanitize_text_field( $post['body'] ) : '';
+        $current_post_content = isset( $post['body'] ) ? $post['body'] : '';
         if ( isset( $post['title'] ) && !empty( $post['title'] ) ) {
             $current_post_content = $post['title'] . "\n\n" . $current_post_content;
         }
@@ -3371,19 +3309,33 @@ function colaias_wpforo_ai_get_moderation_post_content_with_context( $post, $max
         }
 
         // Get list of post IDs in the topic to find position and neighboring posts
-        // Use our helper function for direct database query to get just post IDs
-        // We're looking for the current post, so pass it as target_post_id
-        $post_ids = colaias_wpforo_ai_get_topic_post_ids( $topic_id, $post_id, $max_preceding, $max_succeeding );
+        // We'll get post IDs only to be more efficient
+        $post_ids_result = WPF()->post->get_posts( [
+            'topicid' => $topic_id,
+            'orderby' => 'created',
+            'order' => 'ASC',
+            'fields' => ['postid'] // Only get post IDs
+        ] );
         
-        if ( $post_ids && is_array( $post_ids ) && !empty( $post_ids ) ) {
+        if ( $post_ids_result && is_array( $post_ids_result ) ) {
+            // Extract post IDs from result
+            $post_ids = [];
+            foreach ( $post_ids_result as $post_item ) {
+                // Handle different possible result structures:
+                // 1. Simple integer (post ID)
+                // 2. Array with 'postid' key
+                // 3. Other unexpected structure
+                if ( is_numeric( $post_item ) ) {
+                    $post_ids[] = (int) $post_item;
+                } elseif ( is_array( $post_item ) && isset( $post_item['postid'] ) ) {
+                    colaias_wpforo_ai_log_info( '⚠️ ❌ 💀 WPForo AI Moderation: ERROR. unexpected structure. UNUSUAL, does not occur in previous verisons. Returing empty for fallback' );
+                    $post_ids[] = (int) $post_item['postid'];
+                }
+                // Skip any other unexpected items
+            }
 
             // Find current post position
-            if ($post_id == 0) {
-                colaias_wpforo_ai_log_info( "📊 WPForo AI Moderation: post id is 0, likely means NEW post. current index is set to length of post_ids for context moderation" );
-                $current_index = count($post_ids);
-            } else {
-                $current_index = array_search( $post_id, $post_ids );
-            }
+            $current_index = array_search( $post_id, $post_ids );
 
             if ( $current_index !== false ) {
                 // Get preceding posts (posts before this one in the same topic)
@@ -4141,10 +4093,10 @@ function colaias_wpforo_ai_moderate_topic_before_insert( $topic ) {
             // Get content with context
             $content_with_context = colaias_wpforo_ai_get_moderation_topic_content_with_context($topic, 5);
 
-            if ( ! empty( $content_with_context ) ) {
+            if ( ! empty( $context_with_context ) ) {
                 $content = $content_with_context;
             } else {
-                colaias_wpforo_ai_log_info( '⚠️ WPForo AI Moderation: ⤵️ Using fallback pure topic as content. This is normal for a NEW topic. $content_with_context is: ' . $content_with_context );
+                colaias_wpforo_ai_log_info( '🤖 ⚠️ WPForo AI Moderation: ⤵️ Using fallback pure topic as content for LLM' );
                 $content = sanitize_text_field( $topic['title'] . "\n\n" . $topic['body'] );
             }
 
@@ -4243,7 +4195,7 @@ function colaias_wpforo_ai_after_topic_insert( $topic ) {
                     
                         $message = 'Your topic was flagged by the AI moderator for violating community guidelines. ';
                         $message .= 'Your account has been muted until ' . $formatted_expiration . '. ';
-                        $message .= 'A human moderator will review your profile and decide whether to further implement or remove restrictive functions. ';
+                        $message .= 'A human moderator will review your profile and decide whether to further implement or remove restrictive functions.';
                         $message .= 'If the human moderator takes no action, you will be automatically unmuted between 0-12 hours after your mute expires. ';
                         $message .= 'Your original topic will be deleted unless a human moderator approves it before your mute expires.';
                     
@@ -4413,10 +4365,10 @@ function colaias_wpforo_ai_moderate_post_before_insert( $post ) {
             // Get content with context
             $content_with_context = colaias_wpforo_ai_get_moderation_post_content_with_context($post, 5, 5);
 
-            if ( ! empty( $content_with_context ) ) {
+            if ( ! empty( $context_with_context ) ) {
                 $content = $content_with_context;
             } else {
-                colaias_wpforo_ai_log_info( '🤖 ⚠️ WPForo AI Moderation: ⤵️ Using fallback pure post as content for LLM because $context_with_text is: ' . $content_with_context );
+                colaias_wpforo_ai_log_info( '🤖 ⚠️ WPForo AI Moderation: ⤵️ Using fallback pure post as content for LLM' );
                 $content = sanitize_text_field( $post['body'] );
             }
 
@@ -4517,7 +4469,7 @@ function colaias_wpforo_ai_after_post_insert( $post ) {
                 
                     $message = 'Your post was flagged by the AI moderator for violating community guidelines. ';
                     $message .= 'Your account has been muted until ' . $formatted_expiration . '. ';
-                    $message .= 'A human moderator will review your profile and decide whether to further implement or remove restrictive functions. ';
+                    $message .= 'A human moderator will review your profile and decide whether to further implement or remove restrictive functions.';
                     $message .= 'If the human moderator takes no action, you will be automatically unmuted between 0-12 hours after your mute expires. ';
                     $message .= 'Your original post will be deleted unless a human moderator approves it before your mute expires.';
                 
@@ -4687,10 +4639,10 @@ function colaias_wpforo_ai_moderate_topic_before_update( $topic ) {
             // Get content with context
             $content_with_context = colaias_wpforo_ai_get_moderation_topic_content_with_context($topic, 5);
 
-            if ( ! empty( $content_with_context ) ) {
+            if ( ! empty( $context_with_context ) ) {
                 $content = $content_with_context;
             } else {
-                colaias_wpforo_ai_log_info( '🤖 ⚠️ WPForo AI Moderation: ⤵️ Using fallback pure topic-edit as content for LLM because $context_with_text is: ' . $content_with_context  );
+                colaias_wpforo_ai_log_info( '🤖 ⚠️ WPForo AI Moderation: ⤵️ Using fallback pure topic-edit as content for LLM' );
                 $content = sanitize_text_field( $topic['title'] . "\n\n" . $topic['body'] );
             }
 
@@ -4791,7 +4743,7 @@ function colaias_wpforo_ai_after_topic_update( $topic ) {
                     
                         $message = 'Your topic update was flagged by the AI moderator for violating community guidelines. ';
                         $message .= 'Your account has been muted until ' . $formatted_expiration . '. ';
-                        $message .= 'A human moderator will review your profile and decide whether to further implement or remove restrictive functions. ';
+                        $message .= 'A human moderator will review your profile and decide whether to further implement or remove restrictive functions.';
                         $message .= 'If the human moderator takes no action, you will be automatically unmuted between 0-12 hours after your mute expires. ';
                         $message .= 'Your original topic ( complete topic and all the topic posts ) will be deleted unless a human moderator approves it before your mute expires.';
                     
@@ -4963,10 +4915,10 @@ function colaias_wpforo_ai_moderate_post_before_update( $post ) {
             // Get content with context
             $content_with_context = colaias_wpforo_ai_get_moderation_post_content_with_context($post, 5, 5);
 
-            if ( ! empty( $content_with_context ) ) {
+            if ( ! empty( $context_with_context ) ) {
                 $content = $content_with_context;
             } else {
-                colaias_wpforo_ai_log_info( '🤖 ⚠️ WPForo AI Moderation: ⤵️ Using fallback pure post-edit as content for LLM because $context_with_text is: ' . $content_with_context );
+                colaias_wpforo_ai_log_info( '🤖 ⚠️ WPForo AI Moderation: ⤵️ Using fallback pure post-edit as content for LLM' );
                 $content = sanitize_text_field( $post['body'] );
             }
 
@@ -5068,7 +5020,7 @@ function colaias_wpforo_ai_after_post_update( $post ) {
                     
                         $message = 'Your updated post was flagged by the AI moderator for violating community guidelines. ';
                         $message .= 'Your account has been muted until ' . $formatted_expiration . '. ';
-                        $message .= 'A human moderator will review your profile and decide whether to further implement or remove restrictive functions. ';
+                        $message .= 'A human moderator will review your profile and decide whether to further implement or remove restrictive functions.';
                         $message .= 'If the human moderator takes no action, you will be automatically unmuted between 0-12 hours after your mute expires. ';
                         $message .= 'Your original post and update will be deleted unless a human moderator approves it before your mute expires.';
                     
