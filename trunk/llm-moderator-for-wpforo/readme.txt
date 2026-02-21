@@ -15,7 +15,7 @@ AI-powered context-aware moderation for wpForo using OpenRouter with standalone 
 This plugin integrates AI-powered context-aware content moderation with the wpForo forum plugin. It uses OpenRouter API to analyze forum posts and topics in real-time, automatically flagging inappropriate content and muting users who violate your custom forum moderation guidelines.
 
 = Important Note =
-This plugin is in beta. **Ready but still an early release! It's recommend to backup your site before installing beta software.**
+This plugin is in beta. **Ready/rc but still an early release It's recommend to backup your site before installing beta software.** 
 
 = Base Features =
 * **AI-Powered Moderation**: Uses OpenRouter API with configurable AI models (default: deepseek/deepseek-chat-v3.2)
