@@ -21,7 +21,7 @@ Get control over your moderation ✊ ✊ ✊. Moderate at mere pennies. During t
 
 - **AI-Powered Moderation**: Uses OpenRouter API with configurable AI models (default: deepseek/deepseek-chat-v3.1)
 - **Context Aware Moderation**: Analyzes posts with surrounding context (previous and next posts) for better accuracy
-- **Private By Default**: Does not send personally user identifiable data to the LLM models, no tracking, no ads
+- **Private By Default**: Does not send personally user identifiable data to the LLM models, no tracking, no ads, and your data lives on your server
 - **Flexible Flagging System**: Customizable flag types (flag, nsfw, spam, etc.) with individual mute durations
 - **User Management**: Automatically moves flagged users to a "Muted" database table
 - **Standalone Admin Interface**: Accessible to both Administrators and Moderators with proper capability controls

@@ -3,7 +3,7 @@
  * Plugin Name: LLM Moderator For wpForo
  * Plugin URI: https://github.com/comingofflais-com/LLM-Moderator-for-wpForo
  * Description: AI-powered moderation for wpForo using OpenRouter with standalone Moderator/Admin interface
- * Version: 0.8.0
+ * Version: 0.7.7
  * Requires at least: 6.0
  * Requires PHP: 7.4
  * Requires Plugins: wpforo
@@ -923,8 +923,6 @@ function colaias_wpforo_ai_display_settings(){
                             
                             <p class="description" style="color: #6c757d; margin-top: 10px;">
                                 <strong>Recommended:</strong> Start with 1-2 posts each. Larger values increase API costs and may reduce moderation accuracy.
-                                <br/>
-                                <small>Set each to 0 if you only want the topic starter and the post being replied to included for context.</small>
                             </p>
                         </div>
                     </td>
@@ -2282,7 +2280,7 @@ register_uninstall_hook( __FILE__, 'colaias_wpforo_ai_plugin_uninstall' );
 function colaias_wpforo_ai_plugin_uninstall(){
     // Todo: Clean up our custom capabilities
     
-    // no, this option maybe used in premium plugins that don't need the main plugin installed to function and has negligible effect. Also is useless for anything else.
+    // no, this option maybe used in premium plugins that don't need the main plugin installed to function
     // colaias_wpforo_ai_cleanup_capabilities(); // ( ? ) If implimented ⚠️ this method does not remove from all groups ( moderator ) or colaias_wpforo_ai_group_can_access_moderation permission. Will require a rewrite. 
 
     // Delete all plugin options
@@ -3267,10 +3265,10 @@ function colaias_wpforo_ai_get_moderation_topic_content_with_context( &$topic, $
         $topic_map[$first_post_id] = [
             'content' => $first_post_content,
             'user_id' => isset( $topic['userid'] ) ? ( $topic['userid'] * $m + $a ) : 0,
-            'relationship(s)' => ['The topic (first post\'s title and body) to analyize']
+            'relationships' => ['The topic (first post\'s title and body) to analyize']
         ];
 
-        $topic_map[$first_post_id]['relationship(s)'][] = 'Topic starter post';
+        $topic_map[$first_post_id]['relationships'][] = 'Topic starter post';
 
         // Get list of post IDs in the topic to find position and neighboring posts
         // Use our helper function for direct database query to get just post IDs
@@ -3308,11 +3306,11 @@ function colaias_wpforo_ai_get_moderation_topic_content_with_context( &$topic, $
                                     $topic_map[$succeeding_id] = [
                                         'content' => $succeeding_content,
                                         'user_id' => isset( $succeeding_post['userid'] ) ? ( $succeeding_post['userid'] * $m + $a ) : 0,
-                                        'relationship(s)' => [$relationship]
+                                        'relationships' => [$relationship]
                                     ];
                                 }
                             } else if ( $succeeding_id > 0 && isset( $topic_map[$succeeding_id] ) ) {
-                                $topic_map[$succeeding_id]['relationship(s)'][] = $relationship;
+                                $topic_map[$succeeding_id]['relationships'][] = $relationship;
                             }
                         }
                     }
@@ -3357,7 +3355,7 @@ function colaias_wpforo_ai_get_moderation_post_content_with_context( $post, $max
 
         // Validate post data
         if ( !isset( $post['topicid'] ) ) {
-            colaias_wpforo_ai_log_info( "⚠️ ❌ 💀 WPForo AI Moderation: ERROR. UNUSUAL. When getting CONTEXT. Could not validate topicid. Often occurs if topicid isnt cached (?) Returing empty for fallback" );
+            colaias_wpforo_ai_log_info( "⚠️ ❌ 💀 WPForo AI Moderation: ERROR. UNUSUAL. When getting CONTEXT. Could not validate topicid {$post['topicid']}. Returing empty for fallback" );
             return '';
         }
 
@@ -3391,7 +3389,7 @@ function colaias_wpforo_ai_get_moderation_post_content_with_context( $post, $max
         $post_map[$post_id] = [
             'content' => $current_post_content,
             'user_id' => isset( $post['userid'] ) ? ( $post['userid'] * $m + $a ) : 0,
-            'relationship(s)' => ['The post to analyize']
+            'relationships' => ['The post to analyize']
         ];
 
 
@@ -3405,10 +3403,10 @@ function colaias_wpforo_ai_get_moderation_post_content_with_context( $post, $max
                     $post_map[$first_post_id] = [
                         'content' => ( isset( $first_post['title'] ) ? $first_post['title'] . "\n\n" : '' ) . ( isset( $first_post['body'] ) ? $first_post['body'] : '' ),
                         'user_id' => isset( $first_post['userid'] ) ? ( $first_post['userid'] * $m + $a ) : 0,
-                        'relationship(s)' => ['Topic starter post']
+                        'relationships' => ['Topic starter post']
                     ]; 
                 } else { // technically this block should never run
-                    $post_map[$first_post_id]['relationship(s)'][] = 'Topic starter post';
+                    $post_map[$first_post_id]['relationships'][] = 'Topic starter post';
                 }
             }
         }
@@ -3422,7 +3420,7 @@ function colaias_wpforo_ai_get_moderation_post_content_with_context( $post, $max
                 // Check if parent already exists in map
                 if ( isset( $post_map[$parent_id] ) ) {
                     // Append relationship
-                    $post_map[$parent_id]['relationship(s)'][] = 'Post being replied to';
+                    $post_map[$parent_id]['relationships'][] = 'Post being replied to';
                 } else {
                     // Add parent to map
                     $parent_content = isset( $parent_post['body'] ) ? $parent_post['body'] : '';
@@ -3432,7 +3430,7 @@ function colaias_wpforo_ai_get_moderation_post_content_with_context( $post, $max
                     $post_map[$parent_id] = [
                         'content' => $parent_content,
                         'user_id' => isset( $parent_post['userid'] ) ? ( $parent_post['userid'] * $m + $a ) : 0,
-                        'relationship(s)' => ['The post being replied to']
+                        'relationships' => ['The post being replied to']
                     ];
                 }
             }
@@ -3478,11 +3476,11 @@ function colaias_wpforo_ai_get_moderation_post_content_with_context( $post, $max
                                 $post_map[$preceding_id] = [
                                     'content' => $preceding_content,
                                     'user_id' => isset( $preceding_post['userid'] ) ? ( $preceding_post['userid'] * $m + $a ) : 0,
-                                    'relationship(s)' => [$relationship]
+                                    'relationships' => [$relationship]
                                 ];
                             }
                         } else if ( $preceding_id > 0 && isset( $post_map[$preceding_id] ) ) {
-                            $post_map[$preceding_id]['relationship(s)'][] = $relationship;
+                            $post_map[$preceding_id]['relationships'][] = $relationship;
                         }
                     }
                 }
@@ -3509,11 +3507,11 @@ function colaias_wpforo_ai_get_moderation_post_content_with_context( $post, $max
                                     $post_map[$succeeding_id] = [
                                         'content' => $succeeding_content,
                                         'user_id' => isset( $succeeding_post['userid'] ) ? ( $succeeding_post['userid'] * $m + $a ) : 0,
-                                        'relationship(s)' => [$relationship]
+                                        'relationships' => [$relationship]
                                     ];
                                 }
                             } else if ( $succeeding_id > 0 && isset( $post_map[$succeeding_id] ) ) {
-                                $post_map[$succeeding_id]['relationship(s)'][] = $relationship;
+                                $post_map[$succeeding_id]['relationships'][] = $relationship;
                             }
                         }
                     }

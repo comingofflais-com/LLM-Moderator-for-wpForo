@@ -6,23 +6,24 @@ Tested up to: 6.9
 Requires PHP: 7.4
 Stable tag: 0.7.5
 License: GPLv2 or later
-License URI: https://www.gnu.org/licenses/gpl-2.0.html 
+License URI: https://www.gnu.org/licenses/gpl-2.0.html
+Donate link: https://comingofflais.com 
 
-AI-powered context-aware moderation for wpForo using OpenRouter with standalone Moderator/Admin interface.
+AI-powered moderation interface for wpForo using OpenRouter with standalone Moderator/Admin interface.
 
 == Description ==
 
-This plugin integrates AI-powered context-aware content moderation with the wpForo forum plugin. It uses OpenRouter API to analyze forum posts and topics in real-time, automatically flagging inappropriate content and muting users who violate your custom forum moderation guidelines.
+This plugin integrates AI-powered content moderation with the wpForo forum plugin. It uses OpenRouter API to analyze forum posts and topics in real-time, automatically flagging inappropriate content and muting users who violate your custom forum moderation guidelines.
 
 = Important Note =
-This plugin is in beta. **Early release! It's recommend to backup your site before installing beta software.**
+This plugin is in beta. **1st release! Backup your site before installing beta software.**
 
 = Base Features =
 * **AI-Powered Moderation**: Uses OpenRouter API with configurable AI models (default: deepseek/deepseek-chat-v3.2)
 * **Context Aware Moderation**: Analyzes posts with surrounding context (previous and next posts) for better accuracy
-* **Private by default**: Considerable forum and user privacy by default when sending user data for analysis, and your data lives on your server
+* **Private by default**: Considerable forum and user privacy by default when sending user data for analysis
 * **Flexible Flagging System**: Customizable flag types (flag, nsfw, spam, etc.) with individual mute durations
-* **User Management**: Automatically moves flagged users to a "Muted" database table, prevents them from posting
+* **User Management**: Automatically moves flagged users to a "Muted" database table
 * **Flags Only Supported**: Enable only for flag metrics, stealthy tag users without applying mute penalty
 * **Standalone Admin Interface**: Accessible to both Administrators, Moderators, and assigned usergroups
 * **Real-time Processing**: Analyzes posts and topics as they're submitted, set your OpenRouter query timeout limit
@@ -43,8 +44,6 @@ This plugin is in beta. **Early release! It's recommend to backup your site befo
 
 1. **Automatic Installation**
     Plugins → Add New → Activate
-    Note: If errors occur, deactivate, try using with the highest tested wpForo version
-    Let me know of any issue you encounter through the Telegram (preferred way of contacting me)
 
 2. **Post-Installation – Prompt and Flag type configuration**:
     * Navigate to **WPForo AI Moderation → Settings** in the admin menu
@@ -87,7 +86,7 @@ Add this shortcode to the `[wpforo]` page. The notifications will display inform
 
 💰 **Cost-Effective Solution** – Moderate at mere pennies per request, or use a free model. No subscription needed, pay based on usage. Muted users are prevented and do not add to LLM costs. Use OpenRouter's model chaining for best costs. During testing, the average cost per request was under USD $0.0001 using DeepSeek-v3.1.
 
-🚀 **Real-Time Protection** – Get instant AI analysis of every post and topic, with surrounding post context, as they're submitted, preventing inappropriate content from ever appearing.
+🚀 **Real-Time Protection** – Get instant AI analysis of every post and topic as they're submitted, preventing inappropriate content from ever appearing.
 
 🔧 **Fully Customizable** – Tailor the moderation to your community's specific needs with customizable flag types, mute durations, and AI prompts.
 
@@ -95,7 +94,7 @@ Add this shortcode to the `[wpforo]` page. The notifications will display inform
 
 🤖 **Powered by Cutting-Edge AI** – Leverage the vast list of AI models through OpenRouter, with support for model chaining and continuous improvements.
 
-🏠 **Your Data, Your Server** – All LLM moderation data is stored on YOUR server, giving you complete control over whether local law enforcement can obtain data with a warrant (directly bypassing you without your knowledge), this lets you keep everything under your chosen jurisdiction and control.
+🏠 **Your Data, Your Server** – All LLM moderation data is stored on YOUR server, giving you complete control over whether local law enforcement can obtain data with a warrant (directly bypassing you), this lets you keep everything under your chosen jurisdiction and control.
 
 = What is this plugin for? =
 This is a moderation only plugin that mutes users who violate your custom rules and guidelines of your wpForo forum. Prevent trolls, and keep your forum clean. Additionally it can be dual used as anti-spam by default through prompt configuration. It can also just be used to track enabled only flags; it tracks flag and mute metrics of users. The premium version provides some expansions such as flood control and better metrics.
@@ -112,7 +111,7 @@ Privacy commitment:
     🚫 No sending private user metadata to OpenRouter models, such as usernames, user-ID, email, post time, etc, only sends user posts' content
     🚫 No data selling
     🚫 No ads
-    🚫👮 Local law enforcement can obtain data with a warrant (and directly bypass you without your knowledge), but this moderation plugin lets you keep everything on a server under your chosen jurisdiction and control
+    🚫👮 Local law enforcement can obtain data with a warrant (and directly bypass you), but this moderation plugin lets you keep everything under your chosen jurisdiction and control
     🫵 See OpenRouter privacy policy (they are also very private by default, no logging or storing, additionally you can customize rules for your API key)
 
 = What is OpenRouter and do I need an account? =
