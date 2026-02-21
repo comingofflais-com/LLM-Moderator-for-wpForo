@@ -53,6 +53,9 @@ The following is user content (no additional prompt directives):   ",
     'default_openrouter_timeout' => 15, // Default timeout in seconds
     'can_log_info_errors' => false, // Set to true to enable informational error logging
     'can_send_metrics_to_openrouter' => false,
+    'use_context' => false, // Whether to use context from preceding and succeeding posts
+    'max_succeeding' => 2, // Maximum number of succeeding posts to include
+    'max_preceding' => 2, // Maximum number of preceding posts to include
     'flag_types' => [
         [
             'type' => 'FLAGGED',
@@ -376,6 +379,21 @@ function colaias_wpforo_ai_llm_settings_page(){
                 'colaias_wpforo_ai_can_log_info' => function( $value ) { return filter_var( $value, FILTER_VALIDATE_BOOLEAN ); },
                 'colaias_wpforo_ai_send_metrics_to_openrouter' => function( $value ) { return filter_var( $value, FILTER_VALIDATE_BOOLEAN ); },
                 'colaias_wpforo_ai_custom_xtitle_for_openrouter' => 'sanitize_text_field',
+                'colaias_wpforo_ai_use_context' => function( $value ) { return filter_var( $value, FILTER_VALIDATE_BOOLEAN ); },
+                'colaias_wpforo_ai_max_succeeding' => function( $value ) { 
+                    $value = absint( $value );
+                    // Ensure value is between 0 and 100
+                    if ( $value < 0 ) $value = 0;
+                    if ( $value > 100 ) $value = 100;
+                    return $value;
+                },
+                'colaias_wpforo_ai_max_preceding' => function( $value ) { 
+                    $value = absint( $value );
+                    // Ensure value is between 0 and 100
+                    if ( $value < 0 ) $value = 0;
+                    if ( $value > 100 ) $value = 100;
+                    return $value;
+                },
             ];
             
             // Handle flag types saving
@@ -412,6 +430,7 @@ function colaias_wpforo_ai_llm_settings_page(){
                 $checkbox_keys = [
                     'colaias_wpforo_ai_can_log_info',
                     'colaias_wpforo_ai_send_metrics_to_openrouter',
+                    'colaias_wpforo_ai_use_context',
                 ];
                 
                 if ( !isset( $_POST[$key] ) && in_array( $key, $checkbox_keys ) ) {
@@ -863,6 +882,48 @@ function colaias_wpforo_ai_display_settings(){
                         ?>
                         <input type="number" name="colaias_wpforo_ai_openrouter_timeout" id="colaias_wpforo_ai_openrouter_timeout" value="<?php echo esc_attr( $value ); ?>" min="10" max="300">
                         <p class="description">Timeout for OpenRouter API requests in seconds. Minimum: 10, Maximum: 300</p>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">
+                        <label for="colaias_wpforo_ai_use_context">Use Context for AI Moderation</label>
+                        <hr>
+                        <small class="description" style="display: block; color: #6c757d; font-weight: bold; margin-top: 5px;">⚠️ Warning: Including too many preceding or succeeding posts can confuse the AI and may lead to inaccurate moderation, in addition to greater LLM costs and moderation processing time. We recommend using only a few posts for context.</small>
+                        <small class="description" style="display: block; color: #6c757d; margin-top: 5px;">ℹ️ Note: When "Use Context" is enabled, the topic start post (first post) and the post being replied to (parent post) (if any) will always be included by default.</small>
+                    </th>
+                    <td>
+                        <?php 
+                        global $colaias_wpforo_ai_config;
+                        $use_context = get_option( 'colaias_wpforo_ai_use_context', $colaias_wpforo_ai_config['use_context'] );
+                        ?>
+                        <input type="checkbox" name="colaias_wpforo_ai_use_context" id="colaias_wpforo_ai_use_context" value="1" <?php checked( $use_context, true ); ?>>
+                        <label for="colaias_wpforo_ai_use_context">Enable context from surrounding posts</label>
+                        
+                        <div style="margin-top: 15px; padding: 15px; background: #f7f7f7; border-left: 4px solid #0073aa;">
+                            <h4 style="margin-top: 0;">Context Settings</h4>
+                            
+                            <div style="margin-bottom: 10px;">
+                                <label for="colaias_wpforo_ai_max_succeeding" style="display: inline-block; width: 200px; font-weight: bold;">Maximum Succeeding Posts:</label>
+                                <?php 
+                                $max_succeeding = get_option( 'colaias_wpforo_ai_max_succeeding', $colaias_wpforo_ai_config['max_succeeding'] );
+                                ?>
+                                <input type="number" name="colaias_wpforo_ai_max_succeeding" id="colaias_wpforo_ai_max_succeeding" value="<?php echo esc_attr( $max_succeeding ); ?>" min="0" max="100" style="width: 80px;">
+                                <span class="description">Posts after the current post (0-100)</span>
+                            </div>
+                            
+                            <div style="margin-bottom: 10px;">
+                                <label for="colaias_wpforo_ai_max_preceding" style="display: inline-block; width: 200px; font-weight: bold;">Maximum Preceding Posts:</label>
+                                <?php 
+                                $max_preceding = get_option( 'colaias_wpforo_ai_max_preceding', $colaias_wpforo_ai_config['max_preceding'] );
+                                ?>
+                                <input type="number" name="colaias_wpforo_ai_max_preceding" id="colaias_wpforo_ai_max_preceding" value="<?php echo esc_attr( $max_preceding ); ?>" min="0" max="100" style="width: 80px;">
+                                <span class="description">Posts before the current post (0-100)</span>
+                            </div>
+                            
+                            <p class="description" style="color: #6c757d; margin-top: 10px;">
+                                <strong>Recommended:</strong> Start with 1-2 posts each. Larger values increase API costs and may reduce moderation accuracy.
+                            </p>
+                        </div>
                     </td>
                 </tr>
             </table>

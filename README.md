@@ -7,7 +7,7 @@ AI-powered moderation using OpenRouter with standalone Moderator/Admin interface
 ## Description
 
 ### Important
-This plugin is in beta. See tested versions below (current 2.4.15). **WARNING**: Plugin is complete, but is in beta, and seeking early adopters, please **back up your site first!** and report any bugs via our Telegram.
+This plugin is in beta. See tested versions below (current 2.4.15). **Important Notice**: Plugin is complete, but is in beta, and seeking early adopters, please **back up your site first!** and report any bugs via our Telegram.
 
 LLM Moderator for wpForo is a WordPress plugin that integrates AI-powered content moderation with the wpForo forum plugin. It uses OpenRouter API to analyze forum posts and topics in real-time, automatically flagging inappropriate content and muting users who violate forum guidelines. Utilizing independent database tables for muted users, and flag metrics.
 
@@ -21,6 +21,7 @@ Get control over your moderation ✊ ✊ ✊. Moderate at mere pennies. During t
 ## Features
 
 - **AI-Powered Moderation**: Uses OpenRouter API with configurable AI models (default: deepseek/deepseek-chat-v3.1)
+- **Context Aware Moderation**: Analyzes posts with surrounding context (previous and next posts) for better accuracy
 - **Private By Default**: Does not send personally user identifiable data to the LLM models, no tracking, no ads
 - **Flexible Flagging System**: Customizable flag types (flag, nsfw, spam, etc.) with individual mute durations
 - **User Management**: Automatically moves flagged users to a "Muted" database table
@@ -31,6 +32,7 @@ Get control over your moderation ✊ ✊ ✊. Moderate at mere pennies. During t
 - **Scheduled Maintenance**: Daily cleanup of expired mutes and orphaned records
 - **Metrics And Analytics**: Know how many posts resulted muting, how many muted users were prevented, the flag types, up to 1 year, robust charts and graphs in premium to analyze forum or individual users by grouping 
 - **Notifications**: Short-code for notification to user about the moderation and mute status
+ -**Your Data, Your Server** All LLM moderation data is stored on YOUR server, giving you complete control over whether local law enforcement can obtain data with a warrant (directly bypassing you), this lets you keep everything under your chosen jurisdiction and control
 
 ## Premium (coming soon)
 **Premium**: Has an automatically updating premium version available for purchase that includes:
@@ -50,6 +52,7 @@ Get control over your moderation ✊ ✊ ✊. Moderate at mere pennies. During t
 ![Alt text](screenshots/6.png)
 ![Alt text](screenshots/7.png)
 ![Alt text](screenshots/8.png)
+![Alt text](screenshots/9.png)
 
 ## Premium Version Screenshots
 ![Alt text](screenshots/p/2.png)
@@ -292,8 +295,13 @@ This plugin integrates with the OpenRouter API (https://openrouter.ai/) to provi
 - No personally identifiable information (name, username, or user ID) is included in the post content
 - Each post from non-muted users triggers exactly one API request
 
-**Future Development:**
-Future versions may include additional context (such as preceding and succeeding posts) to improve moderation accuracy. If implemented, usernames may be replaced with aliases to maintain user privacy. All planned features are subject to change based on development priorities.
+**Privacy commitment:**
+    🚫 No tracking
+    🚫 No sending private user metadata to OpenRouter models, such as usernames, user-ID, email, post time, etc, only sends user posts' content
+    🚫 No data selling
+    🚫 No ads
+    🚫👮 Local law enforcement can obtain data with a warrant (and directly bypass you), but this plugin lets you keep everything under your chosen jurisdiction and control
+    🫵 See OpenRouter privacy policy (they are also very private by default, no logging or storing, additionally you can customize rules for your API key)
 
 ### About OpenRouter
 
