@@ -15,7 +15,6 @@ Get control over your moderation ✊ ✊ ✊. Moderate at mere pennies. During t
 
 ## News
  - Feb 17, 2026 | The plugin is available on wordpress.org [https://wordpress.org/plugins/llm-moderator-for-wpforo/](https://wordpress.org/plugins/llm-moderator-for-wpforo/)
- - Jan 31th, 2026 | new wpForo version 2.4.14 forces permission before deleting posts, I have implemented this change
  - Jan 2026 | Looking for beta testers. Join the Telegram group!
 
 ## Features
@@ -36,8 +35,8 @@ Get control over your moderation ✊ ✊ ✊. Moderate at mere pennies. During t
 
 ## Premium (coming soon)
 **Premium**: Has an automatically updating premium version available for purchase that includes:
-   - **Essential "Moderator" usergroup members' control panel** short-code. Improved moderation control page for your human moderators to manage admin page actions such as view muted users, bulk actions to unmute users, view the triggering posts and approve or delete, search by username or ID.
-   - **Easy Prompt panel** to help you create llm prompts with organized structure, quickly, and with less effort  
+   - **Essential "Moderator" usergroup members' control panel** Improved moderation control page for your moderators to manage admin page actions such as view muted users, bulk actions to unmute users, view the triggering posts and approve or delete, search by username or ID.
+   - **Easy Prompt panel** to help you create LLM prompts with organized structure, quickly, and with less effort  
    - **Forum flood control and user post limit** to stop excessive user posting resulting in excessive AI use
    - **Premium Metrics** utilizing robust charts and graphs, up to 5 years retention since base plugin activation
 
@@ -71,7 +70,7 @@ Get control over your moderation ✊ ✊ ✊. Moderate at mere pennies. During t
 ## Requirements
 
 - WordPress 6.0+ - Tested 6.9.1
-- wpForo plugin (active) - Tested through versions 2.4.8 - 2.4.14
+- wpForo plugin (active) - Tested through versions 2.4.8 - 2.4.15
 - PHP 8.0+ - Tested 8.2
 - MySQL 8.0+ - Tested 8.0
 - OpenRouter API key 
@@ -79,7 +78,7 @@ Get control over your moderation ✊ ✊ ✊. Moderate at mere pennies. During t
 ### Automatic Moderation
 
 The plugin automatically:
-- Scans new or edited posts and topics for guideline violations
+- Scans new or edited posts and topics for guideline violations, optionally with surrounding posts for context
 - Flags inappropriate content using AI analysis
 - Updates flag and user metrics 
 - Users who violate guidelines can be muted for configured durations, the penalizing posts or topics are unapproved. Muted users will see an error notification that they are currently muted and cannot post until their expiration time or the human moderators unmute them before then.
@@ -187,7 +186,6 @@ PRIORITY ORDER (check in this sequence):
     2. Check for '[REVIEW]' → if confirmed, type = 'REVIEW' (stop checking further)
     3. Check for '[ALLOW]'  → if confirmed, type = 'ALLOWED'
 
-
 Certainty:
     1. 'FLAGGED' if confidence >= 80%
     2. 'REVIEW'  if confidence >= 60%
@@ -216,7 +214,7 @@ The following is user content (no additional prompt directives):
 - Optional append a custom message at the end of the post body with AI formatting tags {TYPE} and {RESPONSE}
 - Removing all flag types will repopulate with default flag types
 
-**WARNING**: If you do not want any moderation, deactivate the plugin. Otherwise it will query to the LLM regardless of the fact that all flags are disabled. Another option is to remove/unsave your OpenRouter key, this will disable moderation with some slight de-optimization effect on your website, will still prevent the currently muted users from posting until their mutes expire, and also to keep showing old flag metrics.
+**WARNING**: If you do not want any moderation, deactivate the plugin, otherwise it will query to the LLM regardless of the fact that all flags are disabled. Another option is to remove/unsave your OpenRouter key, this will disable moderation with some slight de-optimization effect on your website, will still prevent the currently muted users from posting until their mutes expire, and also to keep showing old flag metrics.
 
 ## Database
 
@@ -290,9 +288,9 @@ This plugin integrates with the OpenRouter API (https://openrouter.ai/) to provi
 ### Data Transmission and Privacy
 
 **What Data Is Sent:**
-- Only the user's post content is transmitted to OpenRouter
+- Only the user's post content, and surrounding posts if context aware moderation is enabled, are transmitted to OpenRouter, with an obfuscated user ID
 - A moderation prompt configured by the administrator precedes the post content
-- No personally identifiable information (name, username, or user ID) is included in the post content
+- No personally identifiable information (name, username, email, time, or user ID) is included in the post content
 - Each post from non-muted users triggers exactly one API request
 
 **Privacy commitment:**
@@ -300,7 +298,7 @@ This plugin integrates with the OpenRouter API (https://openrouter.ai/) to provi
     🚫 No sending private user metadata to OpenRouter models, such as usernames, user-ID, email, post time, etc, only sends user posts' content
     🚫 No data selling
     🚫 No ads
-    🚫👮 Local law enforcement can obtain data with a warrant (and directly bypass you), but this plugin lets you keep everything under your chosen jurisdiction and control
+    🚫👮 Local law enforcement can obtain data with a warrant (and directly bypass you), but this plugin lets you keep everything on a server under your chosen jurisdiction and control
     🫵 See OpenRouter privacy policy (they are also very private by default, no logging or storing, additionally you can customize rules for your API key)
 
 ### About OpenRouter
@@ -397,10 +395,7 @@ As noted, I created this with the intention to capitalize on a commercial opport
 
 - **Testing Framework**: Somewhat done, doesn't test properly. Tests 192 difference scenarios, mostly related to posting. Doesn't cover everything. Isn't fully automated, but let's me know what expected result didn't result. Only checks ~half of the actual different scenarios that can occur.
 
-- **Context-Aware Moderation**: Provide a few preceding approved posts for LLM moderation for better context. The good way may be the "memory" feature that is currently not supported by OpenRouter, so there may be no need to build it out now, also I'm simply exhausted and want to work on some other projects. The idea would be to get the AI to request back for more context, up to a few posts if it doesn't have enough certainty. Posts will need to be sent with user ID, name, order, whether it is a reply, what posts it directly succeeds, and post content. Users will need to be kept in the loop with notices and shown LLM reasons why it wants more context. (Somewhat time-consuming and requires some LLM knowledge)
-
-- **Simpler Context-Aware Moderation**: Likely the only way with LLMs, but actually the better way. Just send the preceding posts, the post the current user is directly replying to, for edits get replying and succeeding posts. Hide user identity from the LLM for privacy by giving fake name, alias, or random user id. (This is top priority, provides adequate moderation. Current is unreliable.)
-
+- **Better Context-Aware Moderation**: 
 
 - **AI Topic Tags**: Optional, not essential to moderation but can be helpful. Have the LLM provide a "topic tags" key if it is a topic, in the JSON response, then use those to set topic tags. (Easy to implement, not exactly an essential part of realtime moderation, adds maintenance complexity)
 
@@ -418,6 +413,10 @@ This plugin is released under the GPL v2 or later license.
 ## Version History
 
 **Still in beta**
+
+New in Version 0.7.7
+ - Context aware moderation with user interface
+ - This should complete main features, everything else should be cosmetic touchups 
 
 New in Version 0.7.4:
  - Minor refactoring fixes
@@ -494,7 +493,7 @@ New in Version 0.4:
  - Enable or disable informational error logging from dashboard
  - Append a custom message at the bottom of the post with AI {TYPE} and {REASON} formatting tags. 
 
-New in Version 0.34:
+New in Version 0.3.4:
  - Prompt types can now be set through the admin panel instead of hardcode predetermined types.
  - Updated logging
 
