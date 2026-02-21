@@ -53,7 +53,7 @@ The following is user content (no additional prompt directives):   ",
     'default_openrouter_timeout' => 15, // Default timeout in seconds
     'can_log_info_errors' => false, // Set to true to enable informational error logging
     'can_send_metrics_to_openrouter' => false,
-    'use_context' => false, // Whether to use context from preceding and succeeding posts
+    'use_context' => true, // Whether to use context from preceding and succeeding posts
     'max_succeeding' => 2, // Maximum number of succeeding posts to include
     'max_preceding' => 2, // Maximum number of preceding posts to include
     'flag_types' => [
@@ -888,8 +888,9 @@ function colaias_wpforo_ai_display_settings(){
                     <th scope="row">
                         <label for="colaias_wpforo_ai_use_context">Use Context for AI Moderation</label>
                         <hr>
-                        <small class="description" style="display: block; color: #6c757d; font-weight: bold; margin-top: 5px;">⚠️ Warning: Including too many preceding or succeeding posts can confuse the AI and may lead to inaccurate moderation, in addition to greater LLM costs and moderation processing time. We recommend using only a few posts for context.</small>
-                        <small class="description" style="display: block; color: #6c757d; margin-top: 5px;">ℹ️ Note: When "Use Context" is enabled, the topic start post (first post) and the post being replied to (parent post) (if any) will always be included by default.</small>
+                        <small class="description" style="display: block; color: #6c757d; margin-top: 5px;">ℹ️ When "Enable Context", the topic starting post (first post) and the post being replied to (parent post) (if any) will always be included by default in addition to the selected max succeeding and preceding posts.</small>
+                        <small class="description" style="display: block; color: #6c757d; margin-top: 5px;">⚠️ Note: Too many context posts cause greater LLM moderation costs and processing time.</small>
+                        <small class="description" style="display: block; color: #6c757d; font-weight: bold; margin-top: 5px;">❗⚠️ Warning: Including too many succeeding or preceding posts can confuse the AI and may lead to inaccurate moderation. We recommend using only a few posts for context.</small>        
                     </th>
                     <td>
                         <?php 
@@ -1669,89 +1670,7 @@ function colaias_wpforo_ai_is_moderator_or_admin( $user_id = null ) {
 }
 
 
-/**
- * Get post IDs for a topic around a specific post position
- * 
- * @param int $topic_id The topic ID
- * @param int $target_post_id The post ID we want to find (0 if not looking for specific post)
- * @param int $context_before Number of posts before target to include
- * @param int $context_after Number of posts after target to include
- * @param int $fallback_limit Fallback limit if target_post_id is 0 or not found
- * @return array Array of post IDs
- */
-function colaias_wpforo_ai_get_topic_post_ids( $topic_id, $target_post_id = 0, $context_before = 5, $context_after = 5, $fallback_limit = 100 ) {
-    global $wpdb;
-    
-    if ( !$topic_id || !is_numeric( $topic_id ) || !is_numeric( $target_post_id ) || !is_numeric( $context_before ) || 
-        !is_numeric( $context_after ) || !is_numeric( $fallback_limit ) ) {
-        return [];
-    }
-    
-    // Use wpForo's database object to ensure we're using the correct table
-    if ( !function_exists( 'WPF' ) || !isset( WPF()->db ) || !isset( WPF()->tables->posts ) ) {
-        colaias_wpforo_ai_log_info( '⚠️ WPForo AI Moderation: wpForo not loaded when trying to get topic post IDs' );
-        return [];
-    }
-    
-    // If we have a target post ID, try to get posts around it efficiently
-    if ( $target_post_id > 0 ) {
-        // First, get the position of the target post in the topic
-        $position_sql = WPF()->db->prepare(
-            "SELECT COUNT(*) FROM `" . WPF()->tables->posts . "` 
-             WHERE `topicid` = %d 
-             AND `created` <= (
-                 SELECT `created` FROM `" . WPF()->tables->posts . "` 
-                 WHERE `postid` = %d
-             )",
-            $topic_id, $target_post_id
-        );
-        
-        $position = intval( WPF()->db->get_var( $position_sql ) );
-        
-        if ( $position > 0 ) {
-            // We found the position, now get posts around it
-            // Calculate OFFSET and LIMIT
-            $offset = max( 0, $position - $context_before - 1 ); // -1 because position is 1-based
-            $limit = $context_before + $context_after + 1; // +1 for the target post itself
-            
-            $sql = WPF()->db->prepare(
-                "SELECT `postid` FROM `" . WPF()->tables->posts . "` 
-                 WHERE `topicid` = %d 
-                 ORDER BY `created` ASC
-                 LIMIT %d OFFSET %d",
-                $topic_id, $limit, $offset
-            );
-            
-            $post_ids = WPF()->db->get_col( $sql );
-            $post_ids = array_map( 'intval', $post_ids );
-            
-            // Log for debugging
-            colaias_wpforo_ai_log_info( "📊 WPForo AI Moderation: Got " . count($post_ids) . " post IDs around position $position for topic $topic_id" );
-            
-            return $post_ids;
-        }
-        // If position not found, fall through to fallback
-    }
-    
-    // Fallback: get posts with fallback limit
-    $sql = "SELECT `postid` FROM `" . WPF()->tables->posts . "` 
-            WHERE `topicid` = %d 
-            ORDER BY `created` ASC";
-    
-    if ( $fallback_limit > 0 ) {
-        $sql .= " LIMIT %d";
-        $sql = WPF()->db->prepare( $sql, $topic_id, $fallback_limit );
-    } else {
-        $sql = WPF()->db->prepare( $sql, $topic_id );
-    }
-    
-    $post_ids = WPF()->db->get_col( $sql );
-    $post_ids = array_map( 'intval', $post_ids );
-    
-    colaias_wpforo_ai_log_info( "📊 WPForo AI Moderation: Got " . count($post_ids) . " post IDs (fallback/NEW post) for topic $topic_id" );
-    
-    return $post_ids;
-}
+
 
 /**
  * Get the count of currently muted users
@@ -3234,6 +3153,85 @@ add_action( 'colaias_wpforo_ai_async_status_verification', 'colaias_wpforo_ai_as
 // === LLM GET CONTENT WITH CONTEXT ===
 
 /**
+ * Get post IDs for a topic around a specific post position
+ * 
+ * @param int $fallback_limit Fallback limit if target_post_id is 0 or not found
+ */
+function colaias_wpforo_ai_get_topic_post_ids( $topic_id, $target_post_id = 0, $context_before = 2, $context_after = 2, $fallback_limit = 100 ) {
+    global $wpdb;
+    
+    if ( !$topic_id || !is_numeric( $topic_id ) || !is_numeric( $target_post_id ) || !is_numeric( $context_before ) || 
+        !is_numeric( $context_after ) || !is_numeric( $fallback_limit ) ) {
+        return [];
+    }
+    
+    // Use wpForo's database object to ensure we're using the correct table
+    if ( !function_exists( 'WPF' ) || !isset( WPF()->db ) || !isset( WPF()->tables->posts ) ) {
+        colaias_wpforo_ai_log_info( '⚠️ WPForo AI Moderation: wpForo not loaded when trying to get topic post IDs' );
+        return [];
+    }
+    
+    // If we have a target post ID, try to get posts around it efficiently
+    if ( $target_post_id > 0 ) {
+        // First, get the position of the target post in the topic
+        $position_sql = WPF()->db->prepare(
+            "SELECT COUNT(*) FROM `" . WPF()->tables->posts . "` 
+             WHERE `topicid` = %d 
+             AND `created` <= (
+                 SELECT `created` FROM `" . WPF()->tables->posts . "` 
+                 WHERE `postid` = %d
+             )",
+            $topic_id, $target_post_id
+        );
+        
+        $position = intval( WPF()->db->get_var( $position_sql ) );
+        
+        if ( $position > 0 ) {
+            // We found the position, now get posts around it
+            // Calculate OFFSET and LIMIT
+            $offset = max( 0, $position - $context_before - 1 ); // -1 because position is 1-based
+            $limit = $context_before + $context_after + 1; // +1 for the target post itself
+            
+            $sql = WPF()->db->prepare(
+                "SELECT `postid` FROM `" . WPF()->tables->posts . "` 
+                 WHERE `topicid` = %d 
+                 ORDER BY `created` ASC
+                 LIMIT %d OFFSET %d",
+                $topic_id, $limit, $offset
+            );
+            
+            $post_ids = WPF()->db->get_col( $sql );
+            $post_ids = array_map( 'intval', $post_ids );
+            
+            // Log for debugging
+            colaias_wpforo_ai_log_info( "📊 WPForo AI Moderation: Got " . count($post_ids) . " post IDs around position $position for topic $topic_id" );
+            
+            return $post_ids;
+        }
+        // If position not found, fall through to fallback
+    }
+    
+    // Fallback: get posts with fallback limit
+    $sql = "SELECT `postid` FROM `" . WPF()->tables->posts . "` 
+            WHERE `topicid` = %d 
+            ORDER BY `created` ASC";
+    
+    if ( $fallback_limit > 0 ) {
+        $sql .= " LIMIT %d";
+        $sql = WPF()->db->prepare( $sql, $topic_id, $fallback_limit );
+    } else {
+        $sql = WPF()->db->prepare( $sql, $topic_id );
+    }
+    
+    $post_ids = WPF()->db->get_col( $sql );
+    $post_ids = array_map( 'intval', $post_ids );
+    
+    colaias_wpforo_ai_log_info( "📊 WPForo AI Moderation: Got " . count($post_ids) . " post IDs (fallback/NEW post) for topic $topic_id" );
+    
+    return $post_ids;
+}
+
+/**
  * Premium function generously made available in base version. But set $max_succeeding only through premium.
  * Returns organized and JSON string formated topic content data with context for better moderation
  */
@@ -3253,6 +3251,10 @@ function colaias_wpforo_ai_get_moderation_topic_content_with_context( &$topic, $
             return '';
         }
 
+        // Obfuscate user ID
+        $m = random_int(1, 1000);
+        $a = random_int(1, 10000); 
+
         $topic_id = $topic['topicid'];
         $first_post_id = $topic['postid'];
 
@@ -3262,7 +3264,7 @@ function colaias_wpforo_ai_get_moderation_topic_content_with_context( &$topic, $
 
         $topic_map[$first_post_id] = [
             'content' => $first_post_content,
-            'user_id' => isset( $topic['userid'] ) ? $topic['userid'] : 0,
+            'user_id' => isset( $topic['userid'] ) ? ( $topic['userid'] * $m + $a ) : 0,
             'relationships' => ['The topic (first post\'s title and body) to analyize']
         ];
 
@@ -3303,7 +3305,7 @@ function colaias_wpforo_ai_get_moderation_topic_content_with_context( &$topic, $
 
                                     $topic_map[$succeeding_id] = [
                                         'content' => $succeeding_content,
-                                        'user_id' => isset( $succeeding_post['userid'] ) ? $succeeding_post['userid'] : 0,
+                                        'user_id' => isset( $succeeding_post['userid'] ) ? ( $succeeding_post['userid'] * $m + $a ) : 0,
                                         'relationships' => [$relationship]
                                     ];
                                 }
@@ -3373,6 +3375,9 @@ function colaias_wpforo_ai_get_moderation_post_content_with_context( $post, $max
             return '';
         }
 
+        // Obfuscate user ID
+        $m = random_int(1, 1000);
+        $a = random_int(1, 10000); 
 
 
         // Add current post to map
@@ -3383,7 +3388,7 @@ function colaias_wpforo_ai_get_moderation_post_content_with_context( $post, $max
 
         $post_map[$post_id] = [
             'content' => $current_post_content,
-            'user_id' => isset( $post['userid'] ) ? $post['userid'] : 0,
+            'user_id' => isset( $post['userid'] ) ? ( $post['userid'] * $m + $a ) : 0,
             'relationships' => ['The post to analyize']
         ];
 
@@ -3397,7 +3402,7 @@ function colaias_wpforo_ai_get_moderation_post_content_with_context( $post, $max
                 if ( ! isset( $post_map[$first_post_id] ) ) {
                     $post_map[$first_post_id] = [
                         'content' => ( isset( $first_post['title'] ) ? $first_post['title'] . "\n\n" : '' ) . ( isset( $first_post['body'] ) ? $first_post['body'] : '' ),
-                        'user_id' => isset( $first_post['userid'] ) ? $first_post['userid'] : 0,
+                        'user_id' => isset( $first_post['userid'] ) ? ( $first_post['userid'] * $m + $a ) : 0,
                         'relationships' => ['Topic starter post']
                     ]; 
                 } else { // technically this block should never run
@@ -3424,7 +3429,7 @@ function colaias_wpforo_ai_get_moderation_post_content_with_context( $post, $max
                     }
                     $post_map[$parent_id] = [
                         'content' => $parent_content,
-                        'user_id' => isset( $parent_post['userid'] ) ? $parent_post['userid'] : 0,
+                        'user_id' => isset( $parent_post['userid'] ) ? ( $parent_post['userid'] * $m + $a ) : 0,
                         'relationships' => ['The post being replied to']
                     ];
                 }
@@ -3470,7 +3475,7 @@ function colaias_wpforo_ai_get_moderation_post_content_with_context( $post, $max
 
                                 $post_map[$preceding_id] = [
                                     'content' => $preceding_content,
-                                    'user_id' => isset( $preceding_post['userid'] ) ? $preceding_post['userid'] : 0,
+                                    'user_id' => isset( $preceding_post['userid'] ) ? ( $preceding_post['userid'] * $m + $a ) : 0,
                                     'relationships' => [$relationship]
                                 ];
                             }
@@ -3501,7 +3506,7 @@ function colaias_wpforo_ai_get_moderation_post_content_with_context( $post, $max
                                     }
                                     $post_map[$succeeding_id] = [
                                         'content' => $succeeding_content,
-                                        'user_id' => isset( $succeeding_post['userid'] ) ? $succeeding_post['userid'] : 0,
+                                        'user_id' => isset( $succeeding_post['userid'] ) ? ( $succeeding_post['userid'] * $m + $a ) : 0,
                                         'relationships' => [$relationship]
                                     ];
                                 }
@@ -4200,12 +4205,17 @@ function colaias_wpforo_ai_moderate_topic_before_insert( $topic ) {
             global $colaias_wpforo_ai_config;
 
             // Get content with context
-            $content_with_context = colaias_wpforo_ai_get_moderation_topic_content_with_context($topic, 5);
-
-            if ( ! empty( $content_with_context ) ) {
-                $content = $content_with_context;
+            if ( get_option('colaias_wpforo_ai_use_context' , $colaias_wpforo_ai_config['use_context']  ) ) {
+                colaias_wpforo_ai_log_info( 'WPForo AI Moderation: Getting context with context' );  
+                $content_with_context = colaias_wpforo_ai_get_moderation_topic_content_with_context($topic, get_option('colaias_wpforo_ai_max_succeeding', $colaias_wpforo_ai_config['max_succeeding'] ));
+                if ( ! empty( $content_with_context ) ) {
+                    $content = $content_with_context;
+                } else {
+                    colaias_wpforo_ai_log_info( '⚠️ WPForo AI Moderation: ⤵️ Using fallback pure topic as content. This is normal/expected for a NEW topic. $content_with_context is: ' . $content_with_context );
+                    $content = sanitize_text_field( $topic['title'] . "\n\n" . $topic['body'] );
+                } 
             } else {
-                colaias_wpforo_ai_log_info( '⚠️ WPForo AI Moderation: ⤵️ Using fallback pure topic as content. This is normal for a NEW topic. $content_with_context is: ' . $content_with_context );
+                colaias_wpforo_ai_log_info( 'WPForo AI Moderation: Getting context with context is disabled, just preparing the topic title and body' );  
                 $content = sanitize_text_field( $topic['title'] . "\n\n" . $topic['body'] );
             }
 
@@ -4472,14 +4482,22 @@ function colaias_wpforo_ai_moderate_post_before_insert( $post ) {
             global $colaias_wpforo_ai_config;
             
             // Get content with context
-            $content_with_context = colaias_wpforo_ai_get_moderation_post_content_with_context($post, 5, 5);
-
-            if ( ! empty( $content_with_context ) ) {
-                $content = $content_with_context;
+            if ( get_option('colaias_wpforo_ai_use_context' , $colaias_wpforo_ai_config['use_context']  ) ) {
+                colaias_wpforo_ai_log_info( 'WPForo AI Moderation: Getting context with context' );  
+                $content_with_context = colaias_wpforo_ai_get_moderation_post_content_with_context($post,
+                 get_option('colaias_wpforo_ai_max_succeeding', $colaias_wpforo_ai_config['max_succeeding'] ),
+                 get_option('colaias_wpforo_ai_max_preceding', $colaias_wpforo_ai_config['max_preceding']) );
+                 if ( ! empty( $content_with_context ) ) {
+                    $content = $content_with_context;
+                } else {
+                    colaias_wpforo_ai_log_info( '🤖 ⚠️ WPForo AI Moderation: ⤵️ Using fallback pure post as content for LLM because $context_with_text is: ' . $content_with_context );
+                    $content = sanitize_text_field( $post['body'] );
+                }
             } else {
-                colaias_wpforo_ai_log_info( '🤖 ⚠️ WPForo AI Moderation: ⤵️ Using fallback pure post as content for LLM because $context_with_text is: ' . $content_with_context );
+                colaias_wpforo_ai_log_info( 'WPForo AI Moderation: Getting context with context is disabled, just preparing the topic title and body' );  
                 $content = sanitize_text_field( $post['body'] );
             }
+
 
             $custom_prompt = trim( get_option( 'colaias_wpforo_ai_moderation_prompt', '' ) );
             $default_prompt = $colaias_wpforo_ai_config['default_prompt'];
@@ -4746,14 +4764,20 @@ function colaias_wpforo_ai_moderate_topic_before_update( $topic ) {
             global $colaias_wpforo_ai_config;
             
             // Get content with context
-            $content_with_context = colaias_wpforo_ai_get_moderation_topic_content_with_context($topic, 5);
-
-            if ( ! empty( $content_with_context ) ) {
-                $content = $content_with_context;
+            if ( get_option('colaias_wpforo_ai_use_context' , $colaias_wpforo_ai_config['use_context']  ) ) {
+                colaias_wpforo_ai_log_info( 'WPForo AI Moderation: Getting context with context' );  
+                $content_with_context = colaias_wpforo_ai_get_moderation_topic_content_with_context($topic, get_option('colaias_wpforo_ai_max_succeeding', $colaias_wpforo_ai_config['max_succeeding'] ));
+                if ( ! empty( $content_with_context ) ) {
+                    $content = $content_with_context;
+                } else {
+                    colaias_wpforo_ai_log_info( '⚠️ WPForo AI Moderation: ⤵️ Using fallback pure topic as content. This is normal/expected for a NEW topic. $content_with_context is: ' . $content_with_context );
+                    $content = sanitize_text_field( $topic['title'] . "\n\n" . $topic['body'] );
+                } 
             } else {
-                colaias_wpforo_ai_log_info( '🤖 ⚠️ WPForo AI Moderation: ⤵️ Using fallback pure topic-edit as content for LLM because $context_with_text is: ' . $content_with_context  );
+                colaias_wpforo_ai_log_info( 'WPForo AI Moderation: Getting context with context is disabled, just preparing the topic title and body' );  
                 $content = sanitize_text_field( $topic['title'] . "\n\n" . $topic['body'] );
             }
+
 
             $custom_prompt = trim( get_option( 'colaias_wpforo_ai_moderation_prompt', '' ) );
             $default_prompt = $colaias_wpforo_ai_config['default_prompt'];
@@ -5022,12 +5046,19 @@ function colaias_wpforo_ai_moderate_post_before_update( $post ) {
             global $colaias_wpforo_ai_config;
             
             // Get content with context
-            $content_with_context = colaias_wpforo_ai_get_moderation_post_content_with_context($post, 5, 5);
-
-            if ( ! empty( $content_with_context ) ) {
-                $content = $content_with_context;
+            if ( get_option('colaias_wpforo_ai_use_context' , $colaias_wpforo_ai_config['use_context']  ) ) {
+                colaias_wpforo_ai_log_info( 'WPForo AI Moderation: Getting context with context' );  
+                $content_with_context = colaias_wpforo_ai_get_moderation_post_content_with_context($post,
+                 get_option('colaias_wpforo_ai_max_succeeding', $colaias_wpforo_ai_config['max_succeeding'] ),
+                 get_option('colaias_wpforo_ai_max_preceding', $colaias_wpforo_ai_config['max_preceding']) );
+                 if ( ! empty( $content_with_context ) ) {
+                    $content = $content_with_context;
+                } else {
+                    colaias_wpforo_ai_log_info( '🤖 ⚠️ WPForo AI Moderation: ⤵️ Using fallback pure post as content for LLM because $context_with_text is: ' . $content_with_context );
+                    $content = sanitize_text_field( $post['body'] );
+                }
             } else {
-                colaias_wpforo_ai_log_info( '🤖 ⚠️ WPForo AI Moderation: ⤵️ Using fallback pure post-edit as content for LLM because $context_with_text is: ' . $content_with_context );
+                colaias_wpforo_ai_log_info( 'WPForo AI Moderation: Getting context with context is disabled, just preparing the topic title and body' );  
                 $content = sanitize_text_field( $post['body'] );
             }
 
