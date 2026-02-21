@@ -31,7 +31,7 @@ Get control over your moderation ✊ ✊ ✊. Moderate at mere pennies. During t
 - **Scheduled Maintenance**: Daily cleanup of expired mutes and orphaned records
 - **Metrics And Analytics**: Know how many posts resulted muting, how many muted users were prevented, the flag types, up to 1 year, robust charts and graphs in premium to analyze forum or individual users by grouping 
 - **Notifications**: Short-code for notification to user about the moderation and mute status
- -**Your Data, Your Server** All LLM moderation data is stored on YOUR server, giving you complete control over whether local law enforcement can obtain data with a warrant (directly bypassing you), this lets you keep everything under your chosen jurisdiction and control
+ -**Your Data, Your Server** All LLM moderation data is stored on YOUR server, giving you complete control over whether local law enforcement can obtain data with a warrant (directly bypassing you without your knowledge), this lets you keep everything under your chosen jurisdiction and control
 
 ## Premium (coming soon)
 **Premium**: Has an automatically updating premium version available for purchase that includes:
@@ -43,15 +43,32 @@ Get control over your moderation ✊ ✊ ✊. Moderate at mere pennies. During t
    **Purchase the premium**: The purchase for the premium features will be available soon (after I finish development). Your purchase is greatly appreciated because it supports me and my work.
 
 ## Screenshots
-![Alt text](screenshots/1.png)
-![Alt text](screenshots/2.png)
-![Alt text](screenshots/3.png)
-![Alt text](screenshots/4.png)
-![Alt text](screenshots/5.png)
-![Alt text](screenshots/6.png)
-![Alt text](screenshots/7.png)
-![Alt text](screenshots/8.png)
-![Alt text](screenshots/9.png)
+1. **Admin Settings Page** – Shows OpenRouter API configuration and model selection  
+   ![Alt text](screenshots/1.png)
+
+2. **Flag Types Management** – Interface for managing custom flag types and mute durations  
+   ![Alt text](screenshots/2.png)
+
+3. **Muted Users List** – View of currently muted users with unmute options  
+   ![Alt text](screenshots/3.png)
+
+4. **Metrics Dashboard** – Statistics on moderation activities and flag types  
+   ![Alt text](screenshots/4.png)
+
+5. **Notification Shortcode** – User-facing notifications about moderation status  
+   ![Alt text](screenshots/5.png)
+
+6. **Prompt Configuration** – Custom prompt engineering interface  
+   ![Alt text](screenshots/6.png)
+
+7. **Settings** – Closer look at OpenRouter config  
+   ![Alt text](screenshots/7.png)
+
+8. **FLAG** – Closer look at the flag type  
+   ![Alt text](screenshots/8.png)
+
+9. **Context Aware Moderation** – Send custom amount of surrounding posts for context  
+   ![Alt text](screenshots/9.png)
 
 ## Premium Version Screenshots
 ![Alt text](screenshots/p/2.png)
@@ -298,7 +315,7 @@ This plugin integrates with the OpenRouter API (https://openrouter.ai/) to provi
     🚫 No sending private user metadata to OpenRouter models, such as usernames, user-ID, email, post time, etc, only sends user posts' content
     🚫 No data selling
     🚫 No ads
-    🚫👮 Local law enforcement can obtain data with a warrant (and directly bypass you), but this plugin lets you keep everything on a server under your chosen jurisdiction and control
+    🚫👮 Local law enforcement can obtain data with a warrant (and directly bypass you without your knowledge), but this plugin lets you keep everything on a server under your chosen jurisdiction and control
     🫵 See OpenRouter privacy policy (they are also very private by default, no logging or storing, additionally you can customize rules for your API key)
 
 ### About OpenRouter
