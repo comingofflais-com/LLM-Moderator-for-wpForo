@@ -1,13 +1,13 @@
 <?php
 /**
- * Plugin Name: LLM Moderator for wpForo
+ * Plugin Name: LLM Moderator For wpForo
  * Plugin URI: https://github.com/comingofflais-com/LLM-Moderator-for-wpForo
  * Description: AI-powered moderation for wpForo using OpenRouter with standalone Moderator/Admin interface
- * Version: 1.0.0
+ * Version: 0.8.0
  * Requires at least: 6.0
  * Requires PHP: 7.4
  * Requires Plugins: wpforo
- * Tested with wpForo versions: All v2
+ * Tested with wpForo versions: 2.4.15
  * Author: colaiasq Ali, comingofflais.com
  * Author URI: https://comingofflais.com/participant/admin/
  * License: GPL v2 or later
@@ -335,7 +335,7 @@ function colaias_wpforo_ai_llm_settings_page(){
                 <li>Advanced flood control system</li>
                 <li>Charts and graph based metrics with user lookup</li>
             </ul>
-            <p><strong>Get it now <a href="https://comingofflais.com/product/premium-llm-moderator-for-wpforo/" target="_blank" style="color: #0073aa; text-decoration: underline;">Premium LLM Moderator for wpForo</a></strong></p>
+            <p><strong>Get it now at: <a href="https://insertmywebsitehere.com/shop" target="_blank" style="color: #0073aa; text-decoration: underline;">insertmywebsitehere.com ( beta version, store coming soon )</a></strong></p>
             <p>Features automatic new version upgrade notification in Dashboard -> Plugins</p>
             <br><p style="padding: 10px; background:rgba( 170, 170, 170, 0.25 );">🤖 Your active participation in development is greatly appreciated. Check out the repository on Github <a href="https://github.com/comingofflais-com/LLM-Moderator-for-wpForo" target="_blank" style="color: #0073aa; text-decoration: underline;">https://github.com/comingofflais-com/LLM-Moderator-for-wpForo</a>. Enjoy the moderation features!</p>
         </div>
@@ -569,15 +569,15 @@ function colaias_wpforo_ai_display_settings(){
     ?>
     <div class="notice is-dismissible">
         <p style="font-size: small;"><strong style="color: green;">✅ Everything working?</strong> 🤖?? <strong style="color: red;">❌ No?</strong> ... 😅.
-         If things break, revert to the tested wpForo version and <strong>please ALERT US! 📢</strong>. Safety brakes should prevent crashes ( hopefully! 🤞 ). If wpForo updates break things, check debug.log 🕵️‍♂️. Use the tested version ( but even that might break mwhahaha 🦹 ) ⚠️ Small chance of memory leaks if not working ... Might need to deactivate ( not uninstall! 🚫🗑️ ).
+         If things break, revert to the tested wpForo version. Moreover, this is a <strong>Beta Version</strong>, bugs can be present (please let us know). Safety brakes should prevent crashes ( hopefully! 🤞 ). If wpForo updates break things, check debug.log 🕵️‍♂️. Use the tested version ( but even that might break mwhahaha 🦹 ) ⚠️ Small chance of memory leaks if not working ... Might need to deactivate ( not uninstall! 🚫🗑️ ).
         <br>
-        <br>For urgent fixes 🚨, the fastest way to contact the maintainer is via <a href='https://t.me/wpforo_ai'>Telegram</a>.<strong>Contact us for bugs 🐛, support, or collabs 🤝</strong>. There isn't any built in auto-bug-alert system 🚫 ( we may eventually make this plugin ).  Enable informational logging, when needed, to find out where the problem is occuring 🕵️‍♂️.
+        <br>For urgent fixes 🚨, the fastest way to contact the maintainer is via <a href='https://t.me/wpforo_ai'>Telegram</a>. Note this down for future reference. 💬 Have your message ready! Not official wpForo devs 🚫👔 - indie developer. <strong>Contact us for bugs 🐛 or collabs 🤝 ONLY!</strong> NOT basic tech support for wpForo and WordPress 🙅‍♂️🙅‍♂️🙅‍♂️ 🤦‍♀️. Also, there isn't built in auto-bug-alert system 🚫 ( we may eventually make this plugin ). <strong>Community if things break, ALERT US! 📢</strong> Pro tip: Enable informational logging, when needed, to find out where the problem is occuring 🕵️‍♂️.
         <br>
         <br>❗ The "Admin" usergroup is needed by the automatic cleanup cron job to delete unapproved posts of muted users. Allow atleast 1 user in the "Admin" usergroup with all required Access permissions. Failure to do so will result in automatic cleanup not deleting unapproved posts. In addition, several features, such as running manual cleanup or giving usergroups unmute permissions, are only accessible by WordPress "Administrators". ℹ️ Click "Show forum details" in the settings below to see which permissions are needed.
         <br>⚠️ Moderators → "Moderator" usergroup then give the unmute permission 😲. ℹ️ Check wpForo's guide for assigning usergroups.
         <br>⚠️ Give moderators the required forum Access permissions. wpForo → Forums → edit, assign required Access permissions 😲 
         <br>ℹ️ Add this shortcode for notifications <code>[colaias_wpforo_ai_notices top='30px' right='30%' width='40%']</code> on the <code>[wpforo]</code> page 📖🔧
-        <br>💡 Tip: Set a mimimum wpForo post character limit to help provide the LLM model with better context.
+        <br>💡 Tip: Set a mimimum wpForo post character limit. ⚠️ Moderation currently does not assess context from preceding content. This is planned for a future update, feel free help out on Github.
         </p>
     </div>
     <div style="margin: 20px 0; padding: 15px; background: #f9f9f9; border-left: 4px solid #0073aa;">
@@ -828,7 +828,7 @@ function colaias_wpforo_ai_display_settings(){
                                 
                                     <div style="margin-bottom: 10px;">
                                         <label style="display: inline-block; width: 120px; font-weight: bold;">Append Message:</label>
-                                        <input type="text" name="colaias_wpforo_ai_flag_types[<?php echo esc_attr( $index ); ?>][appendString]" value="<?php echo esc_attr( $flag_type['appendString'] ); ?>" placeholder="🤖 Leave blank for no message. Use {TYPE} and {REASON} for LLM response formatting tags ( case sensitive )." style="width: auto; font-size: 14px;">
+                                        <input type="text" name="colaias_wpforo_ai_flag_types[<?php echo esc_attr( $index ); ?>][appendString]" value="<?php echo esc_attr( $flag_type['appendString'] ); ?>" placeholder="🤖 Leave blank for no message. Use {TYPE} and {REASON} for LLM response formatting tags ( case sensitive )." style="width: 700px; font-size: 14px;">
                                         <div class="description" style="margin-top: 5px; max-width: 400px;">
                                             Message to append at the end of flagged content. The {TYPE} and {REASON} formatting tags ( case sensitive ) will be automatically replaced with the actual values from the LLM AI moderator response.
                                         </div>
@@ -888,7 +888,7 @@ function colaias_wpforo_ai_display_settings(){
                     <th scope="row">
                         <label for="colaias_wpforo_ai_use_context">Use Context for AI Moderation</label>
                         <hr>
-                        <small class="description" style="display: block; color: #6c757d; margin-top: 5px;">ℹ️ When enabled, the topic starting post (first post) and the post being replied to (parent post) (if any) will always be included by default in addition to the selected max succeeding and preceding posts.</small>
+                        <small class="description" style="display: block; color: #6c757d; margin-top: 5px;">ℹ️ When "Enable Context", the topic starting post (first post) and the post being replied to (parent post) (if any) will always be included by default in addition to the selected max succeeding and preceding posts.</small>
                         <small class="description" style="display: block; color: #6c757d; margin-top: 5px;">⚠️ Note: Too many context posts cause greater LLM moderation costs and processing time.</small>
                         <small class="description" style="display: block; color: #6c757d; font-weight: bold; margin-top: 5px;">❗⚠️ Warning: Including too many succeeding or preceding posts can confuse the AI and may lead to inaccurate moderation. We recommend using only a few posts for context.</small>        
                     </th>
@@ -1288,7 +1288,7 @@ function colaias_wpforo_ai_display_metrics() {
                     <?php
                         if ( !$premium_plugin_active ){ ?>
                     <div style="margin-top: 25px;">
-                        <a href="https://comingofflais.com/product/premium-llm-moderator-for-wpforo/" target="_blank" style="
+                        <a href="https://insertmywebsitehere.com/shop" target="_blank" style="
                             background: linear-gradient( 135deg, #007bff 0%, #0056b3 100% );
                             color: white;
                             padding: 15px 30px;

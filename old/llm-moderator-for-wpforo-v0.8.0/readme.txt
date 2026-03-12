@@ -19,16 +19,16 @@ This plugin is in beta. **Ready/rc but still an early release! It's recommend to
 
 = Base Features =
 * **AI-Powered Moderation**: Uses OpenRouter API with configurable AI models (default: deepseek/deepseek-chat-v3.2)
-* **Real-time Processing**: Analyzes posts and topics as they're submitted, set your OpenRouter query timeout limit
 * **Context Aware Moderation**: Analyzes posts with surrounding context (previous and next posts) for better accuracy
 * **Private by default**: Considerable forum and user privacy by default when sending user data for analysis, and your data lives on your server
 * **Flexible Flagging System**: Customizable flag types (flag, nsfw, spam, etc.) with individual mute durations
-* **User Management**: Automatically moves flagged users to a "Muted" database table, prevents them from posting, and unapproves their penalizing post 
-* **Scheduled Maintenance**: Daily cleanup of expired mutes
-* **Content Cleanup**: Automatically handles unapproved content removal
+* **User Management**: Automatically moves flagged users to a "Muted" database table, prevents them from posting
 * **Flags Only Supported**: Enable only for flag metrics, stealthy tag users without applying mute penalty
-* **Append AI Message**: Append custom messages with {TYPE} and {REASON} formatting tags
 * **Standalone Admin Interface**: Accessible to both Administrators, Moderators, and assigned usergroups
+* **Real-time Processing**: Analyzes posts and topics as they're submitted, set your OpenRouter query timeout limit
+* **Append AI Message**: Append custom messages with {TYPE} and {REASON} formatting tags
+* **Content Cleanup**: Automatically handles unapproved content removal
+* **Scheduled Maintenance**: Daily cleanup of expired mutes
 * **Metrics**: Track basic moderation statistics up to 1 year (5 years in premium)
 * **Notifications**: Shortcode for user notifications about moderation and mute status
 
@@ -124,7 +124,7 @@ The plugin itself is free. However, you need to pay for OpenRouter API usage. Du
 The premium version is available for paying users.
 
 = Can I use free AI models? =
-Yes, free models are available on OpenRouter, but you cannot use a free model with model-chaining. Moreover, AI moderation with OpenRouter is relatively cost effective and efficient with paid models that can be chained.
+Yes, free models are available on OpenRouter, but you can not use a free model with model-chaining. Moreover, AI moderation with OpenRouter is relatively cost effective and efficient with paid models that can be chained.
 
 = What happens if my OpenRouter API key runs out of credits? =
 If your key is at its limit or your account is out of credits, the moderation will simply be skipped. Make sure to enable OpenRouter alerts to monitor your usage.
@@ -149,7 +149,7 @@ No, the plugin has global moderation that is applied to all forums, however, thi
 
 == Check out Premium 🚀 ==
 
-[✨ **Premium Version** ✨](https://comingofflais.com/product/premium-llm-moderator-for-wpforo/)
+✨ **Premium Version** ✨
 
 Upgrade to the premium version for advanced features including:
 
@@ -226,7 +226,7 @@ The plugin sends POST requests to OpenRouter ('https://openrouter.ai/api/v1/chat
 The plugin expects OpenRouter to return a JSON object containing moderation results with 'type' and 'reason' keys as specified in your moderation prompt.
 
 **Configuration Options:**
-- The plugin uses default provider selection parameters. For advanced routing configuration, see: [https://openrouter.ai/docs/guides/routing/provider-selection](https://openrouter.ai/docs/guides/routing/provider-selection), though these cannot be changed from default besides what is already configured above
+- The plugin uses default provider selection parameters. For advanced routing configuration, see: [https://openrouter.ai/docs/guides/routing/provider-selection](https://openrouter.ai/docs/guides/routing/provider-selection), though these can not be changed from default besides what is already configured above
 - You can customize request processing through the OpenRouter dashboard, including model selection and privacy policies on a per-key basis: [https://openrouter.ai/settings/privacy](https://openrouter.ai/settings/privacy)
 - You can configure your key, and set limits and alerts as needed
 - With this plugin, you can also set a timeout for the OpenRouter query from 10-300 seconds 

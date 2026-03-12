@@ -98,7 +98,7 @@ The plugin automatically:
 - Scans new or edited posts and topics for guideline violations, optionally with surrounding posts for context
 - Flags inappropriate content using AI analysis
 - Updates flag and user metrics 
-- Users who violate guidelines can be muted for configured durations, the penalizing posts or topics are unapproved. Muted users will see an error notification that they are currently muted and cannot post until their expiration time or the human moderators unmute them before then.
+- Users who violate guidelines can be muted for configured durations, the penalizing posts or topics are unapproved. Muted users will see an error notification that they are currently muted and cannot post until their expiration time or the human moderators unmute them before then
 - Allows the admin to set different mute expiration times for flag types
 - Appends custom message with formatting tags for AI type and reason to the end of the post, topic, and edits after LLM analysis
 - Can be used to just append the custom message at the end of the post body after AI analysis (without forced muting), or metrics
@@ -359,7 +359,7 @@ $body = json_encode( [
 The plugin expects OpenRouter to return a JSON object containing moderation results with 'type' and 'reason' keys as specified in your moderation prompt.
 
 **Configuration Options:**
-- The plugin uses default provider selection parameters. For advanced routing configuration, see: https://openrouter.ai/docs/guides/routing/provider-selection, though these can not be changed from default besides what is already configured above
+- The plugin uses default provider selection parameters. For advanced routing configuration, see: https://openrouter.ai/docs/guides/routing/provider-selection, though these cannot be changed from default besides what is already configured above
 - You can customize request processing through the OpenRouter dashboard, including model selection and privacy policies on a per-key basis: https://openrouter.ai/settings/privacy
 - You can configure your key, and set limits and alerts as needed
 - With this plugin, you can also set a timeout for the OpenRouter query from 10-300 seconds 
@@ -430,6 +430,11 @@ This plugin is released under the GPL v2 or later license.
 ## Version History
 
 **Still in beta**
+
+New in Version 0.8.1
+ - Context aware moderation with user interface
+ - Premium released
+ - Fixes
 
 New in Version 0.7.7
  - Context aware moderation with user interface
