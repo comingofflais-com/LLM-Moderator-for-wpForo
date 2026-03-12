@@ -34,7 +34,7 @@ This plugin is in beta. **Ready/rc but still an early release! It's recommend to
 
 = Requirements =
 * WordPress 6.0+ (Tested 6.9)
-* wpForo plugin active (Tested current: 2.4.15, Previous versions tested 2.4.8 – 2.4.15)
+* wpForo plugin active (Tested current: 2.4.16 / final v2, Previous versions tested 2.4.8 – 2.4.16)
 * PHP 8.0+ (Tested 8.2)
 * MySQL 8.0+ (Tested 8.0)
 * OpenRouter API key
