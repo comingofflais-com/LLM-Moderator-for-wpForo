@@ -103,7 +103,7 @@ This is a moderation only plugin that mutes users who violate your custom rules 
 While it can, however, be custom coded for a some features beyond moderation, this plugin will not support extra features beyond moderation. If you are interested in more AI features, contact the developer, and check out the premium.
 
 = What versions of wpForo are supported? =
-Tested through wpForo versions 2.4.8 – 2.4.15. The plugin should work with newer versions, or may require updates. The latest version can also be broken on the older versions of wpForo. 
+Tested through wpForo versions 2.4.8 – 2.4.16. May work with newer wpForo v3, TBD.
 
 = Does this plugin track or send any data? =
 No, only the user data post content is sent to OpenRouter for moderation purposes without any identifiable information.
@@ -249,6 +249,10 @@ The plugin expects OpenRouter to return a JSON object containing moderation resu
 9. Context Aware Moderation - Send custom amount of surrounding posts for context
 
 == Changelog ==
+
+= 1.0.0 =
+* Release of the first version
+* Release of the premium version on https://comingofflais.com/product/premium-llm-moderator-for-wpforo/
 
 = 0.8.0 =
 * Context Aware Moderation
