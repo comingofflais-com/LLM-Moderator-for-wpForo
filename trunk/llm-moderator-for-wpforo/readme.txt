@@ -4,7 +4,7 @@ Tags: llm, moderator, wpforo, ai, forum
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 0.8.0
+Stable tag: 1.0.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html 
 
@@ -14,8 +14,6 @@ AI-powered context-aware moderation for wpForo using OpenRouter with standalone 
 
 This plugin integrates AI-powered context-aware content moderation with the wpForo forum plugin. It uses OpenRouter API to analyze forum posts and topics in real-time, automatically flagging inappropriate content and muting users who violate your custom forum moderation guidelines.
 
-= Important Note =
-This plugin is in beta. **Ready/rc but still an early release! It's recommend to backup your site before installing beta software.**
 
 = Base Features =
 * **AI-Powered Moderation**: Uses OpenRouter API with configurable AI models (default: deepseek/deepseek-chat-v3.2)
@@ -251,7 +249,7 @@ The plugin expects OpenRouter to return a JSON object containing moderation resu
 == Changelog ==
 
 = 1.0.0 =
-* Release of the first version
+* Release works on all wpForo v2
 * Release of the premium version on https://comingofflais.com/product/premium-llm-moderator-for-wpforo/
 
 = 0.8.0 =

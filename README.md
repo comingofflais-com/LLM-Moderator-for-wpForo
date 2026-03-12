@@ -429,7 +429,9 @@ This plugin is released under the GPL v2 or later license.
 
 ## Version History
 
-**Still in beta**
+New in Version 1.0.0
+ - Premium released on https://comingofflais.com/product/premium-llm-moderator-for-wpforo/
+
 
 New in Version 0.8.1
  - Context aware moderation with user interface
